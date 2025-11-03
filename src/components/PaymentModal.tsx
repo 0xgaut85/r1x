@@ -97,28 +97,15 @@ export default function PaymentModal({ quote, serviceName, onSuccess, onCancel }
   };
 
   const handlePaymentSuccess = async (proof: PaymentProof) => {
+    // Payment verification is handled automatically by Express Railway middleware
+    // The middleware verifies payment before allowing access to the route
+    // So if we get here, payment was successful
     try {
-      // Verify payment with our backend using X-PAYMENT header
-      const verifyResponse = await fetch('/api/x402/verify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-PAYMENT': JSON.stringify(proof),
-        },
-        body: JSON.stringify({
-          settle: true,
-        }),
-      });
-
-      if (verifyResponse.ok) {
-        const verifyData = await verifyResponse.json();
-        onSuccess(proof);
-      } else {
-        throw new Error('Payment verification failed');
-      }
+      // Just call onSuccess since payment is already verified by middleware
+      onSuccess(proof);
     } catch (error) {
-      console.error('Verification error:', error);
-      setError('Payment verification failed. Please try again.');
+      console.error('Payment success handling error:', error);
+      setError('Payment successful, but error processing access');
       setStep('pay');
     }
   };

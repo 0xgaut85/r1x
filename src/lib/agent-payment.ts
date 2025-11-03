@@ -2,9 +2,11 @@
  * x402 Payment Handler for r1x Agent
  * 
  * Extends the agent to handle payment requests for paid services
+ * NOTE: This file is kept for potential future use, but payments are now handled by Express Railway server
  */
 
 import { PaymentQuote, PaymentProof } from '@/lib/types/x402';
+import { getX402ServerUrl } from './x402-server-url';
 
 export interface AgentPaymentRequest {
   serviceId: string;
@@ -21,6 +23,7 @@ export interface AgentPaymentResponse {
 
 /**
  * Request access to a paid service via x402
+ * Now uses Express Railway server
  */
 export async function requestPaidService(
   serviceId: string,
@@ -38,7 +41,8 @@ export async function requestPaidService(
       requestBody.proof = paymentProof;
     }
 
-    const response = await fetch('/api/x402/pay', {
+    const x402ServerUrl = getX402ServerUrl();
+    const response = await fetch(`${x402ServerUrl}/api/x402/pay`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

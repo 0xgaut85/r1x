@@ -9,7 +9,7 @@ import { useAccount, useWaitForTransactionReceipt } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { modal } from '@/lib/wallet-provider';
 
-import AgentBackground from '@/components/r1x-agent/AgentBackground';
+import { getX402ServerUrl } from '@/lib/x402-server-url';
 import AgentHeader from '@/components/r1x-agent/AgentHeader';
 import AgentFooter from '@/components/r1x-agent/AgentFooter';
 import ChatMessages from '@/components/r1x-agent/ChatMessages';
@@ -91,7 +91,8 @@ export default function R1xAgentContent() {
       console.log('[Payment] Payment proof:', proof);
       console.log('[Payment] Quote details:', pendingPayment.quote);
 
-      const response = await fetch('/api/r1x-agent/chat', {
+      const x402ServerUrl = getX402ServerUrl();
+      const response = await fetch(`${x402ServerUrl}/api/r1x-agent/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -206,7 +207,8 @@ export default function R1xAgentContent() {
     setPendingPayment(null);
 
     try {
-      const response = await fetch('/api/r1x-agent/chat', {
+      const x402ServerUrl = getX402ServerUrl();
+      const response = await fetch(`${x402ServerUrl}/api/r1x-agent/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

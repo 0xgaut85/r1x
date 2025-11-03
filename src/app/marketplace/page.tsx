@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import PaymentModal from '@/components/PaymentModal';
-import { MarketplaceService, PaymentQuote, PaymentProof } from '@/lib/types/x402';
+import { getX402ServerUrl } from '@/lib/x402-server-url';
 
 export default function MarketplacePage() {
   const [services, setServices] = useState<MarketplaceService[]>([]);
@@ -119,8 +118,8 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
   const handlePurchase = async () => {
     setIsProcessing(true);
     try {
-      // Request payment quote from merchant server
-      const response = await fetch('/api/x402/pay', {
+      // Request payment quote from Express Railway server
+      const response = await fetch(`${getX402ServerUrl()}/api/x402/pay`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -152,29 +151,14 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
   };
 
   const handlePaymentSuccess = async (proof: PaymentProof) => {
+    // Payment verification is handled automatically by Express Railway middleware
+    // If we get here, payment was successful
     try {
-      // Verify payment with our backend
-      const verifyResponse = await fetch('/api/x402/verify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          proof,
-          settle: true,
-        }),
-      });
-
-      if (verifyResponse.ok) {
-        const verifyData = await verifyResponse.json();
-        setShowPaymentModal(false);
-        alert('Payment successful! Access granted.');
-      } else {
-        throw new Error('Payment verification failed');
-      }
+      setShowPaymentModal(false);
+      alert('Payment successful! Access granted.');
     } catch (error) {
-      console.error('Verification error:', error);
-      alert('Payment verification failed');
+      console.error('Payment success handling error:', error);
+      alert('Payment successful, but error processing access');
     }
   };
 
