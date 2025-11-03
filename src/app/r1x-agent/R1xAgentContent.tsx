@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { ChatMessage } from '@/lib/types/chat';
-import { PaymentQuote, PaymentProof } from '@/lib/types/x402';
 import { useWallet } from '@/hooks/useWallet';
-import { useAccount, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { modal } from '@/lib/wallet-provider';
+import { walletClientToAccount } from 'viem/accounts';
+import { wrapFetchWithPayment } from 'x402-fetch';
 
 import { getX402ServerUrl } from '@/lib/x402-server-url';
 import AgentBackground from '@/components/r1x-agent/AgentBackground';
@@ -16,7 +16,6 @@ import AgentFooter from '@/components/r1x-agent/AgentFooter';
 import ChatMessages from '@/components/r1x-agent/ChatMessages';
 import ChatInput from '@/components/r1x-agent/ChatInput';
 import ChatSuggestions from '@/components/r1x-agent/ChatSuggestions';
-import AgentPaymentModal from '@/components/r1x-agent/AgentPaymentModal';
 import ErrorBanner from '@/components/r1x-agent/ErrorBanner';
 
 const initialWelcomeMessage: ChatMessage = {
@@ -32,21 +31,35 @@ const suggestions = [
 ];
 
 export default function R1xAgentContent() {
-  const { address, isConnected, chainId, transferUSDC, formatUSDC } = useWallet();
+  const { address, isConnected, chainId, walletClient } = useWallet();
   const { isConnected: wagmiConnected } = useAccount();
   const [messages, setMessages] = useState<ChatMessage[]>([initialWelcomeMessage]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pendingPayment, setPendingPayment] = useState<{ quote: PaymentQuote; messages: ChatMessage[] } | null>(null);
-  const [paymentStep, setPaymentStep] = useState<'idle' | 'processing' | 'verifying'>('idle');
-  const [txHash, setTxHash] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
-  const { data: receipt } = useWaitForTransactionReceipt({
-    hash: txHash as `0x${string}` | undefined,
-    chainId: base.id,
-  });
+
+  // Convert walletClient to account for x402-fetch
+  const account = useMemo(() => {
+    if (!walletClient) return null;
+    try {
+      return walletClientToAccount(walletClient);
+    } catch (err) {
+      console.error('[x402-fetch] Failed to convert walletClient to account:', err);
+      return null;
+    }
+  }, [walletClient]);
+
+  // Create x402-fetch wrapper
+  const fetchWithPayment = useMemo(() => {
+    if (!account) return null;
+    try {
+      return wrapFetchWithPayment(fetch, account);
+    } catch (err) {
+      console.error('[x402-fetch] Failed to wrap fetch:', err);
+      return null;
+    }
+  }, [account]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -55,130 +68,6 @@ export default function R1xAgentContent() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  useEffect(() => {
-    if (receipt && pendingPayment && txHash) {
-      // Wait a bit for PayAI facilitator to index the transaction
-      const verifyDelay = setTimeout(() => {
-        handlePaymentComplete();
-      }, 2000); // Wait 2 seconds after receipt for PayAI to index
-      
-      return () => clearTimeout(verifyDelay);
-    }
-  }, [receipt, pendingPayment, txHash]);
-
-  const handlePaymentComplete = async () => {
-    if (!pendingPayment || !txHash || !address) return;
-
-    try {
-      setPaymentStep('verifying');
-
-      // Create payment proof from actual transaction data
-      // The 'to' address should be where we actually sent the payment (facilitator or merchant)
-      // The amount should match what was sent (from quote, which includes fees)
-      const proof: PaymentProof = {
-        transactionHash: txHash,
-        blockNumber: receipt?.blockNumber ? Number(receipt.blockNumber) : 0,
-        from: address,
-        // Payment recipient: facilitator if present, otherwise merchant
-        // This must match where the USDC was actually sent
-        to: pendingPayment.quote.facilitator || pendingPayment.quote.merchant,
-        // Amount sent (includes base amount + platform fee)
-        amount: pendingPayment.quote.amount,
-        token: pendingPayment.quote.token,
-        timestamp: Date.now(),
-      };
-
-      console.log('[Payment] Payment proof:', proof);
-      console.log('[Payment] Quote details:', pendingPayment.quote);
-
-      const x402ServerUrl = getX402ServerUrl();
-      const response = await fetch(`${x402ServerUrl}/api/r1x-agent/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-PAYMENT': JSON.stringify(proof),
-        },
-        body: JSON.stringify({
-          messages: pendingPayment.messages.map(msg => ({
-            role: msg.role,
-            content: msg.content,
-          })),
-          proof,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || data.reason || 'Payment verification failed');
-      }
-
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: data.message || data.data?.message,
-        status: 'sent',
-      };
-
-      setMessages(prev => {
-        const updated = [...prev];
-        updated[updated.length - 1] = { ...updated[updated.length - 1], status: 'sent' };
-        return [...updated, assistantMessage];
-      });
-
-      setPendingPayment(null);
-      setPaymentStep('idle');
-      setTxHash(null);
-      setIsLoading(false);
-    } catch (err: any) {
-      console.error('[Payment] Verification error:', err);
-      setError(err.message || 'Payment verification failed');
-      setPaymentStep('idle');
-      setPendingPayment(null);
-      setTxHash(null);
-      setIsLoading(false);
-    }
-  };
-
-  const handlePay = async () => {
-    if (!pendingPayment || !address || !isConnected) return;
-
-    try {
-      setPaymentStep('processing');
-      setError(null);
-
-      if (chainId !== base.id) {
-        throw new Error('Please switch to Base network');
-      }
-
-      // If facilitator address is provided, send to facilitator; otherwise send to merchant
-      // PayAI facilitator requires payments to go through their contract
-      const recipientAddress = pendingPayment.quote.facilitator || pendingPayment.quote.merchant;
-      
-      // CRITICAL: Validate that recipient is not the same as payer
-      if (recipientAddress.toLowerCase() === address.toLowerCase()) {
-        throw new Error('Cannot send payment to yourself. Please check MERCHANT_ADDRESS configuration.');
-      }
-      
-      const amount = formatUSDC(pendingPayment.quote.amount);
-      
-      console.log('[Payment] Sending payment:', {
-        recipientAddress,
-        payerAddress: address,
-        amount,
-        facilitator: pendingPayment.quote.facilitator,
-        merchant: pendingPayment.quote.merchant,
-        quote: pendingPayment.quote,
-      });
-      
-      const hash = await transferUSDC(recipientAddress, amount);
-      setTxHash(hash);
-    } catch (err: any) {
-      console.error('[Payment] Payment error:', err);
-      setError(err.message || 'Payment failed');
-      setPaymentStep('idle');
-    }
-  };
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -194,6 +83,11 @@ export default function R1xAgentContent() {
       return;
     }
 
+    if (!fetchWithPayment) {
+      setError('Wallet not ready. Please try again.');
+      return;
+    }
+
     const userMessage: ChatMessage = {
       role: 'user',
       content: input.trim(),
@@ -205,17 +99,21 @@ export default function R1xAgentContent() {
     setInput('');
     setIsLoading(true);
     setError(null);
-    setPendingPayment(null);
 
     try {
       const x402ServerUrl = getX402ServerUrl();
-      console.log('[Agent] Calling x402 server:', x402ServerUrl);
+      console.log('[Agent] Calling x402 server with x402-fetch:', x402ServerUrl);
       console.log('[Agent] Request details:', {
         url: `${x402ServerUrl}/api/r1x-agent/chat`,
         messageCount: updatedMessages.length,
       });
 
-      const response = await fetch(`${x402ServerUrl}/api/r1x-agent/chat`, {
+      // x402-fetch handles everything automatically:
+      // - Detects 402 responses
+      // - Generates payment proof
+      // - Signs transaction automatically
+      // - Re-sends with X-PAYMENT header
+      const response = await fetchWithPayment(`${x402ServerUrl}/api/r1x-agent/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -232,7 +130,7 @@ export default function R1xAgentContent() {
       console.log('[Agent] Response status:', response.status);
       console.log('[Agent] Response headers:', Object.fromEntries(response.headers.entries()));
 
-      if (!response.ok && response.status !== 402) {
+      if (!response.ok) {
         const errorText = await response.text();
         console.error('[Agent] Error response body:', errorText);
         throw new Error(`HTTP ${response.status}: ${errorText || 'Unknown error'}`);
@@ -240,24 +138,6 @@ export default function R1xAgentContent() {
 
       const data = await response.json();
       console.log('[Agent] Response data:', data);
-
-      if (response.status === 402) {
-        const quote: PaymentQuote = data.payment || data.quote;
-        if (quote) {
-          setPendingPayment({ quote, messages: updatedMessages });
-          setMessages(prev => {
-            const updated = [...prev];
-            updated[updated.length - 1] = { ...updated[updated.length - 1], status: 'sent' };
-            return updated;
-          });
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to get response');
-      }
 
       const assistantMessage: ChatMessage = {
         role: 'assistant',
@@ -278,10 +158,15 @@ export default function R1xAgentContent() {
 
       let errorMessage = err.message || 'An error occurred';
       
-      // Améliorer le message d'erreur pour "Failed to fetch"
+      // Improve error message for "Failed to fetch"
       if (err.message.includes('Failed to fetch') || err.name === 'TypeError') {
         const x402ServerUrl = getX402ServerUrl();
         errorMessage = `Cannot connect to x402 server (${x402ServerUrl}). Please check:\n1. Server is running\n2. NEXT_PUBLIC_X402_SERVER_URL is set correctly\n3. CORS is configured\n\nOriginal error: ${err.message}`;
+      }
+
+      // Handle payment errors from x402-fetch
+      if (err.message.includes('payment') || err.message.includes('402')) {
+        errorMessage = `Payment required: ${err.message}`;
       }
 
       setError(errorMessage);
@@ -297,12 +182,6 @@ export default function R1xAgentContent() {
 
   const handleSuggestionClick = (suggestion: string) => {
     setInput(suggestion);
-  };
-
-  const handleClosePayment = () => {
-    setPendingPayment(null);
-    setPaymentStep('idle');
-    setTxHash(null);
   };
 
   return (
@@ -325,22 +204,7 @@ export default function R1xAgentContent() {
             />
           )}
 
-          <AnimatePresence>
-            {pendingPayment && (
-              <AgentPaymentModal
-                quote={pendingPayment.quote}
-                paymentStep={paymentStep}
-                txHash={txHash}
-                error={error}
-                chainId={chainId}
-                isConnected={isConnected}
-                onPay={handlePay}
-                onClose={handleClosePayment}
-              />
-            )}
-          </AnimatePresence>
-
-          {error && !pendingPayment && (
+          {error && (
             <ErrorBanner error={error} />
           )}
 
@@ -357,4 +221,3 @@ export default function R1xAgentContent() {
     </div>
   );
 }
-

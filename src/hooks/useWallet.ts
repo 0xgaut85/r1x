@@ -78,9 +78,9 @@ export function useWallet() {
     address,
     isConnected,
     chainId,
+    walletClient, // Expose walletClient for x402-fetch
     transferUSDC,
     getUSDCBalance,
     formatUSDC,
   };
 }
-
