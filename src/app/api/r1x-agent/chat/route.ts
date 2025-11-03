@@ -6,7 +6,7 @@ import { MerchantFeeConfig } from '@/lib/types/x402';
 import { prisma } from '@/lib/db';
 
 const R1X_AGENT_SERVICE_ID = 'r1x-agent-chat';
-const MESSAGE_PRICE_USDC = '0.01'; // 0.01 USDC per message
+const MESSAGE_PRICE_USDC = '0.25'; // 0.25 USDC per message
 const MERCHANT_ADDRESS = process.env.MERCHANT_ADDRESS || '';
 const FEE_CONFIG: MerchantFeeConfig = {
   feePercentage: parseFloat(process.env.PLATFORM_FEE_PERCENTAGE || '5'), // 5% default
@@ -17,7 +17,7 @@ const FEE_CONFIG: MerchantFeeConfig = {
 /**
  * Chat API endpoint for r1x Agent with x402 payment integration
  * 
- * Charges 0.01 USDC per message using x402 protocol
+ * Charges 0.25 USDC per message using x402 protocol
  * Requires payment proof via X-PAYMENT header for each message
  */
 
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
         data: {
           serviceId: R1X_AGENT_SERVICE_ID,
           name: 'r1x Agent Chat',
-          description: 'AI agent chat service - 0.01 USDC per message',
+          description: 'AI agent chat service - 0.25 USDC per message',
           category: 'AI Inference',
           merchant: MERCHANT_ADDRESS,
           network: 'base',
@@ -68,6 +68,19 @@ export async function POST(request: NextRequest) {
           available: true,
         },
       });
+    } else {
+      // Update price if it has changed
+      const currentPrice = (parseFloat(MESSAGE_PRICE_USDC) * 1e6).toString();
+      if (service.price !== currentPrice || service.priceDisplay !== MESSAGE_PRICE_USDC) {
+        service = await prisma.service.update({
+          where: { serviceId: R1X_AGENT_SERVICE_ID },
+          data: {
+            price: currentPrice,
+            priceDisplay: MESSAGE_PRICE_USDC,
+            description: 'AI agent chat service - 0.25 USDC per message',
+          },
+        });
+      }
     }
 
     // If payment proof is provided, verify and process
@@ -147,7 +160,7 @@ export async function POST(request: NextRequest) {
     
     return create402Response(quote, {
       serviceId: R1X_AGENT_SERVICE_ID,
-      message: 'Payment required: 0.01 USDC per message',
+      message: 'Payment required: 0.25 USDC per message',
     });
   } catch (error: any) {
     console.error('Chat API error:', error);

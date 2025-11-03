@@ -32,7 +32,7 @@ export default function MessageBubble({ message, index }: MessageBubbleProps) {
 function AssistantAvatar() {
   return (
     <motion.div 
-      className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 relative"
+      className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 relative overflow-hidden"
       initial={{ scale: 0 }}
       animate={{ scale: 1 }}
       transition={{ delay: 0.3, type: 'spring', stiffness: 300, damping: 20 }}
@@ -41,7 +41,12 @@ function AssistantAvatar() {
         boxShadow: '0 4px 20px rgba(255, 77, 0, 0.4), 0 0 0 1px rgba(255, 77, 0, 0.2)',
       }}
     >
-      <span className="text-white text-[10px] font-bold relative z-10" style={{ fontFamily: 'TWKEverettMono-Regular, monospace', letterSpacing: '0.5px' }}>r1x</span>
+      <img 
+        src="/logosvg.svg" 
+        alt="r1x logo" 
+        className="w-7 h-7 relative z-10"
+        style={{ filter: 'brightness(0) invert(1)' }}
+      />
       <motion.div
         className="absolute inset-0 rounded-full"
         animate={{

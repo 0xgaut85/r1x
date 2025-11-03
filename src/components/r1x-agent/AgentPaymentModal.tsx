@@ -48,7 +48,7 @@ export default function AgentPaymentModal({
             Payment Required
           </h2>
           <p className="text-sm text-[#8E8EA0] mb-6" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
-            r1x Agent Chat - 0.01 USDC per message
+            r1x Agent Chat - 0.25 USDC per message
           </p>
 
           <div className="bg-[#212121] rounded-lg p-4 mb-6 border border-[#2a2a2a]">
