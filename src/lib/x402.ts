@@ -61,6 +61,19 @@ export async function generatePaymentQuote(
   // Try to get PayAI facilitator address (for payments through facilitator)
   const facilitatorAddress = await getPayAIFacilitatorAddress();
   
+  console.log('[Payment] Generating quote:', {
+    amount,
+    amountWei,
+    totalAmount,
+    merchantAddress,
+    facilitatorAddress,
+    hasFacilitator: !!facilitatorAddress,
+  });
+  
+  if (!facilitatorAddress) {
+    console.warn('[Payment] No facilitator address found - payments will go directly to merchant');
+  }
+  
   return {
     amount: totalAmount.toString(),
     token: USDC_BASE_ADDRESS,
@@ -86,15 +99,25 @@ export async function verifyPaymentWithFacilitator(
   proof: PaymentProof,
   merchantAddress: string
 ): Promise<FacilitatorVerifyResponse> {
+  // Validate that payer and merchant are different
+  if (proof.from.toLowerCase() === merchantAddress.toLowerCase()) {
+    console.error('[PayAI] Invalid payment: payer and merchant are the same address');
+    return {
+      verified: false,
+      reason: 'Invalid payment: payer and merchant addresses cannot be the same',
+    };
+  }
+
   // PayAI facilitator verification request format
   // Based on x402 spec and PayAI facilitator API documentation
+  // For Base network, PayAI expects transaction verification format
   const verifyRequest: FacilitatorVerifyRequest = {
     transactionHash: proof.transactionHash,
     chainId: BASE_CHAIN_ID,
     token: proof.token.toLowerCase(), // Ensure lowercase for consistency
     amount: proof.amount,
     merchant: merchantAddress.toLowerCase(), // Ensure lowercase
-    payer: proof.from.toLowerCase(), // Ensure lowercase
+    payer: proof.from.toLowerCase(), // Ensure lowercase - must be different from merchant
   };
 
   try {
@@ -106,6 +129,18 @@ export async function verifyPaymentWithFacilitator(
       to: proof.to,
       amount: proof.amount,
       token: proof.token,
+    });
+    
+    // Validate transaction recipient
+    // If facilitator is used, 'to' should be facilitator address
+    // If not, 'to' should be merchant address
+    const expectedRecipient = proof.to.toLowerCase();
+    const merchantLower = merchantAddress.toLowerCase();
+    
+    console.log('[PayAI] Transaction recipient check:', {
+      actualTo: expectedRecipient,
+      merchant: merchantLower,
+      facilitatorExpected: !!process.env.PAYAI_FACILITATOR_ADDRESS,
     });
     
     // For Base mainnet, PayAI facilitator requires CDP API keys for authentication

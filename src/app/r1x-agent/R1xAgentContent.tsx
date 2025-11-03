@@ -152,13 +152,27 @@ export default function R1xAgentContent() {
       // If facilitator address is provided, send to facilitator; otherwise send to merchant
       // PayAI facilitator requires payments to go through their contract
       const recipientAddress = pendingPayment.quote.facilitator || pendingPayment.quote.merchant;
+      
+      // CRITICAL: Validate that recipient is not the same as payer
+      if (recipientAddress.toLowerCase() === address.toLowerCase()) {
+        throw new Error('Cannot send payment to yourself. Please check MERCHANT_ADDRESS configuration.');
+      }
+      
       const amount = formatUSDC(pendingPayment.quote.amount);
       
-      console.log('Sending payment:', { recipientAddress, amount, quote: pendingPayment.quote });
+      console.log('[Payment] Sending payment:', {
+        recipientAddress,
+        payerAddress: address,
+        amount,
+        facilitator: pendingPayment.quote.facilitator,
+        merchant: pendingPayment.quote.merchant,
+        quote: pendingPayment.quote,
+      });
       
       const hash = await transferUSDC(recipientAddress, amount);
       setTxHash(hash);
     } catch (err: any) {
+      console.error('[Payment] Payment error:', err);
       setError(err.message || 'Payment failed');
       setPaymentStep('idle');
     }
