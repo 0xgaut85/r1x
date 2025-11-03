@@ -209,10 +209,17 @@ export default function R1xAgentContent() {
 
     try {
       const x402ServerUrl = getX402ServerUrl();
+      console.log('[Agent] Calling x402 server:', x402ServerUrl);
+      console.log('[Agent] Request details:', {
+        url: `${x402ServerUrl}/api/r1x-agent/chat`,
+        messageCount: updatedMessages.length,
+      });
+
       const response = await fetch(`${x402ServerUrl}/api/r1x-agent/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: JSON.stringify({
           messages: updatedMessages.map(msg => ({
@@ -222,7 +229,17 @@ export default function R1xAgentContent() {
         }),
       });
 
+      console.log('[Agent] Response status:', response.status);
+      console.log('[Agent] Response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok && response.status !== 402) {
+        const errorText = await response.text();
+        console.error('[Agent] Error response body:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText || 'Unknown error'}`);
+      }
+
       const data = await response.json();
+      console.log('[Agent] Response data:', data);
 
       if (response.status === 402) {
         const quote: PaymentQuote = data.payment || data.quote;
@@ -254,7 +271,20 @@ export default function R1xAgentContent() {
         return [...updated, assistantMessage];
       });
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      console.error('[Agent] Full error:', err);
+      console.error('[Agent] Error name:', err.name);
+      console.error('[Agent] Error message:', err.message);
+      console.error('[Agent] Error stack:', err.stack);
+
+      let errorMessage = err.message || 'An error occurred';
+      
+      // Améliorer le message d'erreur pour "Failed to fetch"
+      if (err.message.includes('Failed to fetch') || err.name === 'TypeError') {
+        const x402ServerUrl = getX402ServerUrl();
+        errorMessage = `Cannot connect to x402 server (${x402ServerUrl}). Please check:\n1. Server is running\n2. NEXT_PUBLIC_X402_SERVER_URL is set correctly\n3. CORS is configured\n\nOriginal error: ${err.message}`;
+      }
+
+      setError(errorMessage);
       setMessages(prev => {
         const updated = [...prev];
         updated[updated.length - 1] = { ...updated[updated.length - 1], status: 'error' };
