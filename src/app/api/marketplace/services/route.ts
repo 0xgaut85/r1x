@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { MarketplaceService } from '@/lib/types/x402';
+import { syncPayAIServices } from '@/lib/payai-sync';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,6 +16,7 @@ export async function GET(request: NextRequest) {
     const merchant = searchParams.get('merchant');
     const network = searchParams.get('network') || 'base';
     const chainId = searchParams.get('chainId') ? parseInt(searchParams.get('chainId')!) : 8453;
+    const skipSync = searchParams.get('skipSync') === 'true';
 
     // Build query
     const where: any = {
@@ -31,10 +33,28 @@ export async function GET(request: NextRequest) {
       where.merchant = { equals: merchant, mode: 'insensitive' };
     }
 
-    const services = await prisma.service.findMany({
+    let services = await prisma.service.findMany({
       where,
       orderBy: { createdAt: 'desc' },
     });
+
+    // If no services found and sync not skipped, trigger sync
+    if (services.length === 0 && !skipSync) {
+      console.log('No services found in database, triggering PayAI sync...');
+      try {
+        const syncResult = await syncPayAIServices();
+        console.log(`Sync completed: ${syncResult.synced} services synced, ${syncResult.errors} errors`);
+        
+        // Query again after sync
+        services = await prisma.service.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+        });
+      } catch (syncError: any) {
+        console.error('Sync error:', syncError);
+        // Continue with empty services if sync fails
+      }
+    }
 
     // Convert to MarketplaceService format
     const marketplaceServices: MarketplaceService[] = services.map((service: any) => ({

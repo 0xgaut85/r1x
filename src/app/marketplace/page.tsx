@@ -16,13 +16,27 @@ export default function MarketplacePage() {
     fetchServices();
   }, []);
 
-  const fetchServices = async () => {
+  const fetchServices = async (retry = false) => {
     try {
-      const response = await fetch('/api/marketplace/services');
+      setLoading(true);
+      // If retrying, skip sync to avoid infinite loop
+      const url = retry ? '/api/marketplace/services?skipSync=true' : '/api/marketplace/services';
+      const response = await fetch(url);
       const data = await response.json();
-      setServices(data.services || []);
+      
+      if (data.services && data.services.length > 0) {
+        setServices(data.services);
+      } else if (!retry) {
+        // If no services and first attempt, wait a bit and retry (sync might be in progress)
+        console.log('No services found, waiting for sync to complete...');
+        setTimeout(() => fetchServices(true), 2000);
+        return;
+      } else {
+        setServices([]);
+      }
     } catch (error) {
       console.error('Failed to fetch services:', error);
+      setServices([]);
     } finally {
       setLoading(false);
     }

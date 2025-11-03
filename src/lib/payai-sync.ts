@@ -31,48 +31,89 @@ export interface PayAIService {
  */
 export async function fetchPayAIServices(): Promise<PayAIService[]> {
   try {
-    console.log(`Fetching services from PayAI facilitator: ${PAYAI_FACILITATOR_URL}/list`);
+    const facilitatorUrl = `${PAYAI_FACILITATOR_URL}/list`;
+    console.log(`Fetching services from PayAI facilitator: ${facilitatorUrl}`);
     
-    const response = await fetch(`${PAYAI_FACILITATOR_URL}/list`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      // Add timeout
-      signal: AbortSignal.timeout(10000), // 10 second timeout
-    });
+    // Try multiple endpoints based on x402 spec and PayAI conventions
+    const endpoints = [
+      '/list',
+      '/services',
+      '/discover',
+      '/v1/services',
+    ];
 
-    if (!response.ok) {
-      console.warn(`PayAI /list endpoint returned ${response.status}: ${response.statusText}`);
-      return [];
+    let lastError: any = null;
+    
+    for (const endpoint of endpoints) {
+      try {
+        const url = `${PAYAI_FACILITATOR_URL}${endpoint}`;
+        console.log(`Trying endpoint: ${url}`);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          console.warn(`PayAI ${endpoint} endpoint returned ${response.status}: ${response.statusText}`);
+          lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
+          continue; // Try next endpoint
+        }
+
+        const data = await response.json();
+        console.log(`PayAI ${endpoint} response received:`, JSON.stringify(data).substring(0, 500));
+        
+        // Handle different response formats
+        let services: any[] = [];
+        
+        if (Array.isArray(data)) {
+          services = data;
+        } else if (data.services && Array.isArray(data.services)) {
+          services = data.services;
+        } else if (data.data && Array.isArray(data.data)) {
+          services = data.data;
+        } else if (data.items && Array.isArray(data.items)) {
+          services = data.items;
+        } else if (data.result && Array.isArray(data.result)) {
+          services = data.result;
+        } else if (typeof data === 'object' && data !== null) {
+          // Try to extract services from object values
+          const values = Object.values(data);
+          services = values.filter((v: any) => Array.isArray(v) && v.length > 0).flat();
+        }
+
+        if (services.length > 0) {
+          console.log(`Found ${services.length} services from ${endpoint}`);
+          return services.map((service: any) => normalizePayAIService(service));
+        }
+        
+        console.warn(`No services found in ${endpoint} response`);
+      } catch (endpointError: any) {
+        if (endpointError.name === 'AbortError') {
+          console.warn(`Request to ${endpoint} timed out`);
+        } else {
+          console.warn(`Error fetching from ${endpoint}:`, endpointError.message);
+        }
+        lastError = endpointError;
+        continue; // Try next endpoint
+      }
     }
 
-    const data = await response.json();
-    console.log('PayAI response:', JSON.stringify(data).substring(0, 500));
-    
-    // Handle different response formats
-    let services: any[] = [];
-    
-    if (Array.isArray(data)) {
-      services = data;
-    } else if (data.services && Array.isArray(data.services)) {
-      services = data.services;
-    } else if (data.data && Array.isArray(data.data)) {
-      services = data.data;
-    } else if (data.items && Array.isArray(data.items)) {
-      services = data.items;
-    }
-
-    if (services.length === 0) {
-      console.warn('No services found in PayAI response');
-      return [];
-    }
-
-    return services.map((service: any) => normalizePayAIService(service));
+    // If all endpoints failed, log and return empty
+    console.warn('All PayAI endpoints failed. Last error:', lastError?.message);
+    return [];
   } catch (error: any) {
     console.error('Error fetching PayAI services:', error.message);
-    // Don't throw - return empty array so sync can continue
+    // Don't throw - return empty array so sync can continue with seed data
     return [];
   }
 }

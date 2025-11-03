@@ -29,7 +29,7 @@ export default function Header() {
         <div className="flex justify-between items-center" style={{ height: 'auto', minHeight: '138.641px' }}>
           <div className="flex items-center">
             <a href="/" className="flex items-center transform transition-transform duration-300 hover:scale-105">
-              <img src="/logo.svg" alt="r1x" className="h-8 w-auto" />
+              <img src="/logosvg.svg" alt="r1x" className="h-8 w-auto" />
             </a>
           </div>
           <div className="hidden md:flex items-center gap-8">

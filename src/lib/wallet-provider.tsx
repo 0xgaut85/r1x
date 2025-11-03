@@ -11,7 +11,7 @@ const metadata = {
   name: 'r1x',
   description: 'r1x - Machine Economy Infrastructure',
   url: 'https://r1x.vercel.app',
-  icons: ['/logo.svg'],
+  icons: ['/logosvg.svg'],
 };
 
 const networks = [base, mainnet];
