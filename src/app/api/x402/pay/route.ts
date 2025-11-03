@@ -8,6 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generatePaymentQuote, parsePaymentProof, verifyPaymentWithFacilitator, calculateFeeDistribution, create402Response, createPaymentSuccessResponse } from '@/lib/x402';
 import { MerchantFeeConfig, PaymentProof } from '@/lib/types/x402';
+import { prisma } from '@/lib/db';
+import { transferFeeToRecipient } from '@/lib/fee-transfer';
 
 // Merchant configuration
 const MERCHANT_ADDRESS = process.env.MERCHANT_ADDRESS || '';
@@ -27,12 +29,34 @@ export async function POST(request: NextRequest) {
     // Extract service identifier and amount from request
     const { serviceId, amount } = body;
     
-    if (!serviceId || !amount) {
+    if (!serviceId) {
       return NextResponse.json(
-        { error: 'Missing required fields: serviceId and amount' },
+        { error: 'Missing required field: serviceId' },
         { status: 400 }
       );
     }
+
+    // Fetch service from database
+    const service = await prisma.service.findUnique({
+      where: { serviceId },
+    });
+
+    if (!service) {
+      return NextResponse.json(
+        { error: 'Service not found' },
+        { status: 404 }
+      );
+    }
+
+    if (!service.available) {
+      return NextResponse.json(
+        { error: 'Service is not available' },
+        { status: 403 }
+      );
+    }
+
+    const requestedAmount = amount || service.price;
+    const merchantAddress = service.merchant || MERCHANT_ADDRESS;
 
     // If payment proof is provided (via header or body), verify and process
     if (xPaymentHeader || body.proof) {
@@ -46,9 +70,18 @@ export async function POST(request: NextRequest) {
       }
 
       // Verify payment with facilitator
-      const verification = await verifyPaymentWithFacilitator(paymentProof, MERCHANT_ADDRESS);
+      const verification = await verifyPaymentWithFacilitator(paymentProof, merchantAddress);
       
       if (!verification.verified) {
+        // Log failed verification
+        await prisma.transaction.updateMany({
+          where: { transactionHash: paymentProof.transactionHash },
+          data: {
+            status: 'failed',
+            verificationStatus: 'failed',
+          },
+        });
+
         return NextResponse.json(
           { error: 'Payment verification failed', reason: verification.reason },
           { status: 402 }
@@ -58,17 +91,55 @@ export async function POST(request: NextRequest) {
       // Calculate fee distribution
       const { fee, merchantAmount } = calculateFeeDistribution(paymentProof.amount, FEE_CONFIG);
 
-      // Log transaction for admin dashboard
-      await logTransaction({
-        serviceId,
-        paymentProof,
-        fee,
-        merchantAmount,
-        status: 'verified',
+      // Find or create transaction record
+      let transaction = await prisma.transaction.findUnique({
+        where: { transactionHash: paymentProof.transactionHash },
       });
 
-      // Transfer fee to fee recipient wallet
-      await transferFeeToRecipient(paymentProof, fee);
+      if (!transaction) {
+        transaction = await prisma.transaction.create({
+          data: {
+            serviceId: service.id,
+            transactionHash: paymentProof.transactionHash,
+            blockNumber: paymentProof.blockNumber,
+            from: paymentProof.from,
+            to: merchantAddress,
+            amount: paymentProof.amount,
+            token: paymentProof.token,
+            chainId: service.chainId, // Use chainId from service
+            quoteNonce: body.quote?.nonce,
+            quoteDeadline: body.quote?.deadline,
+            feeAmount: fee,
+            merchantAmount,
+            status: 'verified',
+            verificationStatus: 'verified',
+            verifiedAt: new Date(),
+          },
+        });
+      } else {
+        transaction = await prisma.transaction.update({
+          where: { id: transaction.id },
+          data: {
+            status: 'verified',
+            verificationStatus: 'verified',
+            verifiedAt: new Date(),
+            feeAmount: fee,
+            merchantAmount,
+          },
+        });
+      }
+
+      // Create fee record
+      await prisma.fee.create({
+        data: {
+          transactionId: transaction.id,
+          feeAmount: fee,
+          feeRecipient: FEE_CONFIG.feeRecipient,
+        },
+      });
+
+      // Transfer fee to fee recipient wallet (on-chain)
+      await transferFeeToRecipient(paymentProof, fee, FEE_CONFIG.feeRecipient);
 
       // Payment verified, fulfill the request
       const fulfillmentData = await fulfillServiceRequest(serviceId);
@@ -77,7 +148,27 @@ export async function POST(request: NextRequest) {
     }
 
     // No payment proof, return 402 with quote
-    const quote = generatePaymentQuote(amount, MERCHANT_ADDRESS, FEE_CONFIG);
+    const quote = generatePaymentQuote(requestedAmount, merchantAddress, FEE_CONFIG);
+    
+    // Store quote in transaction record (pending status)
+    const { fee: quoteFee, merchantAmount: quoteMerchantAmount } = calculateFeeDistribution(quote.amount, FEE_CONFIG);
+    
+    await prisma.transaction.create({
+      data: {
+        serviceId: service.id,
+        transactionHash: `quote-${quote.nonce}`, // Temporary hash for quote
+        from: '', // Will be filled when payment comes in
+        to: merchantAddress,
+        amount: quote.amount,
+        token: quote.token,
+        chainId: service.chainId,
+        quoteNonce: quote.nonce,
+        quoteDeadline: quote.deadline,
+        feeAmount: quoteFee,
+        merchantAmount: quoteMerchantAmount,
+        status: 'pending',
+      },
+    });
     
     return create402Response(quote, { serviceId });
   } catch (error: any) {
@@ -90,55 +181,19 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Log transaction for admin dashboard
- */
-async function logTransaction(data: {
-  serviceId: string;
-  paymentProof: PaymentProof;
-  fee: string;
-  merchantAmount: string;
-  status: string;
-}) {
-  // TODO: Implement database logging
-  // For now, log to console
-  console.log('[Transaction Log]', {
-    timestamp: new Date().toISOString(),
-    ...data,
-  });
-}
-
-/**
- * Transfer fee to fee recipient wallet
- */
-async function transferFeeToRecipient(proof: PaymentProof, fee: string) {
-  // TODO: Implement on-chain fee transfer
-  // This would use the wallet utilities to transfer USDC
-  // For now, this is a placeholder
-  console.log('[Fee Transfer]', {
-    recipient: FEE_CONFIG.feeRecipient,
-    amount: fee,
-    transactionHash: proof.transactionHash,
-  });
-}
-
-/**
  * Fulfill service request after payment verification
  */
 async function fulfillServiceRequest(serviceId: string): Promise<any> {
-  // Fetch service metadata
-  const servicesResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/marketplace/services`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ serviceId }),
+  // Fetch service from database
+  const service = await prisma.service.findUnique({
+    where: { serviceId },
   });
 
-  if (!servicesResponse.ok) {
+  if (!service) {
     throw new Error('Service not found');
   }
 
-  const { service } = await servicesResponse.json();
-
-  if (!service || !service.endpoint) {
+  if (!service.endpoint) {
     return {
       serviceId,
       fulfilled: true,
@@ -149,7 +204,8 @@ async function fulfillServiceRequest(serviceId: string): Promise<any> {
 
   // Call the actual service endpoint
   try {
-    const serviceResponse = await fetch(service.endpoint, {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const serviceResponse = await fetch(`${baseUrl}${service.endpoint}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

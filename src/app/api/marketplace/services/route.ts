@@ -1,77 +1,56 @@
 /**
  * Marketplace Services API
  * 
- * Returns available x402 services, tokens, and marketplace listings
+ * Returns available x402 services from database
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
 import { MarketplaceService } from '@/lib/types/x402';
-
-// TODO: Replace with actual service registry or database
-const MOCK_SERVICES: MarketplaceService[] = [
-  {
-    id: 'api-claude-sonnet',
-    name: 'Claude Sonnet API',
-    description: 'Access to Anthropic Claude Sonnet model via API',
-    price: '0.01', // 0.01 USDC per request
-    merchant: process.env.MERCHANT_ADDRESS || '',
-    category: 'AI Inference',
-    endpoint: '/api/ai/claude',
-    available: true,
-  },
-  {
-    id: 'api-gpt-4',
-    name: 'GPT-4 API Access',
-    description: 'Pay-per-call access to OpenAI GPT-4',
-    price: '0.02',
-    merchant: process.env.MERCHANT_ADDRESS || '',
-    category: 'AI Inference',
-    endpoint: '/api/ai/gpt4',
-    available: true,
-  },
-  {
-    id: 'data-market-feed',
-    name: 'Market Data Feed',
-    description: 'Real-time cryptocurrency market data stream',
-    price: '0.05',
-    merchant: process.env.MERCHANT_ADDRESS || '',
-    category: 'Data Streams',
-    endpoint: '/api/data/market',
-    available: true,
-  },
-  {
-    id: 'compute-gpu',
-    name: 'GPU Compute',
-    description: 'On-demand GPU compute resources',
-    price: '1.00',
-    merchant: process.env.MERCHANT_ADDRESS || '',
-    category: 'Compute Resources',
-    endpoint: '/api/compute/gpu',
-    available: true,
-  },
-];
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
     const merchant = searchParams.get('merchant');
+    const network = searchParams.get('network') || 'base';
+    const chainId = searchParams.get('chainId') ? parseInt(searchParams.get('chainId')!) : 8453;
 
-    let services = MOCK_SERVICES;
+    // Build query
+    const where: any = {
+      available: true,
+      network,
+      chainId,
+    };
 
-    // Filter by category if provided
     if (category) {
-      services = services.filter(s => s.category.toLowerCase() === category.toLowerCase());
+      where.category = { equals: category, mode: 'insensitive' };
     }
 
-    // Filter by merchant if provided
     if (merchant) {
-      services = services.filter(s => s.merchant.toLowerCase() === merchant.toLowerCase());
+      where.merchant = { equals: merchant, mode: 'insensitive' };
     }
+
+    const services = await prisma.service.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Convert to MarketplaceService format
+    const marketplaceServices: MarketplaceService[] = services.map((service: any) => ({
+      id: service.serviceId,
+      name: service.name,
+      description: service.description || '',
+      price: service.priceDisplay,
+      merchant: service.merchant,
+      category: service.category || 'Other',
+      endpoint: service.endpoint || undefined,
+      available: service.available,
+    }));
 
     return NextResponse.json({
-      services,
-      total: services.length,
+      services: marketplaceServices,
+      total: marketplaceServices.length,
     });
   } catch (error: any) {
     console.error('Marketplace API error:', error);
@@ -94,7 +73,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const service = MOCK_SERVICES.find(s => s.id === serviceId);
+    const service = await prisma.service.findUnique({
+      where: { serviceId },
+    });
 
     if (!service) {
       return NextResponse.json(
@@ -103,7 +84,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ service });
+    const marketplaceService: MarketplaceService = {
+      id: service.serviceId,
+      name: service.name,
+      description: service.description || '',
+      price: service.priceDisplay,
+      merchant: service.merchant,
+      category: service.category || 'Other',
+      endpoint: service.endpoint || undefined,
+      available: service.available,
+    };
+
+    return NextResponse.json({ service: marketplaceService });
   } catch (error: any) {
     console.error('Marketplace API error:', error);
     return NextResponse.json(
