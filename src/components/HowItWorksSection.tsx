@@ -33,18 +33,18 @@ export default function HowItWorksSection() {
       <div className="px-4 sm:px-6 md:px-10 lg:px-[40px]" style={{ maxWidth: 'none' }}>
         <FadeInUp>
           <h2 className="text-white text-3xl sm:text-4xl md:text-[46.45px] leading-tight md:leading-[51.095px]" style={{
-            fontWeight: 400,
-            fontFamily: 'TWKEverett-Regular, sans-serif',
-            letterSpacing: '-1.858px',
-            color: 'rgb(255, 255, 255)',
-            marginBottom: '0px',
-            marginTop: '0px',
-            textAlign: 'start'
-          }}>
+          fontWeight: 400,
+          fontFamily: 'TWKEverett-Regular, sans-serif',
+          letterSpacing: '-1.858px',
+          color: 'rgb(255, 255, 255)',
+          marginBottom: '0px',
+          marginTop: '0px',
+          textAlign: 'start'
+        }}>
             [ The machine{'\u00A0'}
             <TextScramble texts={economyTexts} speed={40} />
             {'\u00A0'}]
-          </h2>
+        </h2>
         </FadeInUp>
 
         <StaggerChildren className="flex justify-center mt-8 sm:mt-10 mb-8 sm:mb-12">
@@ -58,29 +58,29 @@ export default function HowItWorksSection() {
           {steps.map((step, index) => (
             <StaggerChild key={index} className="space-y-4 sm:space-y-6">
               <div className="flex items-center gap-3">
-                <h3 className="text-white text-xl sm:text-2xl md:text-[24px]" style={{
-                  fontWeight: 400,
-                  fontFamily: 'TWKEverettMono-Regular, monospace',
-                  lineHeight: '1.4',
-                  letterSpacing: '-0.96px',
-                  color: 'rgb(255, 255, 255)'
+            <h3 className="text-white text-xl sm:text-2xl md:text-[24px]" style={{
+              fontWeight: 400,
+              fontFamily: 'TWKEverettMono-Regular, monospace',
+              lineHeight: '1.4',
+              letterSpacing: '-0.96px',
+              color: 'rgb(255, 255, 255)'
                 }}>{step.number}</h3>
                 <div className="text-[#FF4D00]">{step.icon}</div>
-              </div>
-              <h4 className="uppercase text-white text-base sm:text-lg" style={{
-                fontWeight: 400,
-                fontFamily: 'BaselGrotesk-Regular, sans-serif',
-                lineHeight: '1.4',
-                color: 'rgb(255, 255, 255)',
-                marginBottom: '16px'
+          </div>
+            <h4 className="uppercase text-white text-base sm:text-lg" style={{
+              fontWeight: 400,
+              fontFamily: 'BaselGrotesk-Regular, sans-serif',
+              lineHeight: '1.4',
+              color: 'rgb(255, 255, 255)',
+              marginBottom: '16px'
               }}>
                 <TextScramble texts={[step.title]} speed={40} />
               </h4>
-              <p className="leading-relaxed text-white text-base sm:text-lg" style={{
-                fontWeight: 400,
-                fontFamily: 'BaselGrotesk-Regular, sans-serif',
-                lineHeight: '1.4',
-                color: 'rgb(255, 255, 255)'
+            <p className="leading-relaxed text-white text-base sm:text-lg" style={{
+              fontWeight: 400,
+              fontFamily: 'BaselGrotesk-Regular, sans-serif',
+              lineHeight: '1.4',
+              color: 'rgb(255, 255, 255)'
               }}>{step.description}</p>
             </StaggerChild>
           ))}

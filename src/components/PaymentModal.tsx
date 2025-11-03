@@ -60,20 +60,29 @@ export default function PaymentModal({ quote, serviceName, onSuccess, onCancel }
       // Convert amount from wei to human-readable format
       const amount = formatUSDC(quote.amount);
       
-      // Transfer USDC to merchant
-      const hash = await transferUSDC(wallet, quote.merchant, amount);
+      // If facilitator address is provided, send to facilitator; otherwise send to merchant
+      // PayAI facilitator requires payments to go through their contract
+      const recipientAddress = quote.facilitator || quote.merchant;
+      
+      // CRITICAL: Validate that recipient is not the same as payer
+      if (recipientAddress.toLowerCase() === wallet.address.toLowerCase()) {
+        throw new Error('Cannot send payment to yourself. Please check MERCHANT_ADDRESS configuration.');
+      }
+      
+      // Transfer USDC to facilitator or merchant
+      const hash = await transferUSDC(wallet, recipientAddress, amount);
       setTxHash(hash);
 
       // Wait for transaction confirmation
       // In production, you'd poll for confirmation
       await new Promise(resolve => setTimeout(resolve, 3000));
 
-      // Create payment proof
+      // Create payment proof with actual recipient
       const proof: PaymentProof = {
         transactionHash: hash,
         blockNumber: 0, // Would be fetched from transaction receipt
         from: wallet.address,
-        to: quote.merchant,
+        to: recipientAddress, // Use actual recipient (facilitator or merchant)
         amount: quote.amount,
         token: quote.token,
         timestamp: Date.now(),

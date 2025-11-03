@@ -4,9 +4,10 @@
  * Handles on-chain fee transfers to fee recipient wallet
  */
 
-import { createWalletClient, custom, parseUnits, createPublicClient, formatUnits } from 'viem';
+import { createWalletClient, parseUnits, createPublicClient, formatUnits, http } from 'viem';
 import { base } from 'viem/chains';
 import { parseAbi } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 import { PaymentProof } from '@/lib/types/x402';
 import { prisma } from '@/lib/db';
 
@@ -64,18 +65,27 @@ export async function transferFeeToRecipient(
   }
 
   try {
-    // For server-side transfers, we'd use a wallet client with private key
-    // This is a placeholder - implement based on your key management strategy
-    // Example using viem:
-    /*
+    // Create wallet client with private key
+    const account = privateKeyToAccount(serverWalletPrivateKey as `0x${string}`);
+    
     const walletClient = createWalletClient({
       chain: base,
       transport: http(),
-      account: privateKeyToAccount(serverWalletPrivateKey as `0x${string}`),
+      account,
     });
 
+    // Convert fee amount to wei (USDC has 6 decimals)
     const feeInWei = parseUnits(formatUSDC(feeAmount), 6);
     
+    console.log('[Fee Transfer] Transferring fee:', {
+      recipient: feeRecipient,
+      amount: formatUSDC(feeAmount),
+      amountWei: feeInWei.toString(),
+      transactionHash: proof.transactionHash,
+      from: account.address,
+    });
+    
+    // Transfer USDC fee to recipient
     const hash = await walletClient.writeContract({
       address: USDC_BASE_ADDRESS,
       abi: USDC_ABI,
@@ -83,7 +93,13 @@ export async function transferFeeToRecipient(
       args: [feeRecipient as `0x${string}`, feeInWei],
     });
 
-    // Update fee record
+    console.log('[Fee Transfer] Transfer successful:', {
+      hash,
+      recipient: feeRecipient,
+      amount: formatUSDC(feeAmount),
+    });
+
+    // Update fee record in database
     await prisma.fee.updateMany({
       where: {
         transaction: {
@@ -99,19 +115,22 @@ export async function transferFeeToRecipient(
     });
 
     return hash;
-    */
-
-    // For now, log and mark as pending
-    console.log('[Fee Transfer]', {
-      recipient: feeRecipient,
-      amount: feeAmount,
-      transactionHash: proof.transactionHash,
-      note: 'Fee transfer requires SERVER_WALLET_PRIVATE_KEY configuration',
-    });
-
-    return null;
   } catch (error: any) {
-    console.error('Fee transfer error:', error);
+    console.error('[Fee Transfer] Transfer error:', error);
+    
+    // Mark as failed but don't throw - allow retry later
+    await prisma.fee.updateMany({
+      where: {
+        transaction: {
+          transactionHash: proof.transactionHash,
+        },
+        feeRecipient,
+      },
+      data: {
+        transferred: false,
+      },
+    });
+    
     throw error;
   }
 }
