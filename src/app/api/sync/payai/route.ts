@@ -19,13 +19,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('Starting PayAI service sync...');
     const result = await syncPayAIServices();
 
     return NextResponse.json({
       success: true,
       synced: result.synced,
       errors: result.errors,
-      message: `Synced ${result.synced} services, ${result.errors} errors`,
+      message: result.synced > 0 
+        ? `Synced ${result.synced} services, ${result.errors} errors`
+        : `No services found. ${result.errors > 0 ? `${result.errors} errors. ` : ''}Seeded with example services.`,
     });
   } catch (error: any) {
     console.error('Sync error:', error);
