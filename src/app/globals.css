@@ -451,3 +451,38 @@ button:focus-visible {
 a, button, input, textarea {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* Custom scrollbar styles for r1x-agent page */
+.r1x-agent-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.r1x-agent-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.r1x-agent-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 77, 0, 0.3);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.r1x-agent-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 77, 0, 0.5);
+}
+
+/* Firefox scrollbar */
+.r1x-agent-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 77, 0, 0.3) transparent;
+}
+
+/* Hide scrollbar for textarea */
+textarea.r1x-agent-textarea {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+textarea.r1x-agent-textarea::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
