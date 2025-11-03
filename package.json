@@ -43,6 +43,10 @@
     "wagmi": "^2.19.2",
     "x402-express": "^0.7.1"
   },
+  "engines": {
+    "node": ">=20.9.0",
+    "npm": ">=10.0.0"
+  },
   "peerDependencies": {
     "gsap": "^3.12.5"
   },
