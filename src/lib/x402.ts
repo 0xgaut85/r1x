@@ -108,12 +108,28 @@ export async function verifyPaymentWithFacilitator(
       token: proof.token,
     });
     
+    // For Base mainnet, PayAI facilitator requires CDP API keys for authentication
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    
+    // Add CDP API key authentication if available (required for Base mainnet)
+    const cdpApiKeyId = process.env.CDP_API_KEY_ID;
+    const cdpApiKeySecret = process.env.CDP_API_KEY_SECRET;
+    
+    if (cdpApiKeyId && cdpApiKeySecret) {
+      // PayAI facilitator authentication using CDP API keys
+      const auth = Buffer.from(`${cdpApiKeyId}:${cdpApiKeySecret}`).toString('base64');
+      headers['Authorization'] = `Basic ${auth}`;
+      console.log('[PayAI] Using CDP API key authentication');
+    } else {
+      console.warn('[PayAI] No CDP API keys found - verification may fail for Base mainnet');
+    }
+    
     const response = await fetch(`${PAYAI_FACILITATOR_URL}/verify`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers,
       body: JSON.stringify(verifyRequest),
     });
 
@@ -191,27 +207,43 @@ export async function settlePaymentWithFacilitator(
   const settleRequest: FacilitatorSettleRequest = {
     transactionHash: proof.transactionHash,
     chainId: BASE_CHAIN_ID,
-    token: proof.token,
+    token: proof.token.toLowerCase(),
     amount: proof.amount,
-    merchant: merchantAddress,
-    payer: proof.from,
+    merchant: merchantAddress.toLowerCase(),
+    payer: proof.from.toLowerCase(),
   };
 
   try {
-    console.log('PayAI settle request:', JSON.stringify(settleRequest, null, 2));
+    console.log('[PayAI] Settle request:', JSON.stringify(settleRequest, null, 2));
+    
+    // For Base mainnet, PayAI facilitator requires CDP API keys for authentication
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    
+    // Add CDP API key authentication if available (required for Base mainnet)
+    const cdpApiKeyId = process.env.CDP_API_KEY_ID;
+    const cdpApiKeySecret = process.env.CDP_API_KEY_SECRET;
+    
+    if (cdpApiKeyId && cdpApiKeySecret) {
+      const auth = Buffer.from(`${cdpApiKeyId}:${cdpApiKeySecret}`).toString('base64');
+      headers['Authorization'] = `Basic ${auth}`;
+      console.log('[PayAI] Using CDP API key authentication for settlement');
+    } else {
+      console.warn('[PayAI] No CDP API keys found - settlement may fail for Base mainnet');
+    }
     
     const response = await fetch(`${PAYAI_FACILITATOR_URL}/settle`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers,
       body: JSON.stringify(settleRequest),
     });
 
     const responseText = await response.text();
-    console.log('PayAI settle response status:', response.status);
-    console.log('PayAI settle response body:', responseText);
+    console.log('[PayAI] Settle response status:', response.status);
+    console.log('[PayAI] Settle response headers:', Object.fromEntries(response.headers.entries()));
+    console.log('[PayAI] Settle response body:', responseText);
 
     if (!response.ok) {
       let errorData: any;
@@ -221,18 +253,32 @@ export async function settlePaymentWithFacilitator(
         errorData = { reason: responseText || `HTTP ${response.status}` };
       }
       
-      console.error('PayAI settlement failed:', errorData);
+      console.error('[PayAI] Settlement failed:', {
+        status: response.status,
+        error: errorData,
+        request: settleRequest,
+      });
       return {
         success: false,
         reason: errorData.reason || errorData.error || errorData.message || `HTTP ${response.status}: ${responseText}`,
       };
     }
 
-    const data = JSON.parse(responseText);
-    console.log('PayAI settlement successful:', data);
+    let data: any;
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      if (response.status === 200) {
+        data = { success: true };
+      } else {
+        throw new Error('Invalid JSON response');
+      }
+    }
+    
+    console.log('[PayAI] Settlement successful:', data);
     return data;
   } catch (error: any) {
-    console.error('PayAI settlement error:', error);
+    console.error('[PayAI] Settlement error:', error);
     return {
       success: false,
       reason: error.message || 'Failed to settle payment',

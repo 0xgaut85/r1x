@@ -6,10 +6,13 @@
 - `DATABASE_URL` - Neon PostgreSQL connection string (from Vercel dashboard)
 
 ### x402 Payment Configuration
-- `MERCHANT_ADDRESS` - Your merchant wallet address on Base network
-- `FEE_RECIPIENT_ADDRESS` - r1x wallet address to receive platform fees
+- `MERCHANT_ADDRESS` - Your merchant wallet address on Base network (required)
+- `FEE_RECIPIENT_ADDRESS` - r1x wallet address to receive platform fees (required)
 - `PLATFORM_FEE_PERCENTAGE` - Platform fee percentage (default: 5, meaning 5%)
 - `FACILITATOR_URL` - PayAI facilitator URL (default: https://facilitator.payai.network)
+- `CDP_API_KEY_ID` - Coinbase Developer Platform API Key ID (required for Base mainnet)
+- `CDP_API_KEY_SECRET` - Coinbase Developer Platform API Key Secret (required for Base mainnet)
+- `PAYAI_FACILITATOR_ADDRESS` - PayAI facilitator contract address (optional, will be fetched if not provided)
 
 ### AI Agent
 - `ANTHROPIC_API_KEY` - Anthropic API key for r1x Agent chat
@@ -28,16 +31,27 @@
    - Copy the connection string
    - Set as `DATABASE_URL` in Vercel environment variables
 
-2. **Configure Wallet Addresses:**
-   - Set `MERCHANT_ADDRESS` to your merchant wallet
-   - Set `FEE_RECIPIENT_ADDRESS` to your fee collection wallet
+2. **Get Coinbase Developer Platform (CDP) API Keys (Required for Base mainnet):**
+   - Go to [Coinbase Developer Platform](https://portal.cdp.coinbase.com/)
+   - Create a new API key
+   - Copy the API Key ID and Secret
+   - Set as `CDP_API_KEY_ID` and `CDP_API_KEY_SECRET` in Vercel environment variables
+   - **Important:** These are required for PayAI facilitator to work on Base mainnet
 
-3. **Run Database Migrations:**
+3. **Configure Wallet Addresses:**
+   - Set `MERCHANT_ADDRESS` to your merchant wallet (Base network)
+   - Set `FEE_RECIPIENT_ADDRESS` to your fee collection wallet (Base network)
+
+4. **Set AI Agent API Key:**
+   - Get your Anthropic API key from [Anthropic Console](https://console.anthropic.com/)
+   - Set as `ANTHROPIC_API_KEY` in Vercel environment variables
+
+5. **Run Database Migrations:**
    ```bash
    npx prisma migrate deploy
    ```
 
-4. **Sync PayAI Services:**
+6. **Sync PayAI Services:**
    ```bash
    # After deployment, call the sync endpoint
    curl -X POST https://your-domain.vercel.app/api/sync/payai
@@ -53,6 +67,8 @@ MERCHANT_ADDRESS="0x..."
 FEE_RECIPIENT_ADDRESS="0x..."
 PLATFORM_FEE_PERCENTAGE=5
 ANTHROPIC_API_KEY="sk-ant-..."
+CDP_API_KEY_ID="your-cdp-api-key-id"
+CDP_API_KEY_SECRET="your-cdp-api-key-secret"
 NEXT_PUBLIC_BASE_URL="http://localhost:3000"
 FACILITATOR_URL="https://facilitator.payai.network"
 ```
