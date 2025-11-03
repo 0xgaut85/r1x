@@ -376,14 +376,22 @@ export function parsePaymentProof(body: any, xPaymentHeader?: string | null): Pa
 
 /**
  * Create HTTP 402 Payment Required response (x402 spec format)
+ * Compatible with PayAI facilitator format
  */
 export function create402Response(quote: PaymentQuote, body?: any): Response {
+  // PayAI x402 format: amount in human-readable format (USDC with $ prefix)
+  const amountInUSDC = (parseFloat(quote.amount) / 1e6).toFixed(6);
+  
   const responseBody = {
     error: 'Payment Required',
     payment: {
-      amount: quote.amount,
+      // PayAI format: amount as string in human-readable format
+      amount: `$${amountInUSDC}`,
+      // Also include raw amount for compatibility
+      amountRaw: quote.amount,
       token: quote.token,
       merchant: quote.merchant,
+      facilitator: quote.facilitator, // Include facilitator if available
       deadline: quote.deadline,
       nonce: quote.nonce,
       chainId: quote.chainId,
