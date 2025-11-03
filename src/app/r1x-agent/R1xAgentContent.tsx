@@ -10,6 +10,7 @@ import { base } from 'wagmi/chains';
 import { modal } from '@/lib/wallet-provider';
 
 import { getX402ServerUrl } from '@/lib/x402-server-url';
+import AgentBackground from '@/components/r1x-agent/AgentBackground';
 import AgentHeader from '@/components/r1x-agent/AgentHeader';
 import AgentFooter from '@/components/r1x-agent/AgentFooter';
 import ChatMessages from '@/components/r1x-agent/ChatMessages';

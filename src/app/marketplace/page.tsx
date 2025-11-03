@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import PaymentModal from '@/components/PaymentModal';
 import { getX402ServerUrl } from '@/lib/x402-server-url';
+import { MarketplaceService, PaymentQuote, PaymentProof } from '@/lib/types/x402';
 
 export default function MarketplacePage() {
   const [services, setServices] = useState<MarketplaceService[]>([]);
@@ -133,8 +135,14 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
       if (response.status === 402) {
         // Payment required - extract quote
         const data = await response.json();
-        setPaymentQuote(data.quote);
-        setShowPaymentModal(true);
+        // Express Railway returns payment quote in data.payment or data.quote
+        const quote = data.payment || data.quote;
+        if (quote) {
+          setPaymentQuote(quote);
+          setShowPaymentModal(true);
+        } else {
+          throw new Error('Invalid payment quote format');
+        }
       } else if (response.ok) {
         // Already paid or free
         const data = await response.json();
