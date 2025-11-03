@@ -1,3 +1,5 @@
+import { PaymentProof } from './x402';
+
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -6,6 +8,7 @@ export interface ChatMessage {
 
 export interface ChatRequest {
   messages: ChatMessage[];
+  proof?: PaymentProof;
 }
 
 export interface ChatResponse {

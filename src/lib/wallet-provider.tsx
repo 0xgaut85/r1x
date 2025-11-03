@@ -3,8 +3,7 @@
 import { createAppKit } from '@reown/appkit/react';
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 import { mainnet, base } from '@reown/appkit/networks';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { WagmiProvider } from 'wagmi';
+import { QueryClient } from '@tanstack/react-query';
 
 const projectId = 'ac7a5e22564f2698c80f05dbf4811d6a';
 
@@ -37,6 +36,9 @@ export const modal = createAppKit({
     '--w3m-accent': '#FF4D00',
   },
 });
+
+// Export wagmiConfig directly from adapter (per Reown docs)
+export const wagmiConfig = wagmiAdapter.wagmiConfig;
 
 export { wagmiAdapter, queryClient };
 
