@@ -7,7 +7,7 @@ import MessageBubble from './MessageBubble';
 interface ChatMessagesProps {
   messages: ChatMessage[];
   isLoading: boolean;
-  messagesEndRef: React.RefObject<HTMLDivElement>;
+  messagesEndRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export default function ChatMessages({ messages, isLoading, messagesEndRef }: ChatMessagesProps) {

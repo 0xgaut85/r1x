@@ -17,7 +17,7 @@ const metadata = {
 const networks = [base, mainnet];
 
 const wagmiAdapter = new WagmiAdapter({
-  networks,
+  networks: networks as any,
   projectId,
 });
 
@@ -25,7 +25,7 @@ const queryClient = new QueryClient();
 
 export const modal = createAppKit({
   adapters: [wagmiAdapter],
-  networks,
+  networks: networks as any,
   projectId,
   metadata,
   features: {

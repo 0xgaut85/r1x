@@ -1,5 +1,7 @@
 'use client';
 
+import { motion } from 'framer-motion';
+
 export default function AgentBackground() {
   return (
     <div className="absolute inset-0 pointer-events-none">
