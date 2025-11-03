@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { useWallet } from '@/hooks/useWallet';
+import { modal } from '@/lib/wallet-provider';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 interface UserStats {
@@ -54,23 +56,19 @@ interface UsageData {
 const COLORS = ['#FF4D00', '#FF6B35', '#FF8C5A', '#FFA87F', '#FFC4A5'];
 
 export default function UserPanelPage() {
-  const [userAddress, setUserAddress] = useState<string>('');
+  const { address, isConnected } = useWallet();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('30d');
 
   useEffect(() => {
-    // In a real app, get user address from auth/wallet connection
-    // For now, prompt user to enter their address
-    const address = localStorage.getItem('userAddress') || '';
-    if (address) {
-      setUserAddress(address);
+    if (isConnected && address) {
       fetchUserData(address);
     } else {
       setLoading(false);
     }
-  }, [period]);
+  }, [isConnected, address, period]);
 
   const fetchUserData = async (address: string) => {
     setLoading(true);
@@ -92,22 +90,14 @@ export default function UserPanelPage() {
     }
   };
 
-  const handleAddressSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (userAddress) {
-      localStorage.setItem('userAddress', userAddress);
-      fetchUserData(userAddress);
-    }
-  };
-
-  if (!userAddress || loading) {
+  if (!isConnected || !address || loading) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: '#F7F7F7' }}>
         <Header />
         <main className="pt-24 md:pt-[138.641px]">
           <section style={{ paddingTop: '80px', paddingBottom: '80px' }}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              {!userAddress ? (
+              {!isConnected ? (
                 <div className="max-w-md mx-auto">
                   <h1 
                     className="text-4xl font-bold mb-6"
@@ -115,30 +105,18 @@ export default function UserPanelPage() {
                   >
                     User Panel
                   </h1>
-                  <form onSubmit={handleAddressSubmit} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
-                        Enter your wallet address
-                      </label>
-                      <input
-                        type="text"
-                        value={userAddress}
-                        onChange={(e) => setUserAddress(e.target.value)}
-                        placeholder="0x..."
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#FF4D00]"
-                        style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
-                      />
-                    </div>
-                    <motion.button
-                      type="submit"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full px-4 py-2 bg-[#FF4D00] text-white rounded-lg"
-                      style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
-                    >
-                      Load Panel
-                    </motion.button>
-                  </form>
+                  <p className="text-lg mb-8" style={{ fontFamily: 'TWKEverettMono-Regular, monospace', color: '#666666' }}>
+                    Connect your wallet to view your transaction history and usage statistics.
+                  </p>
+                  <motion.button
+                    onClick={() => modal.open()}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full px-6 py-3 bg-gradient-to-r from-[#FF4D00] to-[#FF6B35] text-white rounded-xl"
+                    style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                  >
+                    Connect Wallet
+                  </motion.button>
                 </div>
               ) : (
                 <div className="text-center py-12">
@@ -171,7 +149,7 @@ export default function UserPanelPage() {
                 className="text-sm text-gray-600 mb-4"
                 style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
               >
-                {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
+                {address.slice(0, 6)}...{address.slice(-4)}
               </p>
             </div>
 

@@ -4,6 +4,11 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Footer from '@/components/Footer';
 import { ChatMessage } from '@/lib/types/chat';
+import { useWallet } from '@/hooks/useWallet';
+import { modal } from '@/lib/wallet-provider';
+import { PaymentQuote, PaymentProof } from '@/lib/types/x402';
+import { useAccount, useWaitForTransactionReceipt } from 'wagmi';
+import { base } from 'wagmi/chains';
 
 const initialWelcomeMessage: ChatMessage = {
   role: 'assistant',
@@ -18,13 +23,23 @@ const suggestions = [
 ];
 
 export default function R1xAgentPage() {
+  const { address, isConnected, chainId, transferUSDC, formatUSDC } = useWallet();
+  const { isConnected: wagmiConnected } = useAccount();
   const [messages, setMessages] = useState<ChatMessage[]>([initialWelcomeMessage]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isNavExpanded, setIsNavExpanded] = useState(false);
+  const [pendingPayment, setPendingPayment] = useState<{ quote: PaymentQuote; messages: ChatMessage[] } | null>(null);
+  const [paymentStep, setPaymentStep] = useState<'idle' | 'processing' | 'verifying'>('idle');
+  const [txHash, setTxHash] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  
+  const { data: receipt } = useWaitForTransactionReceipt({
+    hash: txHash as `0x${string}` | undefined,
+    chainId: base.id,
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -34,8 +49,116 @@ export default function R1xAgentPage() {
     scrollToBottom();
   }, [messages]);
 
+  // Handle payment when transaction is confirmed
+  useEffect(() => {
+    if (receipt && pendingPayment && txHash) {
+      handlePaymentComplete();
+    }
+  }, [receipt, pendingPayment, txHash]);
+
+  const handlePaymentComplete = async () => {
+    if (!pendingPayment || !txHash || !address) return;
+
+    try {
+      setPaymentStep('verifying');
+
+      // Create payment proof
+      const proof: PaymentProof = {
+        transactionHash: txHash,
+        blockNumber: receipt?.blockNumber || 0,
+        from: address,
+        to: pendingPayment.quote.merchant,
+        amount: pendingPayment.quote.amount,
+        token: pendingPayment.quote.token,
+        timestamp: Date.now(),
+      };
+
+      // Retry chat request with payment proof
+      const response = await fetch('/api/r1x-agent/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-PAYMENT': JSON.stringify(proof),
+        },
+        body: JSON.stringify({
+          messages: pendingPayment.messages.map(msg => ({
+            role: msg.role,
+            content: msg.content,
+          })),
+          proof,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Payment verification failed');
+      }
+
+      // Success - add assistant response
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: data.message || data.data?.message,
+        status: 'sent',
+      };
+
+      setMessages(prev => {
+        const updated = [...prev];
+        updated[updated.length - 1] = { ...updated[updated.length - 1], status: 'sent' };
+        return [...updated, assistantMessage];
+      });
+
+      // Reset payment state
+      setPendingPayment(null);
+      setPaymentStep('idle');
+      setTxHash(null);
+      setIsLoading(false);
+    } catch (err: any) {
+      setError(err.message || 'Payment verification failed');
+      setPaymentStep('idle');
+      setPendingPayment(null);
+      setTxHash(null);
+      setIsLoading(false);
+    }
+  };
+
+  const handlePay = async () => {
+    if (!pendingPayment || !address || !isConnected) return;
+
+    try {
+      setPaymentStep('processing');
+      setError(null);
+
+      // Check chain
+      if (chainId !== base.id) {
+        throw new Error('Please switch to Base network');
+      }
+
+      // Transfer USDC
+      const amount = formatUSDC(pendingPayment.quote.amount);
+      const hash = await transferUSDC(pendingPayment.quote.merchant, amount);
+      setTxHash(hash);
+    } catch (err: any) {
+      setError(err.message || 'Payment failed');
+      setPaymentStep('idle');
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
+
+    // Check wallet connection first
+    if (!isConnected || !wagmiConnected) {
+      modal.open();
+      setError('Please connect your wallet to send messages');
+      return;
+    }
+
+    // Check network
+    if (chainId !== base.id) {
+      setError('Please switch to Base network');
+      return;
+    }
 
     const userMessage: ChatMessage = {
       role: 'user',
@@ -43,10 +166,12 @@ export default function R1xAgentPage() {
       status: 'sending',
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput('');
     setIsLoading(true);
     setError(null);
+    setPendingPayment(null);
 
     try {
       const response = await fetch('/api/r1x-agent/chat', {
@@ -55,7 +180,7 @@ export default function R1xAgentPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: [...messages, userMessage].map(msg => ({
+          messages: updatedMessages.map(msg => ({
             role: msg.role,
             content: msg.content,
           })),
@@ -64,13 +189,28 @@ export default function R1xAgentPage() {
 
       const data = await response.json();
 
+      // Handle 402 Payment Required
+      if (response.status === 402) {
+        const quote: PaymentQuote = data.payment || data.quote;
+        if (quote) {
+          setPendingPayment({ quote, messages: updatedMessages });
+          setMessages(prev => {
+            const updated = [...prev];
+            updated[updated.length - 1] = { ...updated[updated.length - 1], status: 'sent' };
+            return updated;
+          });
+          setIsLoading(false);
+          return;
+        }
+      }
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to get response');
       }
 
       const assistantMessage: ChatMessage = {
         role: 'assistant',
-        content: data.message,
+        content: data.message || data.data?.message,
         status: 'sent',
       };
 
@@ -143,13 +283,32 @@ export default function R1xAgentPage() {
         />
       </div>
 
-      {/* Premium Home Button */}
+      {/* Top Right Buttons */}
       <motion.div 
-        className="fixed top-6 right-6 z-50"
+        className="fixed top-6 right-6 z-50 flex gap-3 items-center"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
       >
+        {/* Wallet Button */}
+        <motion.button
+          onClick={() => modal.open()}
+          whileHover={{ scale: 1.05, y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          className="px-5 py-2.5 bg-[#1a1a1a] border border-[#2a2a2a] backdrop-blur-md text-white transition-all duration-300"
+          style={{
+            fontFamily: 'TWKEverettMono-Regular, monospace',
+            fontSize: '11px',
+            fontWeight: 400,
+            letterSpacing: '0.5px',
+            clipPath: 'polygon(10px 0%, 100% 0%, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0% 100%, 0% 10px)',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+          }}
+        >
+          {isConnected && address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Connect Wallet'}
+        </motion.button>
+        
+        {/* Home Button */}
         <motion.a
           href="/"
           whileHover={{ scale: 1.05, y: -2 }}
@@ -375,8 +534,114 @@ export default function R1xAgentPage() {
             </motion.div>
           )}
 
+          {/* Payment Modal */}
+          <AnimatePresence>
+            {pendingPayment && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => {
+                    setPendingPayment(null);
+                    setPaymentStep('idle');
+                    setTxHash(null);
+                  }}
+                  className="fixed inset-0 bg-black/70 backdrop-blur-md z-40"
+                />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                  className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                >
+                  <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-6 sm:p-8 max-w-md w-full" style={{ boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)' }}>
+                    <h2 className="text-xl font-semibold mb-2 text-white" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
+                      Payment Required
+                    </h2>
+                    <p className="text-sm text-[#8E8EA0] mb-6" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
+                      r1x Agent Chat - 0.01 USDC per message
+                    </p>
+
+                    <div className="bg-[#212121] rounded-lg p-4 mb-6 border border-[#2a2a2a]">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-[#8E8EA0]" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
+                          Amount:
+                        </span>
+                        <span className="text-lg font-semibold text-white" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
+                          {formatUSDC(pendingPayment.quote.amount)} USDC
+                        </span>
+                      </div>
+                    </div>
+
+                    {error && (
+                      <div className="mb-4 bg-red-950/30 border border-red-500/30 rounded-lg px-4 py-3">
+                        <p className="text-sm text-red-300" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
+                          {error}
+                        </p>
+                      </div>
+                    )}
+
+                    {chainId !== base.id && (
+                      <div className="mb-4 bg-yellow-950/30 border border-yellow-500/30 rounded-lg px-4 py-3">
+                        <p className="text-sm text-yellow-300" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
+                          Please switch to Base network
+                        </p>
+                      </div>
+                    )}
+
+                    {paymentStep === 'idle' && (
+                      <motion.button
+                        onClick={handlePay}
+                        disabled={!isConnected || chainId !== base.id}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="w-full px-6 py-3 bg-gradient-to-r from-[#FF4D00] to-[#FF6B35] text-white rounded-xl disabled:opacity-30 disabled:cursor-not-allowed"
+                        style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                      >
+                        Pay {formatUSDC(pendingPayment.quote.amount)} USDC
+                      </motion.button>
+                    )}
+
+                    {paymentStep === 'processing' && (
+                      <div className="w-full px-6 py-3 bg-[#212121] rounded-xl flex items-center justify-center gap-3">
+                        <div className="w-5 h-5 border-2 border-[#FF4D00] border-t-transparent rounded-full animate-spin" />
+                        <span className="text-white text-sm" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
+                          Processing transaction...
+                        </span>
+                      </div>
+                    )}
+
+                    {paymentStep === 'verifying' && (
+                      <div className="w-full px-6 py-3 bg-[#212121] rounded-xl flex items-center justify-center gap-3">
+                        <div className="w-5 h-5 border-2 border-[#FF4D00] border-t-transparent rounded-full animate-spin" />
+                        <span className="text-white text-sm" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
+                          Verifying payment...
+                        </span>
+                      </div>
+                    )}
+
+                    {txHash && (
+                      <div className="mt-4 text-center">
+                        <a
+                          href={`https://basescan.org/tx/${txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-[#FF4D00] hover:underline"
+                          style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                        >
+                          View on BaseScan
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+
           {/* Premium Error Banner */}
-          {error && (
+          {error && !pendingPayment && (
             <motion.div
               initial={{ opacity: 0, y: -10, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
