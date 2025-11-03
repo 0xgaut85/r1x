@@ -4,7 +4,7 @@
  * Handles wallet connection, payment approval, and transaction signing
  */
 
-import { createWalletClient, custom, parseUnits, formatUnits, parseAbi } from 'viem';
+import { createWalletClient, createPublicClient, custom, parseUnits, formatUnits, parseAbi } from 'viem';
 import { base } from 'viem/chains';
 
 const BASE_CHAIN_ID = 8453;
@@ -156,13 +156,13 @@ export async function transferUSDC(
  * Check USDC balance
  */
 export async function getUSDCBalance(wallet: WalletConnection): Promise<string> {
-  const client = createWalletClient({
+  const publicClient = createPublicClient({
     chain: base,
     transport: custom(wallet.provider),
   });
 
   try {
-    const balance = await client.readContract({
+    const balance = await publicClient.readContract({
       address: USDC_BASE_ADDRESS,
       abi: USDC_ABI,
       functionName: 'balanceOf',

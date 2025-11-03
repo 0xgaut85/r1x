@@ -2,6 +2,7 @@
 
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { ReactNode } from 'react';
+import { CSSProperties } from 'react';
 
 interface FadeInUpProps {
   children: ReactNode;
@@ -28,9 +29,10 @@ interface StaggerChildrenProps {
   children: ReactNode;
   className?: string;
   staggerDelay?: number;
+  style?: CSSProperties;
 }
 
-export function StaggerChildren({ children, staggerDelay = 0.1, className = '' }: StaggerChildrenProps) {
+export function StaggerChildren({ children, staggerDelay = 0.1, className = '', style }: StaggerChildrenProps) {
   return (
     <motion.div
       initial="hidden"
@@ -46,13 +48,14 @@ export function StaggerChildren({ children, staggerDelay = 0.1, className = '' }
         },
       }}
       className={className}
+      style={style}
     >
       {children}
     </motion.div>
   );
 }
 
-export function StaggerChild({ children, className = '' }: { children: ReactNode; className?: string }) {
+export function StaggerChild({ children, className = '', style }: { children?: ReactNode; className?: string; style?: CSSProperties }) {
   return (
     <motion.div
       variants={{
@@ -61,6 +64,7 @@ export function StaggerChild({ children, className = '' }: { children: ReactNode
       }}
       transition={{ duration: 0.8, ease: [0.47, 0, 0.745, 0.715] }}
       className={className}
+      style={style}
     >
       {children}
     </motion.div>
