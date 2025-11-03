@@ -57,7 +57,12 @@ export default function R1xAgentContent() {
 
   useEffect(() => {
     if (receipt && pendingPayment && txHash) {
-      handlePaymentComplete();
+      // Wait a bit for PayAI facilitator to index the transaction
+      const verifyDelay = setTimeout(() => {
+        handlePaymentComplete();
+      }, 2000); // Wait 2 seconds after receipt for PayAI to index
+      
+      return () => clearTimeout(verifyDelay);
     }
   }, [receipt, pendingPayment, txHash]);
 
@@ -71,11 +76,14 @@ export default function R1xAgentContent() {
         transactionHash: txHash,
         blockNumber: receipt?.blockNumber ? Number(receipt.blockNumber) : 0,
         from: address,
-        to: pendingPayment.quote.merchant,
+        // If facilitator was used, 'to' should be facilitator address; otherwise merchant
+        to: pendingPayment.quote.facilitator || pendingPayment.quote.merchant,
         amount: pendingPayment.quote.amount,
         token: pendingPayment.quote.token,
         timestamp: Date.now(),
       };
+
+      console.log('Payment proof:', proof);
 
       const response = await fetch('/api/r1x-agent/chat', {
         method: 'POST',
@@ -134,8 +142,14 @@ export default function R1xAgentContent() {
         throw new Error('Please switch to Base network');
       }
 
+      // If facilitator address is provided, send to facilitator; otherwise send to merchant
+      // PayAI facilitator requires payments to go through their contract
+      const recipientAddress = pendingPayment.quote.facilitator || pendingPayment.quote.merchant;
       const amount = formatUSDC(pendingPayment.quote.amount);
-      const hash = await transferUSDC(pendingPayment.quote.merchant, amount);
+      
+      console.log('Sending payment:', { recipientAddress, amount, quote: pendingPayment.quote });
+      
+      const hash = await transferUSDC(recipientAddress, amount);
       setTxHash(hash);
     } catch (err: any) {
       setError(err.message || 'Payment failed');

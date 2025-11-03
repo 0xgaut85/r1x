@@ -12,23 +12,60 @@ const BASE_CHAIN_ID = 8453;
 const USDC_BASE_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'; // USDC on Base
 
 /**
- * Generate a payment quote for a request
+ * Get PayAI facilitator contract address for Base network
+ * This should be fetched from PayAI facilitator API or configured via env var
  */
-export function generatePaymentQuote(
+async function getPayAIFacilitatorAddress(): Promise<string | null> {
+  // Try to get from environment variable first
+  const envAddress = process.env.PAYAI_FACILITATOR_ADDRESS;
+  if (envAddress) {
+    return envAddress;
+  }
+
+  try {
+    // Try to fetch from PayAI facilitator API
+    const response = await fetch(`${PAYAI_FACILITATOR_URL}/config`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      // PayAI might return facilitator address in different formats
+      return data.facilitatorAddress || data.address || data.contract || null;
+    }
+  } catch (error) {
+    console.warn('Could not fetch PayAI facilitator address:', error);
+  }
+
+  return null;
+}
+
+/**
+ * Generate a payment quote for a request
+ * With PayAI facilitator, payments may need to go through facilitator contract
+ */
+export async function generatePaymentQuote(
   amount: string, // Amount in USDC (human-readable, e.g., "1.5")
   merchantAddress: string,
   feeConfig: MerchantFeeConfig
-): PaymentQuote {
+): Promise<PaymentQuote> {
   const amountWei = parseFloat(amount) * 1e6; // USDC has 6 decimals
   
   // Calculate total amount including fee
   const feeAmount = (amountWei * feeConfig.feePercentage) / 100;
   const totalAmount = amountWei + feeAmount;
   
+  // Try to get PayAI facilitator address (for payments through facilitator)
+  const facilitatorAddress = await getPayAIFacilitatorAddress();
+  
   return {
     amount: totalAmount.toString(),
     token: USDC_BASE_ADDRESS,
     merchant: merchantAddress,
+    facilitator: facilitatorAddress || undefined,
     deadline: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
     nonce: generateNonce(),
     chainId: BASE_CHAIN_ID,
@@ -49,34 +86,94 @@ export async function verifyPaymentWithFacilitator(
   proof: PaymentProof,
   merchantAddress: string
 ): Promise<FacilitatorVerifyResponse> {
+  // PayAI facilitator verification request format
+  // Based on x402 spec and PayAI facilitator API documentation
   const verifyRequest: FacilitatorVerifyRequest = {
     transactionHash: proof.transactionHash,
     chainId: BASE_CHAIN_ID,
-    token: proof.token,
+    token: proof.token.toLowerCase(), // Ensure lowercase for consistency
     amount: proof.amount,
-    merchant: merchantAddress,
-    payer: proof.from,
+    merchant: merchantAddress.toLowerCase(), // Ensure lowercase
+    payer: proof.from.toLowerCase(), // Ensure lowercase
   };
 
   try {
+    console.log('[PayAI] Verify request:', JSON.stringify(verifyRequest, null, 2));
+    console.log('[PayAI] Proof details:', {
+      transactionHash: proof.transactionHash,
+      blockNumber: proof.blockNumber,
+      from: proof.from,
+      to: proof.to,
+      amount: proof.amount,
+      token: proof.token,
+    });
+    
     const response = await fetch(`${PAYAI_FACILITATOR_URL}/verify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
       body: JSON.stringify(verifyRequest),
     });
 
+    const responseText = await response.text();
+    console.log('[PayAI] Verify response status:', response.status);
+    console.log('[PayAI] Verify response headers:', Object.fromEntries(response.headers.entries()));
+    console.log('[PayAI] Verify response body:', responseText);
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ reason: 'Unknown error' }));
+      let errorData: any;
+      try {
+        errorData = JSON.parse(responseText);
+      } catch {
+        errorData = { reason: responseText || `HTTP ${response.status}` };
+      }
+      
+      console.error('[PayAI] Verification failed:', {
+        status: response.status,
+        error: errorData,
+        request: verifyRequest,
+      });
+      
       return {
         verified: false,
-        reason: errorData.reason || `HTTP ${response.status}`,
+        reason: errorData.reason || errorData.error || errorData.message || errorData.details || `HTTP ${response.status}: ${responseText}`,
       };
     }
 
-    return await response.json();
+    let data: any;
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      // If response is not JSON, treat as success if status is 200
+      if (response.status === 200) {
+        data = { verified: true };
+      } else {
+        throw new Error('Invalid JSON response');
+      }
+    }
+    
+    console.log('[PayAI] Verification successful:', data);
+    
+    // PayAI might return different response formats
+    // Handle both { verified: true } and { success: true } formats
+    if (data.verified === true || data.success === true || data.status === 'verified') {
+      return {
+        verified: true,
+        settlement: data.settlement || data.settlementHash ? {
+          transactionHash: data.settlementHash || data.settlement?.transactionHash,
+          blockNumber: data.settlement?.blockNumber || data.blockNumber,
+        } : undefined,
+      };
+    }
+    
+    return {
+      verified: false,
+      reason: data.reason || data.error || 'Verification returned false',
+    };
   } catch (error: any) {
+    console.error('[PayAI] Verification error:', error);
     return {
       verified: false,
       reason: error.message || 'Failed to verify payment',
@@ -101,24 +198,41 @@ export async function settlePaymentWithFacilitator(
   };
 
   try {
+    console.log('PayAI settle request:', JSON.stringify(settleRequest, null, 2));
+    
     const response = await fetch(`${PAYAI_FACILITATOR_URL}/settle`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
       body: JSON.stringify(settleRequest),
     });
 
+    const responseText = await response.text();
+    console.log('PayAI settle response status:', response.status);
+    console.log('PayAI settle response body:', responseText);
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ reason: 'Unknown error' }));
+      let errorData: any;
+      try {
+        errorData = JSON.parse(responseText);
+      } catch {
+        errorData = { reason: responseText || `HTTP ${response.status}` };
+      }
+      
+      console.error('PayAI settlement failed:', errorData);
       return {
         success: false,
-        reason: errorData.reason || `HTTP ${response.status}`,
+        reason: errorData.reason || errorData.error || errorData.message || `HTTP ${response.status}: ${responseText}`,
       };
     }
 
-    return await response.json();
+    const data = JSON.parse(responseText);
+    console.log('PayAI settlement successful:', data);
+    return data;
   } catch (error: any) {
+    console.error('PayAI settlement error:', error);
     return {
       success: false,
       reason: error.message || 'Failed to settle payment',

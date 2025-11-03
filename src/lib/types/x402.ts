@@ -10,6 +10,7 @@ export interface PaymentQuote {
   amount: string; // Amount in USDC (wei units)
   token: string; // Token contract address (USDC on Base)
   merchant: string; // Merchant address
+  facilitator?: string; // PayAI facilitator contract address (if payments go through facilitator)
   deadline: number; // Unix timestamp
   nonce: string; // Unique payment identifier
   chainId: number; // Base chain ID: 8453

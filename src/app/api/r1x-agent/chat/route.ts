@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
 
     // No payment proof, return 402 with quote
     const { generatePaymentQuote } = await import('@/lib/x402');
-    const quote = generatePaymentQuote(MESSAGE_PRICE_USDC, service.merchant, FEE_CONFIG);
+    const quote = await generatePaymentQuote(MESSAGE_PRICE_USDC, service.merchant, FEE_CONFIG);
     
     return create402Response(quote, {
       serviceId: R1X_AGENT_SERVICE_ID,

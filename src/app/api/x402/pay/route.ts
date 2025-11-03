@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
     }
 
     // No payment proof, return 402 with quote
-    const quote = generatePaymentQuote(requestedAmount, merchantAddress, FEE_CONFIG);
+    const quote = await generatePaymentQuote(requestedAmount, merchantAddress, FEE_CONFIG);
     
     // Store quote in transaction record (pending status)
     const { fee: quoteFee, merchantAmount: quoteMerchantAmount } = calculateFeeDistribution(quote.amount, FEE_CONFIG);
