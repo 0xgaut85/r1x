@@ -10,6 +10,7 @@
 - `FEE_RECIPIENT_ADDRESS` - r1x wallet address to receive platform fees (required)
 - `PLATFORM_FEE_PERCENTAGE` - Platform fee percentage (default: 5, meaning 5%)
 - `FACILITATOR_URL` - PayAI facilitator URL (default: https://facilitator.payai.network)
+- `NETWORK` - Network identifier (set to `base` for Base mainnet)
 - `CDP_API_KEY_ID` - Coinbase Developer Platform API Key ID (required for Base mainnet)
 - `CDP_API_KEY_SECRET` - Coinbase Developer Platform API Key Secret (required for Base mainnet)
 - `PAYAI_FACILITATOR_ADDRESS` - PayAI facilitator contract address (optional, will be fetched if not provided)
@@ -66,6 +67,7 @@ DATABASE_URL="postgresql://..."
 MERCHANT_ADDRESS="0x..."
 FEE_RECIPIENT_ADDRESS="0x..."
 PLATFORM_FEE_PERCENTAGE=5
+NETWORK=base
 ANTHROPIC_API_KEY="sk-ant-..."
 CDP_API_KEY_ID="your-cdp-api-key-id"
 CDP_API_KEY_SECRET="your-cdp-api-key-secret"

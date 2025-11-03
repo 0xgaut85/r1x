@@ -72,18 +72,24 @@ export default function R1xAgentContent() {
     try {
       setPaymentStep('verifying');
 
+      // Create payment proof from actual transaction data
+      // The 'to' address should be where we actually sent the payment (facilitator or merchant)
+      // The amount should match what was sent (from quote, which includes fees)
       const proof: PaymentProof = {
         transactionHash: txHash,
         blockNumber: receipt?.blockNumber ? Number(receipt.blockNumber) : 0,
         from: address,
-        // If facilitator was used, 'to' should be facilitator address; otherwise merchant
+        // Payment recipient: facilitator if present, otherwise merchant
+        // This must match where the USDC was actually sent
         to: pendingPayment.quote.facilitator || pendingPayment.quote.merchant,
+        // Amount sent (includes base amount + platform fee)
         amount: pendingPayment.quote.amount,
         token: pendingPayment.quote.token,
         timestamp: Date.now(),
       };
 
-      console.log('Payment proof:', proof);
+      console.log('[Payment] Payment proof:', proof);
+      console.log('[Payment] Quote details:', pendingPayment.quote);
 
       const response = await fetch('/api/r1x-agent/chat', {
         method: 'POST',
@@ -103,7 +109,7 @@ export default function R1xAgentContent() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Payment verification failed');
+        throw new Error(data.error || data.reason || 'Payment verification failed');
       }
 
       const assistantMessage: ChatMessage = {
@@ -123,6 +129,7 @@ export default function R1xAgentContent() {
       setTxHash(null);
       setIsLoading(false);
     } catch (err: any) {
+      console.error('[Payment] Verification error:', err);
       setError(err.message || 'Payment verification failed');
       setPaymentStep('idle');
       setPendingPayment(null);
