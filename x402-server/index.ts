@@ -31,9 +31,8 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://127.0.0.1:3000',
   'https://www.r1xlabs.com',
-  'https://r1xlabs.com', // Main production domain
-  'https://api.r1xlabs.com', // API subdomain
-  'https://r1x.vercel.app', // Legacy Vercel deployment
+  'https://r1xlabs.com',
+  'https://api.r1xlabs.com', // Allow API subdomain
 ].filter(Boolean);
 
 // Handle CORS with explicit OPTIONS support
@@ -41,14 +40,12 @@ app.use((req, res, next) => {
   const origin = req.headers.origin;
   
   // More permissive CORS for production - allow any r1xlabs.com subdomain
-  // Also allow vercel.app and railway.app domains for deployments
   const isAllowed = !origin || 
     allowedOrigins.includes(origin) || 
     origin.includes('railway.app') ||
     origin.includes('r1xlabs.com') ||
     origin.includes('vercel.app') ||
-    origin.includes('r1x.vercel.app') ||
-    (process.env.NODE_ENV === 'production' && origin && (origin.includes('r1xlabs.com') || origin.includes('vercel.app')));
+    (process.env.NODE_ENV === 'production' && origin && origin.includes('r1xlabs.com'));
   
   if (isAllowed && origin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
@@ -74,6 +71,33 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+
+// Explicit OPTIONS handlers for all protected routes (must be before paymentMiddleware)
+app.options('/api/r1x-agent/chat', (req, res) => {
+  const origin = req.headers.origin;
+  if (origin && (origin.includes('r1xlabs.com') || origin.includes('railway.app') || origin.includes('vercel.app'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Payment, Authorization, Accept');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  console.log('[CORS] OPTIONS /api/r1x-agent/chat from:', origin);
+  res.status(200).end();
+});
+
+app.options('/api/x402/pay', (req, res) => {
+  const origin = req.headers.origin;
+  if (origin && (origin.includes('r1xlabs.com') || origin.includes('railway.app') || origin.includes('vercel.app'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Payment, Authorization, Accept');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  console.log('[CORS] OPTIONS /api/x402/pay from:', origin);
+  res.status(200).end();
+});
 
 app.use(
   paymentMiddleware(
