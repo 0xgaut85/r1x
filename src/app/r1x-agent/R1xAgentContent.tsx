@@ -84,11 +84,13 @@ export default function R1xAgentContent() {
     if (!wagmiConnected || !fetchWithPayment) {
       modal.open();
       setError('Please connect your wallet to send messages');
+      setIsLoading(false);
       return;
     }
 
     if (chainId !== base.id) {
       setError('Please switch to Base network');
+      setIsLoading(false);
       return;
     }
 
@@ -118,7 +120,13 @@ export default function R1xAgentContent() {
        * Using Next.js API route (/api/r1x-agent/chat) which proxies to Express server
        * This eliminates CORS issues since browser calls same origin
        */
+      
+      // Add timeout to prevent infinite loading
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes timeout
+      
       const response = await fetchWithPayment('/api/r1x-agent/chat', {
+        signal: controller.signal,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -131,6 +139,9 @@ export default function R1xAgentContent() {
           })),
         }),
       });
+      
+      // Clear timeout on success
+      clearTimeout(timeoutId);
 
       console.log('[Agent] Response status:', response.status);
 
@@ -155,6 +166,9 @@ export default function R1xAgentContent() {
         return [...updated, assistantMessage];
       });
     } catch (err: any) {
+      // Clear timeout on error
+      clearTimeout(timeoutId);
+      
       console.error('[Agent] Error:', err);
       console.error('[Agent] Error details:', {
         name: err.name,
@@ -164,10 +178,15 @@ export default function R1xAgentContent() {
 
       let errorMessage = err.message || 'An error occurred';
       
-      if (err.message.includes('Failed to fetch') || err.name === 'TypeError' || err.message.includes('network')) {
-        errorMessage = `Cannot connect to x402 server. Please check:\n1. Next.js API route is accessible (/api/r1x-agent/chat)\n2. X402_SERVER_URL is set in Railway (for server-side proxy)\n3. Express server is running and accessible\n4. Check browser console and server logs for details\n\nOriginal error: ${err.message}`;
+      // Handle timeout
+      if (err.name === 'AbortError' || err.message.includes('timeout')) {
+        errorMessage = 'Request timed out. This might be due to:\n1. Wallet connection issues (check Reown domain allowlist)\n2. Network issues\n3. Server not responding\n\nPlease try again or check the console for details.';
+      } else if (err.message.includes('Failed to fetch') || err.name === 'TypeError' || err.message.includes('network')) {
+        errorMessage = `Cannot connect to x402 server. Please check:\n1. Next.js API route is accessible (/api/r1x-agent/chat)\n2. X402_SERVER_URL is set in Railway (for server-side proxy)\n3. Express server is running and accessible\n4. Wallet is properly connected (check Reown domain allowlist)\n5. Check browser console and server logs for details\n\nOriginal error: ${err.message}`;
       } else if (err.message.includes('Runtime config')) {
         errorMessage = `Configuration error: ${err.message}\n\nPlease ensure X402_SERVER_URL is set in Railway environment variables.`;
+      } else if (err.message.includes('Reown') || err.message.includes('allow list') || err.message.includes('APKT002')) {
+        errorMessage = `Wallet connection issue:\n\nThe domain ${typeof window !== 'undefined' ? window.location.origin : 'your domain'} is not in the Reown allowlist.\n\nPlease add it at: https://dashboard.reown.com\n\nProject ID: ac7a5e22564f2698c80f05dbf4811d6a`;
       }
 
       setError(errorMessage);
@@ -178,6 +197,15 @@ export default function R1xAgentContent() {
       });
     } finally {
       setIsLoading(false);
+      // Reset loading state even if there's an error
+      setMessages(prev => {
+        const updated = [...prev];
+        const lastMessage = updated[updated.length - 1];
+        if (lastMessage && lastMessage.status === 'sending') {
+          updated[updated.length - 1] = { ...lastMessage, status: 'sent' };
+        }
+        return updated;
+      });
     }
   };
 
