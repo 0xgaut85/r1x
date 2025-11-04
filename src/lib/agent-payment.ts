@@ -6,7 +6,7 @@
  */
 
 import { PaymentQuote, PaymentProof } from '@/lib/types/x402';
-import { getX402ServerUrl } from './x402-server-url';
+// No longer need x402-server-url - using Next.js API routes (same origin)
 
 export interface AgentPaymentRequest {
   serviceId: string;
@@ -41,8 +41,8 @@ export async function requestPaidService(
       requestBody.proof = paymentProof;
     }
 
-    const x402ServerUrl = getX402ServerUrl();
-    const response = await fetch(`${x402ServerUrl}/api/x402/pay`, {
+    // Use Next.js API route (proxies to Express server, same origin)
+    const response = await fetch('/api/x402/pay', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

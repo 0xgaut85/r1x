@@ -108,17 +108,13 @@ async function fetchRuntimeUrl(): Promise<string> {
 
 /**
  * Get x402 Express Server URL
- * Works both client-side and server-side
  * 
- * Client-side: Uses NEXT_PUBLIC_X402_SERVER_URL (build-time) or runtime config API (fallback)
+ * NOTE: This is now only used server-side for Next.js API routes that proxy to Express.
+ * Client-side code should use Next.js API routes (/api/r1x-agent/chat, /api/x402/pay) directly.
+ * 
  * Server-side: Uses X402_SERVER_URL (not exposed to client)
  * 
- * IMPORTANT: NEXT_PUBLIC_* vars are embedded at BUILD TIME in Next.js.
- * If not set during Railway build, this function will try to fetch from runtime API.
- * 
- * Priority in production:
- * 1. Runtime config API (X402_SERVER_URL) - always prefer in production
- * 2. Build-time var (NEXT_PUBLIC_X402_SERVER_URL) - only if not localhost
+ * @deprecated Client-side: Use Next.js API routes instead (same origin, no CORS)
  */
 export async function getX402ServerUrlAsync(): Promise<string> {
   // Server-side: use X402_SERVER_URL (not exposed to client)
@@ -184,38 +180,24 @@ export async function getX402ServerUrlAsync(): Promise<string> {
 }
 
 /**
- * Synchronous version (for backwards compatibility)
- * Returns immediately, but may return localhost if env var wasn't set at build time
+ * Synchronous version - Server-side only
+ * Used by Next.js API routes to proxy to Express server
  * 
- * NOTE: In production, this will return localhost if build-time var wasn't set.
- * Use getX402ServerUrlAsync() for production instead.
- * 
- * @deprecated Use getX402ServerUrlAsync() for production
+ * NOTE: Client-side code should use Next.js API routes (/api/...) instead
+ * This function is only for server-side Next.js API routes
  */
 export function getX402ServerUrl(): string {
-  // Client-side: use NEXT_PUBLIC_X402_SERVER_URL
-  if (typeof window !== 'undefined') {
-    const url = process.env.NEXT_PUBLIC_X402_SERVER_URL || 'http://localhost:4021';
-    const normalized = normalizeUrl(url);
-    
-    // In production, don't log error (async version handles it)
-    // Just return the value - the async version will handle runtime config
-    if (normalized.includes('localhost') && isProduction()) {
-      // Silently return localhost - async version will fix it
-      // This prevents error spam in console
-      return normalized;
+  // Server-side only: use X402_SERVER_URL (not exposed to client)
+  if (typeof window === 'undefined') {
+    if (process.env.X402_SERVER_URL) {
+      return normalizeUrl(process.env.X402_SERVER_URL);
     }
-    
-    return normalized;
+    // Fallback to localhost for development
+    return 'http://localhost:4021';
   }
   
-  // Server-side: use X402_SERVER_URL (not exposed to client)
-  if (process.env.X402_SERVER_URL) {
-    return normalizeUrl(process.env.X402_SERVER_URL);
-  }
-  
-  // Fallback to localhost for development
-  const url = process.env.NEXT_PUBLIC_X402_SERVER_URL || 'http://localhost:4021';
-  return normalizeUrl(url);
+  // Client-side should not use this - use Next.js API routes instead
+  console.warn('[x402-server-url] getX402ServerUrl() called client-side. Use Next.js API routes (/api/...) instead.');
+  return '/api'; // Return relative path hint
 }
 

@@ -4,7 +4,8 @@
 
 ### Service Next.js
 - [x] `NEXT_PUBLIC_BASE_URL=https://www.r1xlabs.com`
-- [x] `NEXT_PUBLIC_X402_SERVER_URL=https://api.r1xlabs.com`
+- [x] `X402_SERVER_URL=https://api.r1xlabs.com` (for server-side proxy)
+- [ ] ~~`NEXT_PUBLIC_X402_SERVER_URL`~~ (no longer needed - client uses Next.js API routes)
 - [ ] `DATABASE_URL` (PostgreSQL Railway)
 - [ ] `MERCHANT_ADDRESS=0x...`
 - [ ] `FEE_RECIPIENT_ADDRESS=0x...`
@@ -42,10 +43,11 @@ Devrait retourner :
 }
 ```
 
-### 2. Vérifier CORS
+### 2. Vérifier les appels API
 Ouvre la console du navigateur (F12) sur `https://www.r1xlabs.com` et teste l'agent :
-- Les requêtes vers `https://api.r1xlabs.com` ne doivent pas être bloquées par CORS
-- Les logs `[Agent] Calling x402 server:` doivent afficher `https://api.r1xlabs.com`
+- Les requêtes doivent aller vers `/api/r1x-agent/chat` (même origine, pas de CORS)
+- Les logs `[Agent] Calling x402 server:` doivent afficher `/api/r1x-agent/chat`
+- Pas d'erreurs CORS dans la console
 
 ### 3. Tester r1x Agent
 1. Va sur `https://www.r1xlabs.com/r1x-agent`
@@ -74,26 +76,28 @@ Va dans Railway → Service Next.js → Logs et vérifie :
 
 ## ⚠️ Si ça ne fonctionne pas
 
-### Erreur "Failed to fetch" ou "Cannot connect to x402 server (http://localhost:4021)"
-**IMPORTANT:** Next.js `NEXT_PUBLIC_*` variables are embedded at BUILD TIME, not runtime!
+### Erreur "Failed to fetch" ou "Cannot connect to x402 server"
+**Architecture:** Browser → Next.js API routes → Express server (proxy)
 
-1. **If you see `http://localhost:4021` in the error:**
-   - This means `NEXT_PUBLIC_X402_SERVER_URL` wasn't set during Railway build
-   - **Solution 1 (Recommended):** Set `NEXT_PUBLIC_X402_SERVER_URL=https://api.r1xlabs.com` BEFORE building, then redeploy
-   - **Solution 2 (Fallback):** Set `X402_SERVER_URL=https://api.r1xlabs.com` - runtime config API will handle it automatically
-   - See detailed guide: `docs/railway-env-var-build-time-fix.md`
+1. **Verify Next.js API route:**
+   - Browser should call `/api/r1x-agent/chat` (same origin)
+   - Check browser console - should see calls to `/api/r1x-agent/chat`
+   - If calling `api.r1xlabs.com` directly, client code needs update
 
-2. **Verify env vars are set:**
-   - Railway → Service → Variables
-   - Both `NEXT_PUBLIC_X402_SERVER_URL` and `X402_SERVER_URL` should be set
+2. **Verify server-side proxy:**
+   - Railway → Next.js Service → Variables
+   - Set `X402_SERVER_URL=https://api.r1xlabs.com` (for server-side proxy)
+   - Check Next.js logs for proxy forwarding
 
-3. **Check the domain:**
-   - Verify `api.r1xlabs.com` is active on Railway (status "Active")
+3. **Verify Express server:**
+   - Railway → Express Service → Variables
+   - Express server should be running
    - Test: `curl https://api.r1xlabs.com/health`
 
-4. **Check CORS:**
-   - Verify Railway logs for CORS errors
-   - Express server should allow requests from `www.r1xlabs.com`
+4. **No CORS needed:**
+   - Browser calls Next.js (same origin)
+   - Next.js calls Express (server-to-server)
+   - CORS configuration not required
 
 ### Erreur "Payment verification failed"
 1. Vérifie que `MERCHANT_ADDRESS` est bien configurée dans les deux services

@@ -8,7 +8,7 @@ import { base } from 'wagmi/chains';
 import { modal } from '@/lib/wallet-provider';
 import { wrapFetchWithPayment } from 'x402-fetch';
 
-import { getX402ServerUrl, getX402ServerUrlAsync } from '@/lib/x402-server-url';
+// No longer need x402-server-url - using Next.js API routes (same origin)
 import AgentBackground from '@/components/r1x-agent/AgentBackground';
 import AgentHeader from '@/components/r1x-agent/AgentHeader';
 import AgentFooter from '@/components/r1x-agent/AgentFooter';
@@ -105,10 +105,6 @@ export default function R1xAgentContent() {
     setError(null);
 
     try {
-      // Use async version to support runtime config API fallback
-      const x402ServerUrl = await getX402ServerUrlAsync();
-      console.log('[Agent] Calling x402 server with x402-fetch (PayAI official):', x402ServerUrl);
-
       /**
        * Utilisation conforme aux docs PayAI officielles
        * x402-fetch gère automatiquement tout le flow de paiement :
@@ -118,8 +114,11 @@ export default function R1xAgentContent() {
        * - Retries automatiques en cas d'erreur
        * 
        * L'utilisateur verra uniquement la popup de signature dans son wallet
+       * 
+       * Using Next.js API route (/api/r1x-agent/chat) which proxies to Express server
+       * This eliminates CORS issues since browser calls same origin
        */
-      const response = await fetchWithPayment(`${x402ServerUrl}/api/r1x-agent/chat`, {
+      const response = await fetchWithPayment('/api/r1x-agent/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -166,15 +165,7 @@ export default function R1xAgentContent() {
       let errorMessage = err.message || 'An error occurred';
       
       if (err.message.includes('Failed to fetch') || err.name === 'TypeError' || err.message.includes('network')) {
-        // Try to get the URL we attempted to use
-        let attemptedUrl = 'unknown';
-        try {
-          attemptedUrl = await getX402ServerUrlAsync();
-        } catch (urlError) {
-          console.error('[Agent] Failed to get server URL:', urlError);
-        }
-        
-        errorMessage = `Cannot connect to x402 server.\n\nAttempted URL: ${attemptedUrl}\n\nPlease check:\n1. Express server is running and accessible\n2. X402_SERVER_URL is set in Railway (runtime config)\n3. CORS is configured on Express server\n4. Check browser console for detailed logs\n\nOriginal error: ${err.message}`;
+        errorMessage = `Cannot connect to x402 server. Please check:\n1. Next.js API route is accessible (/api/r1x-agent/chat)\n2. X402_SERVER_URL is set in Railway (for server-side proxy)\n3. Express server is running and accessible\n4. Check browser console and server logs for details\n\nOriginal error: ${err.message}`;
       } else if (err.message.includes('Runtime config')) {
         errorMessage = `Configuration error: ${err.message}\n\nPlease ensure X402_SERVER_URL is set in Railway environment variables.`;
       }

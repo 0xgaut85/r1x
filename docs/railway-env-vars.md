@@ -43,7 +43,8 @@ ANTHROPIC_API_KEY=sk-ant-... # Anthropic API key
 
 # Application URLs
 NEXT_PUBLIC_BASE_URL=https://ton-nextjs-url.up.railway.app # URL du service Next.js Railway
-NEXT_PUBLIC_X402_SERVER_URL=https://ton-x402-url.up.railway.app # URL du service Express Railway
+X402_SERVER_URL=https://ton-x402-url.up.railway.app # URL du service Express Railway (server-side proxy only)
+# NOTE: NEXT_PUBLIC_X402_SERVER_URL no longer needed - client uses Next.js API routes (/api/...)
 
 # Optional
 SERVER_WALLET_PRIVATE_KEY=0x... # Pour transfer fees automatique
@@ -91,10 +92,11 @@ ANTHROPIC_API_KEY=sk-ant-... # Anthropic API key
 - Railway génère automatiquement cette URL quand tu crées une PostgreSQL database
 - Va dans Railway → Service Database → Variables → `DATABASE_URL`
 
-### NEXT_PUBLIC_BASE_URL & NEXT_PUBLIC_X402_SERVER_URL
-- Ces URLs sont générées automatiquement par Railway
+### NEXT_PUBLIC_BASE_URL & X402_SERVER_URL
+- `NEXT_PUBLIC_BASE_URL`: URL générée automatiquement par Railway pour le service Next.js
+- `X402_SERVER_URL`: URL du service Express Railway (pour proxy server-side uniquement)
 - Après avoir déployé les services, va dans Settings → Networking → Generate Domain
-- Copie l'URL générée et ajoute-la comme variable
+- Copie les URLs générées et ajoute-les comme variables
 
 ---
 
@@ -102,6 +104,7 @@ ANTHROPIC_API_KEY=sk-ant-... # Anthropic API key
 
 - Les variables `NEXT_PUBLIC_*` sont exposées côté client (dans le navigateur)
 - Ne mets JAMAIS de secrets dans `NEXT_PUBLIC_*`
-- `X402_SERVER_URL` (sans NEXT_PUBLIC) est utilisée côté serveur uniquement
-- `NEXT_PUBLIC_X402_SERVER_URL` est utilisée côté client pour les appels fetch
+- `X402_SERVER_URL` (sans NEXT_PUBLIC) est utilisée côté serveur uniquement pour proxy
+- **Client-side**: Utilise les routes Next.js API (`/api/r1x-agent/chat`, `/api/x402/pay`) - même origine, pas de CORS
+- **Architecture**: Browser → Next.js API routes → Express server (server-to-server)
 

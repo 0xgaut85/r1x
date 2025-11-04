@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PaymentModal from '@/components/PaymentModal';
-import { getX402ServerUrlAsync } from '@/lib/x402-server-url';
+// No longer need x402-server-url - using Next.js API routes (same origin)
 import { MarketplaceService, PaymentQuote, PaymentProof } from '@/lib/types/x402';
 
 export default function MarketplacePage() {
@@ -120,11 +120,11 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
   const handlePurchase = async () => {
     setIsProcessing(true);
     try {
-      // Request payment quote from Express Railway server
-      const x402ServerUrl = await getX402ServerUrlAsync();
-      console.log('[Marketplace] Fetching payment quote from:', `${x402ServerUrl}/api/x402/pay`);
+      // Request payment quote via Next.js API route (proxies to Express server)
+      // Using same origin eliminates CORS issues
+      console.log('[Marketplace] Fetching payment quote from:', '/api/x402/pay');
       
-      const response = await fetch(`${x402ServerUrl}/api/x402/pay`, {
+      const response = await fetch('/api/x402/pay', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -162,13 +162,7 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
       let errorMessage = 'Failed to process purchase';
       
       if (error.message.includes('Failed to fetch') || error.name === 'TypeError' || error.message.includes('network')) {
-        let attemptedUrl = 'unknown';
-        try {
-          attemptedUrl = await getX402ServerUrlAsync();
-        } catch (urlError) {
-          console.error('[Marketplace] Failed to get server URL:', urlError);
-        }
-        errorMessage = `Cannot connect to x402 server (${attemptedUrl}). Please check:\n1. Express server is running\n2. X402_SERVER_URL is set in Railway\n3. CORS is configured\n\nError: ${error.message}`;
+        errorMessage = `Cannot connect to x402 server. Please check:\n1. Next.js API route is accessible (/api/x402/pay)\n2. X402_SERVER_URL is set in Railway (for server-side proxy)\n3. Express server is running and accessible\n\nError: ${error.message}`;
       } else {
         errorMessage = error.message || errorMessage;
       }
