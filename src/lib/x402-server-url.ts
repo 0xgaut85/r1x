@@ -182,6 +182,9 @@ export async function getX402ServerUrlAsync(): Promise<string> {
  * Synchronous version (for backwards compatibility)
  * Returns immediately, but may return localhost if env var wasn't set at build time
  * 
+ * NOTE: In production, this will return localhost if build-time var wasn't set.
+ * Use getX402ServerUrlAsync() for production instead.
+ * 
  * @deprecated Use getX402ServerUrlAsync() for production
  */
 export function getX402ServerUrl(): string {
@@ -190,16 +193,12 @@ export function getX402ServerUrl(): string {
     const url = process.env.NEXT_PUBLIC_X402_SERVER_URL || 'http://localhost:4021';
     const normalized = normalizeUrl(url);
     
-    // Log warning if using localhost fallback in production
-    if (normalized.includes('localhost') && typeof window !== 'undefined') {
-      const hostname = window.location.hostname;
-      if (!hostname.includes('localhost') && !hostname.includes('127.0.0.1')) {
-        console.error(
-          '[x402-server-url] CRITICAL: NEXT_PUBLIC_X402_SERVER_URL not set at build time!\n' +
-          '  Current URL:', normalized, '\n' +
-          '  Fix: Set NEXT_PUBLIC_X402_SERVER_URL in Railway BEFORE building, or use getX402ServerUrlAsync()'
-        );
-      }
+    // In production, don't log error (async version handles it)
+    // Just return the value - the async version will handle runtime config
+    if (normalized.includes('localhost') && isProduction()) {
+      // Silently return localhost - async version will fix it
+      // This prevents error spam in console
+      return normalized;
     }
     
     return normalized;

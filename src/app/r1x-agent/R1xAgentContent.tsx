@@ -161,9 +161,9 @@ export default function R1xAgentContent() {
       let errorMessage = err.message || 'An error occurred';
       
       if (err.message.includes('Failed to fetch') || err.name === 'TypeError') {
-        // Use sync version for error message (won't block)
-        const x402ServerUrl = getX402ServerUrl();
-        errorMessage = `Cannot connect to x402 server (${x402ServerUrl}). Please check:\n1. Server is running\n2. NEXT_PUBLIC_X402_SERVER_URL is set correctly (set BEFORE Railway build)\n3. X402_SERVER_URL is set for runtime config\n4. CORS is configured\n\nOriginal error: ${err.message}`;
+        // Try to get the URL we attempted to use (from the error context or async call)
+        // Don't call sync version here as it might return localhost
+        errorMessage = `Cannot connect to x402 server. Please check:\n1. Server is running at https://api.r1xlabs.com\n2. X402_SERVER_URL is set in Railway (runtime config)\n3. CORS is configured on Express server\n4. Check browser console for detailed logs\n\nOriginal error: ${err.message}`;
       }
 
       setError(errorMessage);
