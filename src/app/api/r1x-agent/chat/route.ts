@@ -130,20 +130,24 @@ export async function POST(request: NextRequest) {
       jsonData = { error: data };
     }
     
-    // Forward all headers from Express (important for 402 responses and payment quotes)
+    // Forward all headers from Express (important for 402 responses and payment metadata)
     const responseHeaders: Record<string, string> = {};
-    
-    // Forward X-Payment header if present
-    const xPayment = response.headers.get('x-payment');
-    if (xPayment) {
-      responseHeaders['X-Payment'] = xPayment;
-    }
-    
-    // Forward Content-Type
-    const contentType = response.headers.get('content-type');
-    if (contentType) {
-      responseHeaders['Content-Type'] = contentType;
-    }
+
+    // Pass-through helper for specific headers (case-insensitive)
+    const forwardHeader = (name: string, outName?: string) => {
+      const value = response.headers.get(name);
+      if (value) responseHeaders[outName ?? name] = value;
+    };
+
+    // x402 headers that clients may rely on
+    forwardHeader('x-payment', 'X-Payment');
+    forwardHeader('x-payment-response', 'X-Payment-Response');
+    forwardHeader('x-payment-required', 'X-Payment-Required');
+    forwardHeader('x-payment-quote', 'X-Payment-Quote');
+    forwardHeader('www-authenticate', 'WWW-Authenticate');
+
+    // Content type
+    forwardHeader('content-type', 'Content-Type');
     
     // Forward status and response (including 402 Payment Required)
     return NextResponse.json(jsonData, { 

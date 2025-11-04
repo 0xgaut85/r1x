@@ -24,6 +24,9 @@ if (!facilitatorUrl || !payTo) {
 
 const app = express();
 
+// Behind Railway/Proxies: trust proxy so protocol/host are correct for x402 resource
+app.set('trust proxy', true);
+
 // CORS configuration - Allow requests from Next.js frontend
 // IMPORTANT: CORS must be configured BEFORE paymentMiddleware to handle OPTIONS preflight
 const allowedOrigins = [
@@ -129,6 +132,12 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
       messageCount: req.body.messages?.length || 0,
       hasPayment: !!req.headers['x-payment'],
     });
+
+    // Log minimal detail about X-Payment header for diagnostics (length only)
+    const xPaymentHeader = typeof req.headers['x-payment'] === 'string' ? req.headers['x-payment'] as string : undefined;
+    if (xPaymentHeader) {
+      console.log('[x402-server] X-Payment header present, length:', xPaymentHeader.length);
+    }
 
     // Import Anthropic depuis le chemin relatif ou via API
     const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
