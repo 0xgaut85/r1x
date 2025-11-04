@@ -6,7 +6,6 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   
   // Build optimizations
-  swcMinify: true,
   compress: true,
   
   // Optimize build performance
@@ -26,16 +25,9 @@ const nextConfig: NextConfig = {
     } : false,
   },
   
-  // Webpack optimizations
-  webpack: (config, { isServer }) => {
-    // Optimize bundle size
-    if (!isServer) {
-      config.optimization = {
-        ...config.optimization,
-        moduleIds: 'deterministic',
-      };
-    }
-    return config;
+  // Turbopack configuration (Next.js 16+ uses Turbopack by default)
+  turbopack: {
+    // Turbopack optimizations are handled automatically
   },
 };
 

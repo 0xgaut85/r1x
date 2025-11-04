@@ -9,16 +9,14 @@ WORKDIR /app
 # Copy package files first (for better caching)
 COPY package.json package-lock.json* ./
 
+# Copy Prisma schema before installing (needed for postinstall script)
+COPY prisma ./prisma/
+
 # Install dependencies with optimizations
 # Use --prefer-offline and --no-audit for faster installs
 # npm ci installs devDependencies by default
+# postinstall script will run prisma generate automatically
 RUN npm ci --prefer-offline --no-audit
-
-# Copy Prisma schema (only when it changes)
-COPY prisma ./prisma/
-
-# Generate Prisma Client (postinstall already does this, but ensure it's done)
-RUN npx prisma generate
 
 # Rebuild the source code only when needed
 FROM base AS builder
