@@ -157,13 +157,26 @@ export default function R1xAgentContent() {
       });
     } catch (err: any) {
       console.error('[Agent] Error:', err);
+      console.error('[Agent] Error details:', {
+        name: err.name,
+        message: err.message,
+        stack: err.stack,
+      });
 
       let errorMessage = err.message || 'An error occurred';
       
-      if (err.message.includes('Failed to fetch') || err.name === 'TypeError') {
-        // Try to get the URL we attempted to use (from the error context or async call)
-        // Don't call sync version here as it might return localhost
-        errorMessage = `Cannot connect to x402 server. Please check:\n1. Server is running at https://api.r1xlabs.com\n2. X402_SERVER_URL is set in Railway (runtime config)\n3. CORS is configured on Express server\n4. Check browser console for detailed logs\n\nOriginal error: ${err.message}`;
+      if (err.message.includes('Failed to fetch') || err.name === 'TypeError' || err.message.includes('network')) {
+        // Try to get the URL we attempted to use
+        let attemptedUrl = 'unknown';
+        try {
+          attemptedUrl = await getX402ServerUrlAsync();
+        } catch (urlError) {
+          console.error('[Agent] Failed to get server URL:', urlError);
+        }
+        
+        errorMessage = `Cannot connect to x402 server.\n\nAttempted URL: ${attemptedUrl}\n\nPlease check:\n1. Express server is running and accessible\n2. X402_SERVER_URL is set in Railway (runtime config)\n3. CORS is configured on Express server\n4. Check browser console for detailed logs\n\nOriginal error: ${err.message}`;
+      } else if (err.message.includes('Runtime config')) {
+        errorMessage = `Configuration error: ${err.message}\n\nPlease ensure X402_SERVER_URL is set in Railway environment variables.`;
       }
 
       setError(errorMessage);

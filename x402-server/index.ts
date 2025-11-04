@@ -32,22 +32,28 @@ const allowedOrigins = [
   'http://127.0.0.1:3000',
   'https://www.r1xlabs.com',
   'https://r1xlabs.com',
+  'https://api.r1xlabs.com', // Allow API subdomain
 ].filter(Boolean);
 
 // Handle CORS with explicit OPTIONS support
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   
-  // Check if origin should be allowed
+  // More permissive CORS for production - allow any r1xlabs.com subdomain
   const isAllowed = !origin || 
     allowedOrigins.includes(origin) || 
     origin.includes('railway.app') ||
-    origin.includes('r1xlabs.com');
+    origin.includes('r1xlabs.com') ||
+    origin.includes('vercel.app') ||
+    (process.env.NODE_ENV === 'production' && origin && origin.includes('r1xlabs.com'));
   
   if (isAllowed && origin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
+    console.log('[CORS] Allowing origin:', origin);
   } else if (isAllowed) {
     res.setHeader('Access-Control-Allow-Origin', '*');
+  } else {
+    console.warn('[CORS] Blocked origin:', origin);
   }
   
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');

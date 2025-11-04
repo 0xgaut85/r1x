@@ -122,6 +122,8 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
     try {
       // Request payment quote from Express Railway server
       const x402ServerUrl = await getX402ServerUrlAsync();
+      console.log('[Marketplace] Fetching payment quote from:', `${x402ServerUrl}/api/x402/pay`);
+      
       const response = await fetch(`${x402ServerUrl}/api/x402/pay`, {
         method: 'POST',
         headers: {
@@ -133,9 +135,12 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
         }),
       });
 
+      console.log('[Marketplace] Payment quote response status:', response.status);
+
       if (response.status === 402) {
         // Payment required - extract quote
         const data = await response.json();
+        console.log('[Marketplace] Payment quote received:', data);
         // Express Railway returns payment quote in data.payment or data.quote
         const quote = data.payment || data.quote;
         if (quote) {
@@ -149,11 +154,26 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
         const data = await response.json();
         alert('Access granted!');
       } else {
-        throw new Error('Failed to get payment quote');
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
-    } catch (error) {
-      console.error('Purchase error:', error);
-      alert('Failed to process purchase');
+    } catch (error: any) {
+      console.error('[Marketplace] Purchase error:', error);
+      let errorMessage = 'Failed to process purchase';
+      
+      if (error.message.includes('Failed to fetch') || error.name === 'TypeError' || error.message.includes('network')) {
+        let attemptedUrl = 'unknown';
+        try {
+          attemptedUrl = await getX402ServerUrlAsync();
+        } catch (urlError) {
+          console.error('[Marketplace] Failed to get server URL:', urlError);
+        }
+        errorMessage = `Cannot connect to x402 server (${attemptedUrl}). Please check:\n1. Express server is running\n2. X402_SERVER_URL is set in Railway\n3. CORS is configured\n\nError: ${error.message}`;
+      } else {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsProcessing(false);
     }

@@ -12,11 +12,20 @@ export async function GET() {
   // Server-side: use X402_SERVER_URL (not exposed to client)
   const serverUrl = process.env.X402_SERVER_URL || process.env.NEXT_PUBLIC_X402_SERVER_URL;
   
+  console.log('[x402-server-url API] Environment check:', {
+    hasX402_SERVER_URL: !!process.env.X402_SERVER_URL,
+    hasNEXT_PUBLIC_X402_SERVER_URL: !!process.env.NEXT_PUBLIC_X402_SERVER_URL,
+    X402_SERVER_URL: process.env.X402_SERVER_URL ? '***' : undefined,
+    NEXT_PUBLIC_X402_SERVER_URL: process.env.NEXT_PUBLIC_X402_SERVER_URL,
+  });
+  
   if (!serverUrl) {
+    console.error('[x402-server-url API] No X402_SERVER_URL configured');
     return NextResponse.json(
       { 
         error: 'X402_SERVER_URL not configured',
-        fallback: 'http://localhost:4021' 
+        fallback: 'http://localhost:4021',
+        message: 'Please set X402_SERVER_URL environment variable in Railway',
       },
       { status: 500 }
     );
@@ -32,6 +41,8 @@ export async function GET() {
       normalizedUrl = `http://${serverUrl}`;
     }
   }
+
+  console.log('[x402-server-url API] Returning URL:', normalizedUrl, 'from source:', process.env.X402_SERVER_URL ? 'X402_SERVER_URL' : 'NEXT_PUBLIC_X402_SERVER_URL');
 
   return NextResponse.json({
     url: normalizedUrl,

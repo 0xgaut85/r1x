@@ -146,8 +146,13 @@ export async function getX402ServerUrlAsync(): Promise<string> {
         throw new Error('Runtime config returned localhost');
       } catch (error: any) {
         console.error('[x402-server-url] CRITICAL: Runtime config fetch failed in production!', error?.message || error);
+        console.error('[x402-server-url] Error details:', {
+          message: error?.message,
+          stack: error?.stack,
+          name: error?.name,
+        });
         // In production, we should never use localhost
-        throw new Error(`Cannot determine x402 server URL. Runtime config failed: ${error?.message || 'Unknown error'}. Please set X402_SERVER_URL in Railway.`);
+        throw new Error(`Cannot determine x402 server URL. Runtime config API failed: ${error?.message || 'Unknown error'}. Please ensure X402_SERVER_URL is set in Railway environment variables and the runtime config API is accessible.`);
       }
     }
     
