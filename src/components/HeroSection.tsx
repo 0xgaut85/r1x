@@ -130,7 +130,7 @@ export default function HeroSection() {
             letterSpacing: '-1.858px',
             color: 'rgb(255, 255, 255)',
           }}>
-            From users to AI agents, from AI agents to robots.<br />Welcome to the machine economy era.
+            From users to AI agents, from AI agents to robots.<br />Autonomy buys capabilities per request.<br />The web for robots runs on x402.
           </h1>
           <div className="flex flex-col sm:flex-row" style={{ marginBottom: '0px', marginTop: '0px', gap: '16px' }}>
             <MagneticButton

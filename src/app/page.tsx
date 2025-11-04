@@ -1,6 +1,7 @@
 import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
 import ThesisSection from '@/components/ThesisSection';
+import RoboticsUseCasesSection from '@/components/RoboticsUseCasesSection';
 import HowItWorksSection from '@/components/HowItWorksSection';
 import AnatomyOfNodeSection from '@/components/AnatomyOfNodeSection';
 import DemosSection from '@/components/DemosSection';
@@ -16,6 +17,7 @@ export default function Home() {
       <main className="pt-24 md:pt-[138.641px]">
         <HeroSection />
         <ThesisSection />
+        <RoboticsUseCasesSection />
         <HowItWorksSection />
         <AnatomyOfNodeSection />
         <DemosSection />

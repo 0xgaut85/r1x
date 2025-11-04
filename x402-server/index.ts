@@ -15,6 +15,8 @@ config();
 
 const facilitatorUrl = (process.env.FACILITATOR_URL || 'https://facilitator.payai.network') as Resource;
 const payTo = process.env.MERCHANT_ADDRESS as `0x${string}`;
+const cdpApiKeyId = process.env.CDP_API_KEY_ID;
+const cdpApiKeySecret = process.env.CDP_API_KEY_SECRET;
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 4021;
 
 if (!facilitatorUrl || !payTo) {
@@ -102,46 +104,40 @@ app.options('/api/x402/pay', (req, res) => {
   res.status(200).end();
 });
 
-// Wrap paymentMiddleware to catch async errors
-const wrappedPaymentMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const middleware = paymentMiddleware(
-    payTo,
-    {
-      'POST /api/r1x-agent/chat': {
-        // USDC amount in dollars
-        price: '$0.25',
-        network: 'base', // Base mainnet
-      },
-      'POST /api/x402/pay': {
-        price: '$0.01',
-        network: 'base',
-      },
-    },
-    {
-      url: facilitatorUrl,
-    },
-  );
-  
-  // Wrap middleware call to catch async errors
-  Promise.resolve(middleware(req, res, next)).catch((err) => {
-    console.error('[Payment Middleware] Async error caught:', {
-      message: err.message,
-      stack: err.stack,
-      path: req.path,
-      hasPayment: !!req.headers['x-payment'],
-    });
-    
-    if (!res.headersSent) {
-      res.status(500).json({
-        error: 'Payment middleware error',
-        message: err.message || 'Failed to process payment',
-        details: process.env.NODE_ENV === 'development' ? err.stack : undefined,
-      });
-    }
-  });
+const facilitatorConfig: Parameters<typeof paymentMiddleware>[2] = {
+  url: facilitatorUrl,
 };
 
-app.use(wrappedPaymentMiddleware);
+if (cdpApiKeyId && cdpApiKeySecret) {
+  facilitatorConfig.createAuthHeaders = async () => {
+    const basicAuth = Buffer.from(`${cdpApiKeyId}:${cdpApiKeySecret}`).toString('base64');
+    const header = { Authorization: `Basic ${basicAuth}` };
+    return {
+      verify: header,
+      settle: header,
+      supported: header,
+      list: header,
+    };
+  };
+  console.log('[x402-server] Facilitator authentication configured with CDP API keys');
+} else {
+  console.warn('[x402-server] CDP_API_KEY_ID or CDP_API_KEY_SECRET missing - facilitator requests may fail on Base mainnet');
+}
+
+app.use(paymentMiddleware(
+  payTo,
+  {
+    'POST /api/r1x-agent/chat': {
+      price: '$0.25',
+      network: 'base',
+    },
+    'POST /api/x402/pay': {
+      price: '$0.01',
+      network: 'base',
+    },
+  },
+  facilitatorConfig,
+));
 
 // Error handler middleware to catch payment middleware errors
 // Must be AFTER paymentMiddleware but BEFORE route handlers
@@ -196,7 +192,7 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
     if (!ANTHROPIC_API_KEY) {
       console.error('[x402-server] ANTHROPIC_API_KEY not configured');
       if (!res.headersSent) {
-        return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
+      return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
       }
       return;
     }
@@ -204,7 +200,7 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
     if (!req.body.messages || !Array.isArray(req.body.messages)) {
       console.error('[x402-server] Invalid messages format:', req.body);
       if (!res.headersSent) {
-        return res.status(400).json({ error: 'Invalid messages format' });
+      return res.status(400).json({ error: 'Invalid messages format' });
       }
       return;
     }
@@ -225,22 +221,22 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
     if (content.type === 'text') {
       console.log('[x402-server] Chat response sent successfully');
       if (!res.headersSent) {
-        res.json({ message: content.text });
+      res.json({ message: content.text });
       }
     } else {
       console.error('[x402-server] Unexpected response format:', content);
       if (!res.headersSent) {
-        res.status(500).json({ error: 'Unexpected response format' });
+      res.status(500).json({ error: 'Unexpected response format' });
       }
     }
   } catch (error: any) {
     console.error('[x402-server] Chat error:', error);
     // Ne pas envoyer de réponse si le middleware l'a déjà fait
     if (!res.headersSent) {
-      res.status(500).json({ 
-        error: error.message || 'Internal server error',
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-      });
+    res.status(500).json({ 
+      error: error.message || 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    });
     }
   }
 });
@@ -260,11 +256,11 @@ app.post('/api/x402/pay', async (req, res) => {
   });
   
   if (!res.headersSent) {
-    res.json({ 
-      success: true,
-      message: 'Payment verified, service access granted',
-      data: req.body,
-    });
+  res.json({ 
+    success: true,
+    message: 'Payment verified, service access granted',
+    data: req.body,
+  });
   }
 });
 

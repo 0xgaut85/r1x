@@ -66,6 +66,7 @@ ANTHROPIC_API_KEY=...
 3. **PayAI compliant** - Still uses `paymentMiddleware` exactly as documented
 4. **Same security** - Express server still validates payments via PayAI
 5. **Cleaner architecture** - Clear separation: client → Next.js → Express
+6. **Robotics-ready** - Request-level pricing matches spiky robotic workloads (per frame / per minute) without long-lived sessions
 
 ## API Routes
 

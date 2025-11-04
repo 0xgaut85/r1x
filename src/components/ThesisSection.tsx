@@ -35,7 +35,7 @@ export default function ThesisSection() {
               marginBottom: '0px',
               marginTop: '0px'
             }}>
-            The next economy isn't human. It's autonomous. Machines buying from machines. Agents paying agents. Robots transacting with robots. Built on Base, powered by x402.
+            The machine economy is spiky. Robots buy capabilities per request—per frame, per meter, per minute. No subscriptions, no accounts. x402 makes HTTP machine‑payable in dollars.
             </h2>
           </FadeInUp>
 
@@ -47,7 +47,7 @@ export default function ThesisSection() {
                 lineHeight: '1.4',
                 color: 'rgb(0, 0, 0)'
               }}>
-                <strong style={{ fontWeight: 600 }}>We're building the payment layer for the machine economy.</strong> When AI agents need resources, they shouldn't need accounts or API keys. They should just pay and access. HTTP 402 makes this possible, and r1x makes it real.
+                <strong style={{ fontWeight: 600 }}>We're building the payment layer for the machine economy.</strong> In robotics, value happens at the edge and in spikes. A robot shouldn't rent a month of vision or maps to unlock five seconds of capability. With r1x, one request carries a price, you pay in dollars, you get a verifiable receipt.
               </p>
             </StaggerChild>
             <StaggerChild>
@@ -57,7 +57,7 @@ export default function ThesisSection() {
                 lineHeight: '1.4',
                 color: 'rgb(0, 0, 0)'
               }}>
-                This is bigger than payments. This is machines becoming economic agents. Robots autonomously purchasing compute, data, and services. AI agents transacting without human intervention. The infrastructure for the autonomous economy is here.
+                This is bigger than payments. This is machines becoming economic agents. Robots autonomously purchasing compute, data, and services—per frame, per route, per minute. AI agents transacting without human intervention. The infrastructure for the autonomous economy is here.
               </p>
             </StaggerChild>
           </StaggerChildren>

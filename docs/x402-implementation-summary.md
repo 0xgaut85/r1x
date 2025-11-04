@@ -98,3 +98,33 @@ NEXT_PUBLIC_BASE_URL=http://localhost:3000 # For service fulfillment
 
 The core x402 integration is complete and ready for testing!
 
+## 🤖 Robotics Focus
+
+R1x is optimized for robotics workloads where value happens at the edge and in spikes. The per-request pricing model matches the reality of robotic operations.
+
+### Pricing Guidance
+- **Price by frame/minute/segment** for predictable operational costs
+- **No monthly subscriptions** for capabilities used sporadically
+- **Dollar-denominated pricing** makes cost forecasting straightforward
+- **On-chain receipts** provide complete transparency into operational expenses
+
+### Client Pattern
+- **Agent triggers paid calls** only on uncertainty spikes or when external capabilities are needed
+- **Pre-authorize budgets** for autonomous agents to make decisions independently
+- **Per-request granularity** allows robots to compose capabilities on-demand
+
+### Server Pattern
+- **Protect endpoints** with x402 middleware
+- **Return deterministic 402 quotes** with dollar prices
+- **Settle payments** on-chain for verifiable transactions
+- **Scale horizontally** without account management overhead
+
+### Use Cases
+- Per-frame perception and OCR
+- Route planning and HD map tiles per call
+- Teleop fallback by the minute
+- Sensor data streams (LiDAR/IMU) on demand
+- Charging slot reservations and fleet telemetry access
+
+The machine economy is spiky. R1x makes HTTP machine-payable so autonomy can scale without contracts or accounts.
+
