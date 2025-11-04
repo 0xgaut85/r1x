@@ -6,7 +6,6 @@ import { useWallet } from '@/hooks/useWallet';
 import { useAccount } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { modal } from '@/lib/wallet-provider';
-import { walletClientToAccount } from 'viem/accounts';
 import { wrapFetchWithPayment } from 'x402-fetch';
 
 import { getX402ServerUrl } from '@/lib/x402-server-url';
@@ -39,27 +38,16 @@ export default function R1xAgentContent() {
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Convert walletClient to account for x402-fetch
-  const account = useMemo(() => {
+  // Create x402-fetch wrapper - wrapFetchWithPayment accepts walletClient directly
+  const fetchWithPayment = useMemo(() => {
     if (!walletClient) return null;
     try {
-      return walletClientToAccount(walletClient);
-    } catch (err) {
-      console.error('[x402-fetch] Failed to convert walletClient to account:', err);
-      return null;
-    }
-  }, [walletClient]);
-
-  // Create x402-fetch wrapper
-  const fetchWithPayment = useMemo(() => {
-    if (!account) return null;
-    try {
-      return wrapFetchWithPayment(fetch, account);
+      return wrapFetchWithPayment(fetch, walletClient);
     } catch (err) {
       console.error('[x402-fetch] Failed to wrap fetch:', err);
       return null;
     }
-  }, [account]);
+  }, [walletClient]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
