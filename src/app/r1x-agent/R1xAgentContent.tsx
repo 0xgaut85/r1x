@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { ChatMessage } from '@/lib/types/chat';
 import { useWallet } from '@/hooks/useWallet';
-import { useAccount } from 'wagmi';
+import { useAccount, useChainId } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { modal } from '@/lib/wallet-provider';
 import { wrapFetchWithPayment } from 'x402-fetch';
@@ -30,19 +30,39 @@ const suggestions = [
 ];
 
 export default function R1xAgentContent() {
-  const { address, isConnected, chainId, walletClient } = useWallet();
+  const { walletClient, address, isConnected } = useWallet();
   const { isConnected: wagmiConnected } = useAccount();
+  const chainId = useChainId();
   const [messages, setMessages] = useState<ChatMessage[]>([initialWelcomeMessage]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Create x402-fetch wrapper - wrapFetchWithPayment accepts walletClient directly
+  /**
+   * Conforme aux docs PayAI officielles : https://docs.payai.network/x402/clients/typescript/fetch
+   * 
+   * wrapFetchWithPayment(fetch, walletClient, maxValue)
+   * - fetch: fonction fetch native
+   * - walletClient: Signer compatible (walletClient Wagmi = Client viem avec WalletActions = EvmSigner)
+   * - maxValue: montant maximum autorisé en base units (0.25 USDC = 250000 pour USDC avec 6 décimales)
+   * 
+   * x402-fetch gère automatiquement :
+   * 1. Détection des réponses 402 Payment Required
+   * 2. Génération du payment proof
+   * 3. Signature de la transaction USDC via walletClient
+   * 4. Ré-envoi avec header X-PAYMENT
+   * 5. Retries en cas d'erreur
+   */
   const fetchWithPayment = useMemo(() => {
     if (!walletClient) return null;
     try {
-      return wrapFetchWithPayment(fetch, walletClient);
+      // Conforme aux docs PayAI officielles
+      return wrapFetchWithPayment(
+        fetch, 
+        walletClient as any, // walletClient Wagmi compatible avec EvmSigner (SignerWallet)
+        BigInt(0.25 * 10 ** 6) // max 0.25 USDC (en base units)
+      );
     } catch (err) {
       console.error('[x402-fetch] Failed to wrap fetch:', err);
       return null;
@@ -60,7 +80,8 @@ export default function R1xAgentContent() {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
-    if (!isConnected || !wagmiConnected) {
+    // Vérifier que le wallet est connecté et que x402-fetch est disponible
+    if (!wagmiConnected || !fetchWithPayment) {
       modal.open();
       setError('Please connect your wallet to send messages');
       return;
@@ -68,11 +89,6 @@ export default function R1xAgentContent() {
 
     if (chainId !== base.id) {
       setError('Please switch to Base network');
-      return;
-    }
-
-    if (!fetchWithPayment) {
-      setError('Wallet not ready. Please try again.');
       return;
     }
 
@@ -90,17 +106,18 @@ export default function R1xAgentContent() {
 
     try {
       const x402ServerUrl = getX402ServerUrl();
-      console.log('[Agent] Calling x402 server with x402-fetch:', x402ServerUrl);
-      console.log('[Agent] Request details:', {
-        url: `${x402ServerUrl}/api/r1x-agent/chat`,
-        messageCount: updatedMessages.length,
-      });
+      console.log('[Agent] Calling x402 server with x402-fetch (PayAI official):', x402ServerUrl);
 
-      // x402-fetch handles everything automatically:
-      // - Detects 402 responses
-      // - Generates payment proof
-      // - Signs transaction automatically
-      // - Re-sends with X-PAYMENT header
+      /**
+       * Utilisation conforme aux docs PayAI officielles
+       * x402-fetch gère automatiquement tout le flow de paiement :
+       * - Si 402 reçu → génère automatiquement le payment proof
+       * - Signe la transaction USDC via walletClient
+       * - Ré-envoie avec header X-PAYMENT
+       * - Retries automatiques en cas d'erreur
+       * 
+       * L'utilisateur verra uniquement la popup de signature dans son wallet
+       */
       const response = await fetchWithPayment(`${x402ServerUrl}/api/r1x-agent/chat`, {
         method: 'POST',
         headers: {
@@ -116,7 +133,6 @@ export default function R1xAgentContent() {
       });
 
       console.log('[Agent] Response status:', response.status);
-      console.log('[Agent] Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -139,22 +155,13 @@ export default function R1xAgentContent() {
         return [...updated, assistantMessage];
       });
     } catch (err: any) {
-      console.error('[Agent] Full error:', err);
-      console.error('[Agent] Error name:', err.name);
-      console.error('[Agent] Error message:', err.message);
-      console.error('[Agent] Error stack:', err.stack);
+      console.error('[Agent] Error:', err);
 
       let errorMessage = err.message || 'An error occurred';
       
-      // Improve error message for "Failed to fetch"
       if (err.message.includes('Failed to fetch') || err.name === 'TypeError') {
         const x402ServerUrl = getX402ServerUrl();
         errorMessage = `Cannot connect to x402 server (${x402ServerUrl}). Please check:\n1. Server is running\n2. NEXT_PUBLIC_X402_SERVER_URL is set correctly\n3. CORS is configured\n\nOriginal error: ${err.message}`;
-      }
-
-      // Handle payment errors from x402-fetch
-      if (err.message.includes('payment') || err.message.includes('402')) {
-        errorMessage = `Payment required: ${err.message}`;
       }
 
       setError(errorMessage);
