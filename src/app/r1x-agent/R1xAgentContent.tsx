@@ -8,7 +8,7 @@ import { base } from 'wagmi/chains';
 import { modal } from '@/lib/wallet-provider';
 import { wrapFetchWithPayment } from 'x402-fetch';
 
-import { getX402ServerUrl } from '@/lib/x402-server-url';
+import { getX402ServerUrl, getX402ServerUrlAsync } from '@/lib/x402-server-url';
 import AgentBackground from '@/components/r1x-agent/AgentBackground';
 import AgentHeader from '@/components/r1x-agent/AgentHeader';
 import AgentFooter from '@/components/r1x-agent/AgentFooter';
@@ -105,7 +105,8 @@ export default function R1xAgentContent() {
     setError(null);
 
     try {
-      const x402ServerUrl = getX402ServerUrl();
+      // Use async version to support runtime config API fallback
+      const x402ServerUrl = await getX402ServerUrlAsync();
       console.log('[Agent] Calling x402 server with x402-fetch (PayAI official):', x402ServerUrl);
 
       /**
@@ -160,8 +161,9 @@ export default function R1xAgentContent() {
       let errorMessage = err.message || 'An error occurred';
       
       if (err.message.includes('Failed to fetch') || err.name === 'TypeError') {
+        // Use sync version for error message (won't block)
         const x402ServerUrl = getX402ServerUrl();
-        errorMessage = `Cannot connect to x402 server (${x402ServerUrl}). Please check:\n1. Server is running\n2. NEXT_PUBLIC_X402_SERVER_URL is set correctly\n3. CORS is configured\n\nOriginal error: ${err.message}`;
+        errorMessage = `Cannot connect to x402 server (${x402ServerUrl}). Please check:\n1. Server is running\n2. NEXT_PUBLIC_X402_SERVER_URL is set correctly (set BEFORE Railway build)\n3. X402_SERVER_URL is set for runtime config\n4. CORS is configured\n\nOriginal error: ${err.message}`;
       }
 
       setError(errorMessage);

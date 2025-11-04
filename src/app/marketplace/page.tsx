@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PaymentModal from '@/components/PaymentModal';
-import { getX402ServerUrl } from '@/lib/x402-server-url';
+import { getX402ServerUrlAsync } from '@/lib/x402-server-url';
 import { MarketplaceService, PaymentQuote, PaymentProof } from '@/lib/types/x402';
 
 export default function MarketplacePage() {
@@ -121,7 +121,8 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
     setIsProcessing(true);
     try {
       // Request payment quote from Express Railway server
-      const response = await fetch(`${getX402ServerUrl()}/api/x402/pay`, {
+      const x402ServerUrl = await getX402ServerUrlAsync();
+      const response = await fetch(`${x402ServerUrl}/api/x402/pay`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

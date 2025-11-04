@@ -74,10 +74,26 @@ Va dans Railway → Service Next.js → Logs et vérifie :
 
 ## ⚠️ Si ça ne fonctionne pas
 
-### Erreur "Failed to fetch"
-1. Vérifie que `NEXT_PUBLIC_X402_SERVER_URL` est bien configurée
-2. Vérifie que le domaine `api.r1xlabs.com` est actif sur Railway (statut "Active")
-3. Vérifie les logs Railway pour voir les erreurs CORS
+### Erreur "Failed to fetch" ou "Cannot connect to x402 server (http://localhost:4021)"
+**IMPORTANT:** Next.js `NEXT_PUBLIC_*` variables are embedded at BUILD TIME, not runtime!
+
+1. **If you see `http://localhost:4021` in the error:**
+   - This means `NEXT_PUBLIC_X402_SERVER_URL` wasn't set during Railway build
+   - **Solution 1 (Recommended):** Set `NEXT_PUBLIC_X402_SERVER_URL=https://api.r1xlabs.com` BEFORE building, then redeploy
+   - **Solution 2 (Fallback):** Set `X402_SERVER_URL=https://api.r1xlabs.com` - runtime config API will handle it automatically
+   - See detailed guide: `docs/railway-env-var-build-time-fix.md`
+
+2. **Verify env vars are set:**
+   - Railway → Service → Variables
+   - Both `NEXT_PUBLIC_X402_SERVER_URL` and `X402_SERVER_URL` should be set
+
+3. **Check the domain:**
+   - Verify `api.r1xlabs.com` is active on Railway (status "Active")
+   - Test: `curl https://api.r1xlabs.com/health`
+
+4. **Check CORS:**
+   - Verify Railway logs for CORS errors
+   - Express server should allow requests from `www.r1xlabs.com`
 
 ### Erreur "Payment verification failed"
 1. Vérifie que `MERCHANT_ADDRESS` est bien configurée dans les deux services
