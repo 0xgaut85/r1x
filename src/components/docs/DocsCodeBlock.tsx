@@ -4,9 +4,10 @@ interface DocsCodeBlockProps {
   children: string;
   language?: string;
   title?: string;
+  titleColor?: string;
 }
 
-export default function DocsCodeBlock({ children, language = 'typescript', title }: DocsCodeBlockProps) {
+export default function DocsCodeBlock({ children, language = 'typescript', title, titleColor }: DocsCodeBlockProps) {
   return (
     <div style={{ marginTop: '24px', marginBottom: '24px' }}>
       {title && (
@@ -14,7 +15,7 @@ export default function DocsCodeBlock({ children, language = 'typescript', title
           style={{
             fontFamily: 'TWKEverettMono-Regular, monospace',
             fontSize: '11px',
-            color: '#000000',
+            color: titleColor || '#000000',
             letterSpacing: '1px',
             textTransform: 'uppercase',
             marginBottom: '8px',

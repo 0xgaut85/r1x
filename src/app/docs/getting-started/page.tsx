@@ -63,6 +63,7 @@ export default function GettingStartedPage() {
           fontWeight: 400,
           fontFamily: 'TWKEverett-Regular, sans-serif',
           letterSpacing: '-1.28px',
+          color: '#FFFFFF',
         }}>
           Environment Setup
         </h2>
@@ -70,10 +71,10 @@ export default function GettingStartedPage() {
           fontFamily: 'BaselGrotesk-Regular, sans-serif',
           lineHeight: '1.6',
         }}>
-          Create a <code style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '14px' }}>.env.local</code> file in your project root with the following variables:
+          Create a <code style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '14px', color: '#FFFFFF' }}>.env.local</code> file in your project root with the following variables:
         </p>
 
-        <DocsCodeBlock language="env" title="Environment Variables">
+        <DocsCodeBlock language="env" title="Environment Variables" titleColor="#FFFFFF">
 {`DATABASE_URL="postgresql://..."
 MERCHANT_ADDRESS="0x..."
 FEE_RECIPIENT_ADDRESS="0x..."
@@ -111,7 +112,7 @@ FACILITATOR_URL="https://facilitator.payai.network"`}
           r1x uses Prisma with PostgreSQL. Set up your database:
         </p>
 
-        <DocsCodeBlock language="bash" title="Database Commands">
+        <DocsCodeBlock language="bash" title="Database Commands" titleColor="#000000">
 {`# Generate Prisma client
 npx prisma generate
 
@@ -131,6 +132,7 @@ npx prisma studio`}
           fontWeight: 400,
           fontFamily: 'TWKEverett-Regular, sans-serif',
           letterSpacing: '-1.28px',
+          color: '#FFFFFF',
         }}>
           Installation
         </h2>
@@ -141,7 +143,7 @@ npx prisma studio`}
           Install dependencies and start the development server:
         </p>
 
-        <DocsCodeBlock language="bash" title="Installation">
+        <DocsCodeBlock language="bash" title="Installation" titleColor="#FFFFFF">
 {`# Install dependencies
 npm install
 
@@ -176,7 +178,7 @@ npm run dev:all`}
           After deployment, sync services from PayAI facilitator:
         </p>
 
-        <DocsCodeBlock language="bash" title="Sync Services">
+        <DocsCodeBlock language="bash" title="Sync Services" titleColor="#000000">
 {`# Trigger PayAI service sync
 curl -X POST https://your-domain.vercel.app/api/sync/payai
 

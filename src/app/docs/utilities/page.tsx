@@ -156,6 +156,7 @@ export default function UtilitiesPage() {
           fontWeight: 400,
           fontFamily: 'TWKEverett-Regular, sans-serif',
           letterSpacing: '-1.28px',
+          color: '#FFFFFF',
         }}>
           Usage Examples
         </h2>
@@ -164,10 +165,11 @@ export default function UtilitiesPage() {
           <div>
             <h3 className="text-white text-lg mb-4" style={{
               fontFamily: 'TWKEverett-Regular, sans-serif',
+              color: '#FFFFFF',
             }}>
               Generate Payment Quote
             </h3>
-            <DocsCodeBlock language="typescript">
+            <DocsCodeBlock language="typescript" titleColor="#FFFFFF">
 {`import { generatePaymentQuote } from '@/lib/x402';
 
 const quote = await generatePaymentQuote(
@@ -183,10 +185,11 @@ const quote = await generatePaymentQuote(
           <div>
             <h3 className="text-white text-lg mb-4" style={{
               fontFamily: 'TWKEverett-Regular, sans-serif',
+              color: '#FFFFFF',
             }}>
               Connect Wallet
             </h3>
-            <DocsCodeBlock language="typescript">
+            <DocsCodeBlock language="typescript" titleColor="#FFFFFF">
 {`import { connectWallet } from '@/lib/wallet';
 
 const wallet = await connectWallet();
@@ -198,10 +201,11 @@ const wallet = await connectWallet();
           <div>
             <h3 className="text-white text-lg mb-4" style={{
               fontFamily: 'TWKEverett-Regular, sans-serif',
+              color: '#FFFFFF',
             }}>
               Sync PayAI Services
             </h3>
-            <DocsCodeBlock language="typescript">
+            <DocsCodeBlock language="typescript" titleColor="#FFFFFF">
 {`import { syncPayAIServices } from '@/lib/payai-sync';
 
 const result = await syncPayAIServices();

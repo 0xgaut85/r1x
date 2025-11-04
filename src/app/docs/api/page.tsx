@@ -168,7 +168,7 @@ export default function ApiPage() {
                       }}>
                         Body:
                       </div>
-                      <DocsCodeBlock language="json">
+                      <DocsCodeBlock language="json" titleColor="#000000">
 {JSON.stringify(endpoint.request.body, null, 2)}
                       </DocsCodeBlock>
                     </div>
@@ -180,7 +180,7 @@ export default function ApiPage() {
                       }}>
                         Query Parameters:
                       </div>
-                      <DocsCodeBlock language="json">
+                      <DocsCodeBlock language="json" titleColor="#000000">
 {JSON.stringify(endpoint.request.query, null, 2)}
                       </DocsCodeBlock>
                     </div>
@@ -192,7 +192,7 @@ export default function ApiPage() {
                       }}>
                         Headers:
                       </div>
-                      <DocsCodeBlock language="json">
+                      <DocsCodeBlock language="json" titleColor="#000000">
 {JSON.stringify(endpoint.request.headers, null, 2)}
                       </DocsCodeBlock>
                     </div>
@@ -238,6 +238,7 @@ export default function ApiPage() {
           fontWeight: 400,
           fontFamily: 'TWKEverett-Regular, sans-serif',
           letterSpacing: '-1.28px',
+          color: '#FFFFFF',
         }}>
           Example: Payment Flow
         </h2>
@@ -248,7 +249,7 @@ export default function ApiPage() {
           Complete example of requesting a payment quote and processing payment:
         </p>
 
-        <DocsCodeBlock language="typescript" title="Payment Flow Example">
+        <DocsCodeBlock language="typescript" title="Payment Flow Example" titleColor="#FFFFFF">
 {`// 1. Request payment quote
 const quoteResponse = await fetch('/api/x402/pay', {
   method: 'POST',
@@ -322,7 +323,7 @@ if (quoteResponse.status === 402) {
         }}>
           All API endpoints are relative to your deployment URL. For local development:
         </p>
-        <DocsCodeBlock language="bash">
+        <DocsCodeBlock language="bash" titleColor="#000000">
 {`# Local development
 http://localhost:3000/api/...
 

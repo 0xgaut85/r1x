@@ -141,6 +141,7 @@ export default function TutorialsPage() {
           fontWeight: 400,
           fontFamily: 'TWKEverett-Regular, sans-serif',
           letterSpacing: '-1.28px',
+          color: '#FFFFFF',
         }}>
           Express Server Setup
         </h2>
@@ -151,7 +152,7 @@ export default function TutorialsPage() {
           Configure your Express server with PayAI middleware:
         </p>
 
-        <DocsCodeBlock language="typescript" title="Express Server">
+        <DocsCodeBlock language="typescript" title="Express Server" titleColor="#FFFFFF">
 {`import express from 'express';
 import { paymentMiddleware } from 'x402-express';
 
@@ -208,7 +209,7 @@ app.listen(3001);`}
           Implement payment flow in your React application:
         </p>
 
-        <DocsCodeBlock language="typescript" title="Payment Flow">
+        <DocsCodeBlock language="typescript" title="Payment Flow" titleColor="#000000">
 {`import { connectWallet, transferUSDC } from '@/lib/wallet';
 
 async function handlePayment(amount: string, merchantAddress: string) {
