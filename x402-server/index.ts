@@ -125,6 +125,12 @@ app.use(
 // Routes réelles - le middleware vérifie le paiement avant d'arriver ici
 app.post('/api/r1x-agent/chat', async (req, res) => {
   // Le paiement est déjà vérifié par le middleware PayAI
+  // Si le middleware a déjà envoyé une réponse (erreur de settlement, etc.), on ne fait rien
+  if (res.headersSent) {
+    console.log('[x402-server] Response already sent by middleware, skipping route handler');
+    return;
+  }
+
   // On peut maintenant traiter la requête chat
   try {
     console.log('[x402-server] Chat request received:', {
@@ -143,12 +149,18 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
     const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
     if (!ANTHROPIC_API_KEY) {
       console.error('[x402-server] ANTHROPIC_API_KEY not configured');
-      return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
+      if (!res.headersSent) {
+        return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
+      }
+      return;
     }
 
     if (!req.body.messages || !Array.isArray(req.body.messages)) {
       console.error('[x402-server] Invalid messages format:', req.body);
-      return res.status(400).json({ error: 'Invalid messages format' });
+      if (!res.headersSent) {
+        return res.status(400).json({ error: 'Invalid messages format' });
+      }
+      return;
     }
 
     // Appel direct à Anthropic API
@@ -166,33 +178,48 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
     const content = response.content[0];
     if (content.type === 'text') {
       console.log('[x402-server] Chat response sent successfully');
-      res.json({ message: content.text });
+      if (!res.headersSent) {
+        res.json({ message: content.text });
+      }
     } else {
       console.error('[x402-server] Unexpected response format:', content);
-      res.status(500).json({ error: 'Unexpected response format' });
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Unexpected response format' });
+      }
     }
   } catch (error: any) {
     console.error('[x402-server] Chat error:', error);
-    res.status(500).json({ 
-      error: error.message || 'Internal server error',
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-    });
+    // Ne pas envoyer de réponse si le middleware l'a déjà fait
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        error: error.message || 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      });
+    }
   }
 });
 
 app.post('/api/x402/pay', async (req, res) => {
   // Le paiement est déjà vérifié par le middleware PayAI
+  // Si le middleware a déjà envoyé une réponse (erreur de settlement, etc.), on ne fait rien
+  if (res.headersSent) {
+    console.log('[x402-server] Response already sent by middleware, skipping route handler');
+    return;
+  }
+
   // On peut maintenant donner accès au service
   console.log('[x402-server] Payment verified, granting access:', {
     serviceId: req.body.serviceId,
     hasPayment: !!req.headers['x-payment'],
   });
   
-  res.json({ 
-    success: true,
-    message: 'Payment verified, service access granted',
-    data: req.body,
-  });
+  if (!res.headersSent) {
+    res.json({ 
+      success: true,
+      message: 'Payment verified, service access granted',
+      data: req.body,
+    });
+  }
 });
 
 // Health check endpoint
