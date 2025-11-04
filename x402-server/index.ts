@@ -25,6 +25,7 @@ if (!facilitatorUrl || !payTo) {
 const app = express();
 
 // CORS configuration - Allow requests from Next.js frontend
+// IMPORTANT: CORS must be configured BEFORE paymentMiddleware to handle OPTIONS preflight
 const allowedOrigins = [
   process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
   'http://localhost:3000',
@@ -33,27 +34,35 @@ const allowedOrigins = [
   'https://r1xlabs.com',
 ].filter(Boolean);
 
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, Postman, etc.)
-    if (!origin) return callback(null, true);
-    
-    // Check if origin is in allowed list or matches r1xlabs.com domain
-    if (
-      allowedOrigins.includes(origin) || 
-      origin.includes('railway.app') ||
-      origin.includes('r1xlabs.com')
-    ) {
-      callback(null, true);
-    } else {
-      console.warn(`[CORS] Blocked origin: ${origin}`);
-      callback(null, true); // Allow all for now, adjust in production
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'X-Payment', 'Authorization', 'Accept'],
-}));
+// Handle CORS with explicit OPTIONS support
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Check if origin should be allowed
+  const isAllowed = !origin || 
+    allowedOrigins.includes(origin) || 
+    origin.includes('railway.app') ||
+    origin.includes('r1xlabs.com');
+  
+  if (isAllowed && origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (isAllowed) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Payment, Authorization, Accept');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
+  
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    console.log('[CORS] Handling OPTIONS preflight request from:', origin);
+    return res.status(200).end();
+  }
+  
+  next();
+});
 
 app.use(express.json());
 
