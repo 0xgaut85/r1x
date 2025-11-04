@@ -31,8 +31,9 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://127.0.0.1:3000',
   'https://www.r1xlabs.com',
-  'https://r1xlabs.com',
-  'https://api.r1xlabs.com', // Allow API subdomain
+  'https://r1xlabs.com', // Main production domain
+  'https://api.r1xlabs.com', // API subdomain
+  'https://r1x.vercel.app', // Legacy Vercel deployment
 ].filter(Boolean);
 
 // Handle CORS with explicit OPTIONS support
@@ -40,12 +41,14 @@ app.use((req, res, next) => {
   const origin = req.headers.origin;
   
   // More permissive CORS for production - allow any r1xlabs.com subdomain
+  // Also allow vercel.app and railway.app domains for deployments
   const isAllowed = !origin || 
     allowedOrigins.includes(origin) || 
     origin.includes('railway.app') ||
     origin.includes('r1xlabs.com') ||
     origin.includes('vercel.app') ||
-    (process.env.NODE_ENV === 'production' && origin && origin.includes('r1xlabs.com'));
+    origin.includes('r1x.vercel.app') ||
+    (process.env.NODE_ENV === 'production' && origin && (origin.includes('r1xlabs.com') || origin.includes('vercel.app')));
   
   if (isAllowed && origin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
