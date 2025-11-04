@@ -3,6 +3,7 @@
 import DocsSection from '@/components/docs/DocsSection';
 import DocsCallout from '@/components/docs/DocsCallout';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock';
+import DocsPageHero from '@/components/docs/DocsPageHero';
 import { FadeInUp } from '@/components/motion';
 import Link from 'next/link';
 
@@ -53,20 +54,10 @@ const tutorials = [
 export default function TutorialsPage() {
   return (
     <>
-      <DocsSection>
-        <h1 className="text-black text-3xl sm:text-4xl md:text-[46.45px] leading-tight md:leading-[51.095px] mb-6" style={{
-          fontWeight: 400,
-          fontFamily: 'TWKEverett-Regular, sans-serif',
-          letterSpacing: '-1.858px',
-        }}>
-          Tutorials
-        </h1>
-        <p className="text-gray-700 text-lg sm:text-xl mb-12 max-w-3xl" style={{
-          fontFamily: 'TWKEverettMono-Regular, monospace',
-        }}>
-          Step-by-step guides for building on r1x. From basic setup to advanced integrations.
-        </p>
-      </DocsSection>
+      <DocsPageHero 
+        title="Tutorials"
+        description="Step-by-step guides for building on r1x. From basic setup to advanced integrations."
+      />
 
       <DocsSection>
         <div className="space-y-12">

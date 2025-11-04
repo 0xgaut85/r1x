@@ -26,11 +26,7 @@ export default function DocsNavigation() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`text-sm transition-all duration-200 whitespace-nowrap ${
-                    isActive
-                      ? 'text-white'
-                      : 'text-white/60 hover:text-white/90'
-                  }`}
+                  className="text-sm transition-all duration-200 whitespace-nowrap"
                   style={{
                     fontFamily: 'TWKEverettMono-Regular, monospace',
                     fontSize: '12px',
@@ -38,6 +34,18 @@ export default function DocsNavigation() {
                     textTransform: 'uppercase',
                     position: 'relative',
                     paddingBottom: '8px',
+                    color: isActive ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)',
+                    textDecoration: 'none',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.color = 'rgba(255, 255, 255, 0.9)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)';
+                    }
                   }}
                 >
                   {item.label}
