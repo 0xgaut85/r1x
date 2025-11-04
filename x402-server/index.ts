@@ -102,8 +102,9 @@ app.options('/api/x402/pay', (req, res) => {
   res.status(200).end();
 });
 
-app.use(
-  paymentMiddleware(
+// Wrap paymentMiddleware to catch async errors
+const wrappedPaymentMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const middleware = paymentMiddleware(
     payTo,
     {
       'POST /api/r1x-agent/chat': {
@@ -119,8 +120,53 @@ app.use(
     {
       url: facilitatorUrl,
     },
-  ),
-);
+  );
+  
+  // Wrap middleware call to catch async errors
+  Promise.resolve(middleware(req, res, next)).catch((err) => {
+    console.error('[Payment Middleware] Async error caught:', {
+      message: err.message,
+      stack: err.stack,
+      path: req.path,
+      hasPayment: !!req.headers['x-payment'],
+    });
+    
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: 'Payment middleware error',
+        message: err.message || 'Failed to process payment',
+        details: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+      });
+    }
+  });
+};
+
+app.use(wrappedPaymentMiddleware);
+
+// Error handler middleware to catch payment middleware errors
+// Must be AFTER paymentMiddleware but BEFORE route handlers
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('[Express Error Handler] Payment middleware error:', {
+    message: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    hasPayment: !!req.headers['x-payment'],
+  });
+  
+  // If headers already sent, just log and return
+  if (res.headersSent) {
+    console.error('[Express Error Handler] Headers already sent, cannot send error response');
+    return;
+  }
+  
+  // Send error response
+  res.status(500).json({
+    error: 'Payment processing error',
+    message: err.message || 'An error occurred during payment processing',
+    details: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+  });
+});
 
 // Routes réelles - le middleware vérifie le paiement avant d'arriver ici
 app.post('/api/r1x-agent/chat', async (req, res) => {
