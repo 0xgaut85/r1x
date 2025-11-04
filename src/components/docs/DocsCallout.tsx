@@ -2,37 +2,48 @@
 
 import { ReactNode } from 'react';
 
+interface DocsCalloutVariantStyle {
+  bg: string;
+  border: string;
+  accent: string;
+  text: string;
+}
+
 interface DocsCalloutProps {
   children: ReactNode;
   variant?: 'info' | 'warning' | 'success' | 'note';
   title?: string;
 }
 
-export default function DocsCallout({ children, variant = 'info', title }: DocsCalloutProps) {
-  const variants = {
-    info: {
-      bg: '#000000',
-      border: 'rgba(255, 255, 255, 0.15)',
-      accent: '#FF4D00',
-    },
-    warning: {
-      bg: 'rgba(255, 77, 0, 0.1)',
-      border: '#FF4D00',
-      accent: '#FF4D00',
-    },
-    success: {
-      bg: 'rgba(0, 255, 0, 0.05)',
-      border: 'rgba(0, 255, 0, 0.3)',
-      accent: '#00FF00',
-    },
-    note: {
-      bg: 'rgba(255, 255, 255, 0.05)',
-      border: 'rgba(255, 255, 255, 0.25)',
-      accent: '#FFFFFF',
-    },
-  };
+const CALLOUT_VARIANTS: Record<NonNullable<DocsCalloutProps['variant']>, DocsCalloutVariantStyle> = {
+  info: {
+    bg: '#000000',
+    border: 'rgba(255, 255, 255, 0.15)',
+    accent: '#FF4D00',
+    text: 'rgba(255, 255, 255, 0.9)',
+  },
+  warning: {
+    bg: 'rgba(255, 77, 0, 0.1)',
+    border: '#FF4D00',
+    accent: '#FF4D00',
+    text: 'rgba(255, 255, 255, 0.9)',
+  },
+  success: {
+    bg: 'rgba(0, 255, 0, 0.05)',
+    border: 'rgba(0, 255, 0, 0.3)',
+    accent: '#00FF00',
+    text: 'rgba(255, 255, 255, 0.9)',
+  },
+  note: {
+    bg: 'rgba(255, 255, 255, 0.05)',
+    border: 'rgba(255, 255, 255, 0.25)',
+    accent: '#FFFFFF',
+    text: 'rgba(255, 255, 255, 0.85)',
+  },
+};
 
-  const style = variants[variant];
+export default function DocsCallout({ children, variant = 'info', title }: DocsCalloutProps) {
+  const style = CALLOUT_VARIANTS[variant];
 
   return (
     <div
@@ -65,7 +76,7 @@ export default function DocsCallout({ children, variant = 'info', title }: DocsC
           fontFamily: 'BaselGrotesk-Regular, sans-serif',
           fontSize: '16px',
           lineHeight: '1.6',
-          color: variant === 'info' ? '#FFFFFF' : '#000000',
+          color: style.text,
         }}
       >
         {children}
