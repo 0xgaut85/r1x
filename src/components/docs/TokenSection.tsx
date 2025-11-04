@@ -1,26 +1,21 @@
 'use client';
 
 import { FadeInUp, StaggerChildren, StaggerChild, ScaleOnHover } from '@/components/motion';
-import { Coins, TrendingUp, Users, Building2, Globe } from 'lucide-react';
 
 const tokenFeatures = [
   {
-    icon: <Coins className="w-8 h-8" />,
     title: 'Network Utility',
     description: '$R1X powers the machine economy. Staking, governance, fee discounts, and access to premium services.',
   },
   {
-    icon: <TrendingUp className="w-8 h-8" />,
     title: 'Fee Distribution',
     description: 'Token holders receive a share of platform fees. The more machines transact, the more value accrues to holders.',
   },
   {
-    icon: <Users className="w-8 h-8" />,
     title: 'Governance',
     description: 'Vote on protocol upgrades, fee structures, and new features. Shape the future of the machine economy.',
   },
   {
-    icon: <Building2 className="w-8 h-8" />,
     title: 'Platform Access',
     description: 'Unlock premium features, priority support, and exclusive services. Build on top of r1x infrastructure.',
   },
@@ -31,8 +26,7 @@ export default function TokenSection() {
     <section style={{ backgroundColor: '#F7F7F7', paddingTop: '80px', paddingBottom: '120px' }}>
       <div className="px-4 sm:px-6 md:px-10 lg:px-[40px]" style={{ maxWidth: 'none' }}>
         <FadeInUp>
-          <div className="flex items-center gap-4 mb-4">
-            <Globe className="w-8 h-8 text-[#FF4D00]" />
+          <div className="mb-4">
             <h2 className="text-black text-3xl sm:text-4xl md:text-[46.45px] leading-tight md:leading-[51.095px]" style={{
               fontWeight: 400,
               fontFamily: 'TWKEverett-Regular, sans-serif',
@@ -56,9 +50,14 @@ export default function TokenSection() {
             <StaggerChild key={idx}>
               <ScaleOnHover>
                 <div className="border border-gray-200 hover:border-[#FF4D00] transition-all duration-300 card-hover group bg-white h-full" style={{ borderRadius: '0px', padding: '32px' }}>
-                  <div className="text-[#FF4D00] mb-4">
-                    {feature.icon}
-                  </div>
+                  <div
+                    style={{
+                      width: '40px',
+                      height: '2px',
+                      backgroundColor: '#FF4D00',
+                      marginBottom: '16px',
+                    }}
+                  />
                   <h3 className="text-black text-xl sm:text-2xl md:text-[24px] mb-3" style={{
                     fontWeight: 400,
                     fontFamily: 'TWKEverettMono-Regular, monospace',
