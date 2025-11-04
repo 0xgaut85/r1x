@@ -183,6 +183,8 @@ export default function R1xAgentContent() {
       // Handle timeout
       if (err.name === 'AbortError' || err.message.includes('timeout')) {
         errorMessage = 'Request timed out. This might be due to:\n1. Wallet connection issues (check Reown domain allowlist)\n2. Network issues\n3. Server not responding\n\nPlease try again or check the console for details.';
+      } else if (err.message.includes('502') || err.message.includes('not responding') || err.message.includes('Express server')) {
+        errorMessage = `Express server error (502):\n\nThe Express x402 server is not responding. Please check:\n\n1. Railway → Express Service → Status (should be "Active")\n2. Railway → Express Service → Logs (check for errors)\n3. Verify X402_SERVER_URL is correct in Railway Next.js service\n4. Test Express server: curl <EXPRESS_URL>/health\n\nIf the service is down, restart it in Railway.`;
       } else if (err.message.includes('Failed to fetch') || err.name === 'TypeError' || err.message.includes('network')) {
         errorMessage = `Cannot connect to x402 server. Please check:\n1. Next.js API route is accessible (/api/r1x-agent/chat)\n2. X402_SERVER_URL is set in Railway (for server-side proxy)\n3. Express server is running and accessible\n4. Wallet is properly connected (check Reown domain allowlist)\n5. Check browser console and server logs for details\n\nOriginal error: ${err.message}`;
       } else if (err.message.includes('Runtime config')) {
