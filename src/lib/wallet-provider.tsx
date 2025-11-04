@@ -7,18 +7,15 @@ import { QueryClient } from '@tanstack/react-query';
 
 const projectId = 'ac7a5e22564f2698c80f05dbf4811d6a';
 
-// Get base URL from environment or window location
-const getBaseUrl = () => {
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
-  }
-  return process.env.NEXT_PUBLIC_BASE_URL || 'https://r1xlabs.com';
-};
+// Use NEXT_PUBLIC_BASE_URL or default to production URL
+const baseUrl = typeof window !== 'undefined' 
+  ? window.location.origin 
+  : process.env.NEXT_PUBLIC_BASE_URL || 'https://r1xlabs.com';
 
 const metadata = {
   name: 'r1x',
   description: 'r1x - Machine Economy Infrastructure',
-  url: getBaseUrl(),
+  url: baseUrl,
   icons: ['/logosvg.svg'],
 };
 
