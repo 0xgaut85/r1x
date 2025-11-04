@@ -4,7 +4,12 @@ export default function OverviewHero() {
   return (
     <section 
       className="relative min-h-[60vh] flex items-center justify-center overflow-hidden" 
-      style={{ backgroundColor: '#000000', paddingTop: '80px', paddingBottom: '80px' }}
+      style={{ 
+        backgroundColor: '#000000', 
+        paddingTop: '120px', // Account for header (138.641px) + nav bar (~56px)
+        paddingBottom: '80px',
+        scrollMarginTop: '200px',
+      }}
     >
       <div className="w-full px-4 sm:px-6 md:px-10 lg:px-[40px]" style={{ maxWidth: 'none' }}>
         <h1 className="text-white text-3xl sm:text-4xl md:text-[46.45px] leading-tight md:leading-[51.095px] mb-6" style={{ 

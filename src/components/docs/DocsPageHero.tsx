@@ -9,7 +9,12 @@ export default function DocsPageHero({ title, description }: DocsPageHeroProps) 
   return (
     <section 
       className="relative flex items-center justify-center overflow-hidden" 
-      style={{ backgroundColor: '#000000', paddingTop: '60px', paddingBottom: '60px' }}
+      style={{ 
+        backgroundColor: '#000000', 
+        paddingTop: '120px', // Account for header (138.641px) + nav bar (~56px)
+        paddingBottom: '60px',
+        scrollMarginTop: '200px', // For anchor links
+      }}
     >
       <div className="w-full px-4 sm:px-6 md:px-10 lg:px-[40px]" style={{ maxWidth: 'none' }}>
         <h1 className="text-white text-3xl sm:text-4xl md:text-[46.45px] leading-tight md:leading-[51.095px] mb-4" style={{ 

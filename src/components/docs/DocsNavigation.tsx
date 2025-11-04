@@ -15,7 +15,7 @@ export default function DocsNavigation() {
   const pathname = usePathname();
 
   return (
-    <nav className="sticky top-[138.641px] z-40" style={{ backgroundColor: '#000000', borderBottom: '1px solid rgba(255, 255, 255, 0.15)' }}>
+    <nav className="sticky top-[138.641px] z-40 docs-nav" style={{ backgroundColor: '#000000', borderBottom: '1px solid rgba(255, 255, 255, 0.15)' }}>
       <div className="px-4 sm:px-6 md:px-10 lg:px-[40px]">
         <div className="flex items-center gap-8 overflow-x-auto py-4">
             {navItems.map((item) => {
@@ -24,7 +24,7 @@ export default function DocsNavigation() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="text-sm transition-all duration-200 whitespace-nowrap"
+                  className="transition-all duration-200 whitespace-nowrap docs-nav-link"
                   style={{
                     fontFamily: 'TWKEverettMono-Regular, monospace',
                     fontSize: '12px',

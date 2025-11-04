@@ -486,3 +486,12 @@ textarea.r1x-agent-textarea {
 textarea.r1x-agent-textarea::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
 }
+
+/* Docs navigation links - ensure white text on black background */
+.docs-nav .docs-nav-link {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.docs-nav .docs-nav-link:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
