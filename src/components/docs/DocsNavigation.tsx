@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FadeInUp } from '@/components/motion';
 
 const navItems = [
   { href: '/docs', label: 'Overview' },
@@ -18,8 +17,7 @@ export default function DocsNavigation() {
   return (
     <nav className="sticky top-[138.641px] z-40" style={{ backgroundColor: '#000000', borderBottom: '1px solid rgba(255, 255, 255, 0.15)' }}>
       <div className="px-4 sm:px-6 md:px-10 lg:px-[40px]">
-        <FadeInUp>
-          <div className="flex items-center gap-8 overflow-x-auto py-4">
+        <div className="flex items-center gap-8 overflow-x-auto py-4">
             {navItems.map((item) => {
               const isActive = pathname === item.href || (item.href !== '/docs' && pathname?.startsWith(item.href));
               return (
@@ -61,8 +59,7 @@ export default function DocsNavigation() {
                 </Link>
               );
             })}
-          </div>
-        </FadeInUp>
+        </div>
       </div>
     </nav>
   );
