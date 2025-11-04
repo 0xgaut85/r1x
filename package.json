@@ -6,7 +6,7 @@
     "dev": "next dev",
     "dev:x402": "tsx watch x402-server/index.ts",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:x402\"",
-    "build": "prisma generate && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",

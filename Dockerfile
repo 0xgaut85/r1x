@@ -6,27 +6,38 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copy package files
+# Copy package files first (for better caching)
 COPY package.json package-lock.json* ./
+
+# Install dependencies with optimizations
+# Use --prefer-offline and --no-audit for faster installs
+RUN npm ci --prefer-offline --no-audit --include=dev
+
+# Copy Prisma schema (only when it changes)
 COPY prisma ./prisma/
 
-# Install dependencies
-RUN npm ci
-
-# Generate Prisma Client
+# Generate Prisma Client (postinstall already does this, but ensure it's done)
 RUN npx prisma generate
 
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
+
+# Copy node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/node_modules/.prisma ./node_modules/.prisma
+
+# Copy source files (exclude unnecessary files)
 COPY . .
+# Remove unnecessary files before build
+RUN rm -rf .next node_modules/.cache
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-# Build Next.js
-RUN npm run build
+# Build Next.js with optimizations
+# Skip Prisma generate (already done in deps stage)
+RUN NEXT_TELEMETRY_DISABLED=1 next build
 
 # Production image
 FROM base AS runner

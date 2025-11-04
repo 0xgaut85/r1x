@@ -1,13 +1,21 @@
 [variables]
 NODE_VERSION = "20"
+# Disable Next.js telemetry for faster builds
+NEXT_TELEMETRY_DISABLED = "1"
+# Use production node env
+NODE_ENV = "production"
+# Enable build cache
+BUILDKIT_CACHE_MOUNT_NS = "railway"
 
 [phases.setup]
 nixPkgs = ["nodejs-20_x"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["npm ci --prefer-offline --no-audit --include=dev"]
 
 [phases.build]
+# Skip Prisma generate in build (postinstall handles it)
+# Use Next.js build cache if available
 cmds = ["npm run build"]
 
 [start]
