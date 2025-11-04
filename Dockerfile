@@ -26,6 +26,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/node_modules/.prisma ./node_modules/.prisma
 
+# Copy package files to ensure scripts are available
+COPY package.json package-lock.json* ./
+
 # Copy source files (exclude unnecessary files)
 COPY . .
 # Remove unnecessary files before build
@@ -35,8 +38,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
 # Build Next.js with optimizations
-# Skip Prisma generate (already done in deps stage)
-RUN NEXT_TELEMETRY_DISABLED=1 next build
+# Use npx to ensure next command is found, or use npm run build
+RUN NEXT_TELEMETRY_DISABLED=1 npx next build
 
 # Production image
 FROM base AS runner
