@@ -700,16 +700,6 @@
             max-width: 1000px;
         }
 
-        .template-d-logo-badge {
-            margin-bottom: 60px;
-            display: inline-block;
-        }
-
-        .template-d-logo-badge img {
-            width: 64px;
-            height: 64px;
-        }
-
         .template-d-separator {
             width: 200px;
             height: 1px;
@@ -772,27 +762,28 @@
             color: var(--accent-orange);
         }
 
-        .template-d-binary-line {
-            position: absolute;
-            left: 60px;
-            top: 120px;
-            bottom: 120px;
-            width: 1px;
-            background: var(--white-15);
-            z-index: 10;
+        .template-d-brand-text {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 0;
+            align-items: baseline;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 60px;
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 48px;
+            color: #ffffff;
+            letter-spacing: -1px;
+            line-height: 1.2;
         }
 
-        .template-d-binary-char {
-            font-family: 'TWKEverettMono-Regular', monospace;
-            font-size: 10px;
-            color: var(--white-40);
-            line-height: 1.2;
-            letter-spacing: 0;
-            margin: 0;
+        .template-d-brand-text .logo-x {
+            width: 56px;
+            height: 56px;
+            display: inline-block;
+            vertical-align: text-bottom;
+            filter: brightness(0) saturate(100%) invert(26%) sepia(98%) saturate(7462%) hue-rotate(359deg) brightness(104%) contrast(101%);
+            object-fit: contain;
+            margin-left: -8px;
+            transform: translateY(16px);
         }
     </style>
 </head>
@@ -934,12 +925,11 @@
             <div class="corner-mark bottom-left"></div>
             <div class="corner-mark bottom-right"></div>
         </div>
-        <div class="template-d-binary-line">
-            <div class="template-d-binary-char">0</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">0</div><div class="template-d-binary-char">1</div><div class="template-d-binary-char">1</div>
-        </div>
         <div class="template-d-content">
-            <div class="template-d-logo-badge">
-                <img src="./public/logosvg.svg" alt="r1x Logo" class="logo-white" />
+            <div class="template-d-brand-text">
+                <span>r1</span>
+                <img src="./public/logosvg.svg" alt="x" class="logo-x" />
+                <span>labs</span>
             </div>
             <div class="template-d-separator"></div>
             <div class="template-d-headline">END OF POST</div>
