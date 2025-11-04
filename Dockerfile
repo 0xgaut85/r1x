@@ -11,7 +11,8 @@ COPY package.json package-lock.json* ./
 
 # Install dependencies with optimizations
 # Use --prefer-offline and --no-audit for faster installs
-RUN npm ci --prefer-offline --no-audit --include=dev
+# npm ci installs devDependencies by default
+RUN npm ci --prefer-offline --no-audit
 
 # Copy Prisma schema (only when it changes)
 COPY prisma ./prisma/
