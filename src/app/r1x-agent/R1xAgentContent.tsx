@@ -106,6 +106,10 @@ export default function R1xAgentContent() {
     setIsLoading(true);
     setError(null);
 
+    // Add timeout to prevent infinite loading
+    const controller = new AbortController();
+    let timeoutId: NodeJS.Timeout | null = null;
+
     try {
       /**
        * Utilisation conforme aux docs PayAI officielles
@@ -121,9 +125,7 @@ export default function R1xAgentContent() {
        * This eliminates CORS issues since browser calls same origin
        */
       
-      // Add timeout to prevent infinite loading
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes timeout
+      timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes timeout
       
       const response = await fetchWithPayment('/api/r1x-agent/chat', {
         signal: controller.signal,
@@ -141,7 +143,7 @@ export default function R1xAgentContent() {
       });
       
       // Clear timeout on success
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
 
       console.log('[Agent] Response status:', response.status);
 
@@ -167,7 +169,7 @@ export default function R1xAgentContent() {
       });
     } catch (err: any) {
       // Clear timeout on error
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
       
       console.error('[Agent] Error:', err);
       console.error('[Agent] Error details:', {
