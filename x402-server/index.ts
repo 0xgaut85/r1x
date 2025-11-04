@@ -38,11 +38,11 @@ const allowedOrigins = [
 // Handle CORS with explicit OPTIONS support
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  
+    
   // More permissive CORS for production - allow any r1xlabs.com subdomain
   const isAllowed = !origin || 
-    allowedOrigins.includes(origin) || 
-    origin.includes('railway.app') ||
+      allowedOrigins.includes(origin) || 
+      origin.includes('railway.app') ||
     origin.includes('r1xlabs.com') ||
     origin.includes('vercel.app') ||
     (process.env.NODE_ENV === 'production' && origin && origin.includes('r1xlabs.com'));
@@ -52,7 +52,7 @@ app.use((req, res, next) => {
     console.log('[CORS] Allowing origin:', origin);
   } else if (isAllowed) {
     res.setHeader('Access-Control-Allow-Origin', '*');
-  } else {
+    } else {
     console.warn('[CORS] Blocked origin:', origin);
   }
   

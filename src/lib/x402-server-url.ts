@@ -189,7 +189,7 @@ export async function getX402ServerUrlAsync(): Promise<string> {
 export function getX402ServerUrl(): string {
   // Server-side only: use X402_SERVER_URL (not exposed to client)
   if (typeof window === 'undefined') {
-    if (process.env.X402_SERVER_URL) {
+  if (process.env.X402_SERVER_URL) {
       return normalizeUrl(process.env.X402_SERVER_URL);
     }
     // Fallback to localhost for development

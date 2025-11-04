@@ -147,6 +147,42 @@ export default function R1xAgentContent() {
 
       console.log('[Agent] Response status:', response.status);
 
+      // Handle 402 Payment Required responses
+      // x402-fetch should handle 402 automatically, but if we still get 402,
+      // it means x402-fetch gave up (user rejected payment, payment failed, or payment proof invalid)
+      if (response.status === 402) {
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
+        
+        console.error('[Agent] 402 Payment Required after x402-fetch retry:', errorData);
+        
+        // Check if this is a payment quote format
+        if (errorData.accepts && Array.isArray(errorData.accepts)) {
+          const quote = errorData.accepts[0];
+          throw new Error(
+            `Payment required but could not be processed:\n\n` +
+            `Amount: ${quote.maxAmountRequired ? (parseInt(quote.maxAmountRequired) / 1e6).toFixed(6) + ' USDC' : 'N/A'}\n` +
+            `Recipient: ${quote.payTo || 'N/A'}\n` +
+            `Network: ${quote.network || 'N/A'}\n\n` +
+            `Possible causes:\n` +
+            `1. Payment transaction was rejected or failed\n` +
+            `2. Payment proof format invalid\n` +
+            `3. Express server not accepting payment proof\n\n` +
+            `Please check:\n` +
+            `- Wallet transaction status\n` +
+            `- Express server logs (Railway → r1x-server → Logs)\n` +
+            `- Browser console for detailed errors`
+          );
+        }
+        
+        throw new Error(`Payment required (402) but could not be processed. Please check your wallet and try again.`);
+      }
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('[Agent] Error response body:', errorText);
@@ -185,6 +221,9 @@ export default function R1xAgentContent() {
         errorMessage = 'Request timed out. This might be due to:\n1. Wallet connection issues (check Reown domain allowlist)\n2. Network issues\n3. Server not responding\n\nPlease try again or check the console for details.';
       } else if (err.message.includes('502') || err.message.includes('not responding') || err.message.includes('Express server')) {
         errorMessage = `Express server error (502):\n\nThe Express x402 server is not responding. Please check:\n\n1. Railway → Express Service → Status (should be "Active")\n2. Railway → Express Service → Logs (check for errors)\n3. Verify X402_SERVER_URL is correct in Railway Next.js service\n4. Test Express server: curl <EXPRESS_URL>/health\n\nIf the service is down, restart it in Railway.`;
+      } else if (err.message.includes('402') || err.message.includes('Payment required')) {
+        // Already handled above, but catch here to ensure proper formatting
+        errorMessage = err.message;
       } else if (err.message.includes('Failed to fetch') || err.name === 'TypeError' || err.message.includes('network')) {
         errorMessage = `Cannot connect to x402 server. Please check:\n1. Next.js API route is accessible (/api/r1x-agent/chat)\n2. X402_SERVER_URL is set in Railway (for server-side proxy)\n3. Express server is running and accessible\n4. Wallet is properly connected (check Reown domain allowlist)\n5. Check browser console and server logs for details\n\nOriginal error: ${err.message}`;
       } else if (err.message.includes('Runtime config')) {

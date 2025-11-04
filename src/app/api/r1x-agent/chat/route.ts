@@ -40,6 +40,21 @@ export async function POST(request: NextRequest) {
     const xPaymentHeader = request.headers.get('x-payment');
     if (xPaymentHeader) {
       headers['X-Payment'] = xPaymentHeader;
+      console.log('[Next.js Proxy] X-Payment header present, forwarding to Express server');
+      // Log payment proof structure (first 200 chars to avoid logging sensitive data)
+      try {
+        const paymentProof = JSON.parse(xPaymentHeader);
+        console.log('[Next.js Proxy] Payment proof structure:', {
+          hasSignature: !!paymentProof.signature,
+          hasMessage: !!paymentProof.message,
+          hasTimestamp: !!paymentProof.timestamp,
+          chainId: paymentProof.chainId,
+        });
+      } catch (e) {
+        console.log('[Next.js Proxy] X-Payment header (not JSON):', xPaymentHeader.substring(0, 200));
+      }
+    } else {
+      console.log('[Next.js Proxy] No X-Payment header - first request (will get 402)');
     }
     
     const targetUrl = `${expressServerUrl}/api/r1x-agent/chat`;
