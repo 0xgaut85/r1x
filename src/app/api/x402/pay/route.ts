@@ -49,24 +49,24 @@ export async function POST(request: NextRequest) {
     }
     
     // Forward all headers from Express (important for 402 responses and payment quotes)
-    const headers: Record<string, string> = {};
+    const responseHeaders: Record<string, string> = {};
     
     // Forward X-Payment header if present
     const xPayment = response.headers.get('x-payment');
     if (xPayment) {
-      headers['X-Payment'] = xPayment;
+      responseHeaders['X-Payment'] = xPayment;
     }
     
     // Forward Content-Type
     const contentType = response.headers.get('content-type');
     if (contentType) {
-      headers['Content-Type'] = contentType;
+      responseHeaders['Content-Type'] = contentType;
     }
     
     // Forward status and response (including 402 Payment Required)
     return NextResponse.json(jsonData, { 
       status: response.status, // Preserve 402 status for x402-fetch
-      headers,
+      headers: responseHeaders,
     });
   } catch (error: any) {
     console.error('[Next.js Proxy] Error forwarding payment request:', error);
