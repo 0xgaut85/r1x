@@ -24,6 +24,7 @@ export default function HeroSection() {
   const heroRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
+  const resizeHandlerRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     // Lazy load GSAP
@@ -80,6 +81,60 @@ export default function HeroSection() {
     });
   }, []);
 
+  // Ensure section maintains full width on resize
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const updateWidth = () => {
+      if (!sectionRef.current) return;
+      
+      // Use document.documentElement.clientWidth to exclude scrollbar
+      const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+      
+      // Set width to exactly match viewport
+      sectionRef.current.style.width = `${viewportWidth}px`;
+      
+      // Get position after width is set
+      const rect = sectionRef.current.getBoundingClientRect();
+      const currentLeft = rect.left;
+      
+      // Adjust margins to align with viewport left edge (0)
+      if (currentLeft !== 0) {
+        sectionRef.current.style.marginLeft = `${-currentLeft}px`;
+      } else {
+        sectionRef.current.style.marginLeft = '';
+      }
+      
+      // Ensure right edge aligns with viewport
+      const rightOffset = viewportWidth - (currentLeft + rect.width);
+      if (Math.abs(rightOffset) > 1) { // Allow 1px tolerance for rounding
+        sectionRef.current.style.marginRight = `${-rightOffset}px`;
+      } else {
+        sectionRef.current.style.marginRight = '';
+      }
+    };
+
+    // Initial update with slight delay to ensure DOM is ready
+    const timeoutId = setTimeout(() => {
+      updateWidth();
+    }, 0);
+
+    const handleResize = () => {
+      updateWidth();
+    };
+
+    window.addEventListener('resize', handleResize);
+    resizeHandlerRef.current = handleResize;
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (resizeHandlerRef.current) {
+        window.removeEventListener('resize', resizeHandlerRef.current);
+        resizeHandlerRef.current = null;
+      }
+    };
+  }, []);
+
   const scrambleTexts = ['Machine economy.', 'AI agents.', 'Robots.', 'Pay-per-use.'];
   const enterText = ['ENTER'];
 
@@ -87,7 +142,12 @@ export default function HeroSection() {
     <section 
       ref={sectionRef}
       className="relative min-h-screen flex items-center justify-center overflow-hidden" 
-      style={{ backgroundColor: '#000000', paddingTop: '138.641px', paddingBottom: '80px' }}
+      style={{ 
+        backgroundColor: '#000000', 
+        position: 'relative', 
+        zIndex: 0,
+        width: typeof window !== 'undefined' ? `${window.innerWidth}px` : '100vw'
+      }}
     >
       <HeroBackground />
       {/* Animated background glow */}
@@ -110,8 +170,8 @@ export default function HeroSection() {
         }}
       />
 
-      <div className="w-full px-4 sm:px-6 md:px-10 lg:px-[40px]" style={{ maxWidth: 'none', paddingTop: '0px', paddingBottom: '0px' }}>
-        <div className="hero-content" ref={heroRef as React.RefObject<HTMLDivElement>} style={{ textAlign: 'start', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 2 }}>
+      <div className="w-full px-4 sm:px-6 md:px-10 lg:px-[40px] relative z-10" style={{ maxWidth: 'none', paddingTop: '138.641px', paddingBottom: '80px' }}>
+        <div className="hero-content" ref={heroRef as React.RefObject<HTMLDivElement>} style={{ textAlign: 'start', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 1 }}>
           <p className="text-white text-lg sm:text-xl md:text-[22px] mb-4 sm:mb-6" style={{ 
             fontWeight: 400,
             fontFamily: 'TWKEverettMono-Regular, monospace',

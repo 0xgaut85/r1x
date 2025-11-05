@@ -1,259 +1,139 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import * as THREE from 'three';
-import { RendererManager } from '@/lib/three/RendererManager';
+import { useEffect, useRef } from 'react';
 
 export default function HeroBackground() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [webglSupported, setWebglSupported] = useState(true);
-  const managerRef = useRef<RendererManager | null>(null);
-  const mouseRef = useRef({ x: 0.5, y: 0.5 });
-  const reduceMotionRef = useRef(false);
+  const dotsLayerRef = useRef<HTMLDivElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
+  const targetRef = useRef({ x: 0, y: 0 });
+  const currentRef = useRef({ x: 0, y: 0 });
+  const reduceMotionRef = useRef(false as boolean);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    if (typeof window === 'undefined') return;
+    reduceMotionRef.current = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    // Skip if manager already exists (React StrictMode protection)
-    if (managerRef.current) return;
-
-    // Create canvas programmatically to ensure it's fresh
-    const canvas = document.createElement('canvas');
-    canvas.style.position = 'absolute';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.pointerEvents = 'none';
-    canvas.style.zIndex = '0';
-    container.appendChild(canvas);
-    canvasRef.current = canvas;
-
-    // Check WebGL support without creating a context on the actual canvas
-    try {
-      const testCanvas = document.createElement('canvas');
-      const gl = testCanvas.getContext('webgl') || testCanvas.getContext('experimental-webgl');
-      if (!gl) {
-        setWebglSupported(false);
-        return;
-      }
-    } catch (e) {
-      setWebglSupported(false);
-      return;
-    }
-
-    // Check for reduced motion preference
-    reduceMotionRef.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    // Create renderer manager
-    let manager: RendererManager;
-    try {
-      manager = new RendererManager(canvasRef.current!);
-      managerRef.current = manager;
-    } catch (e) {
-      console.error('Failed to create WebGL renderer:', e);
-      setWebglSupported(false);
-      return;
-    }
-
-    const scene = manager.getScene();
-    const reduceMotion = manager.shouldReduceMotion();
-
-    // Set black background
-    manager.getRenderer().setClearColor(0x000000, 1);
-
-    // Create optimized dot pattern matching banner design
-    // Use fewer dots but match the visual pattern from banner
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-    
-    // Optimized: single layer with optimized spacing for performance
-    const dotSpacing = 12; // pixels - slightly larger spacing for better performance
-    const cols = Math.ceil(width / dotSpacing);
-    const rows = Math.ceil(height / dotSpacing);
-    
-    // Limit total dots for performance (max ~3000 dots for smooth 60fps)
-    const maxDots = 3000;
-    const totalDots = cols * rows;
-    const skipFactor = totalDots > maxDots ? Math.ceil(totalDots / maxDots) : 1;
-    
-    const positions: number[] = [];
-    const colors: number[] = [];
-    const sizes: number[] = [];
-    const offsets: number[] = [];
-    
-    let dotCount = 0;
-    for (let i = 0; i < rows; i++) {
-      for (let j = 0; j < cols; j++) {
-        // Skip dots if too many
-        if (dotCount % skipFactor !== 0) {
-          dotCount++;
-          continue;
-        }
-        dotCount++;
-        
-        // Minimal random offset for natural look
-        const offsetX = (Math.random() - 0.5) * 1;
-        const offsetY = (Math.random() - 0.5) * 1;
-        
-        const x = ((j * dotSpacing + offsetX) / width) * 2 - 1;
-        const y = -((i * dotSpacing + offsetY) / height) * 2 + 1;
-        const aspect = width / height;
-        
-        positions.push(x * aspect, y, 0);
-        
-        // White color
-        colors.push(1.0, 1.0, 1.0);
-        
-        // Size variation matching banner (0.6-0.9px)
-        sizes.push(0.7 + Math.random() * 0.2);
-        
-        // Store original position for mouse interaction
-        offsets.push(x * aspect, y);
-      }
-    }
-    
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-    geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
-    geometry.setAttribute('offset', new THREE.Float32BufferAttribute(offsets, 2));
-    
-    const material = new THREE.ShaderMaterial({
-      uniforms: {
-        uTime: { value: 0 },
-        uMouse: { value: new THREE.Vector2(0.5, 0.5) },
-        uResolution: { value: new THREE.Vector2(width, height) },
-        uRadius: { value: 0.12 }, // Mouse influence radius
-        uStrength: { value: reduceMotion ? 0 : 0.06 }, // How much dots move
-      },
-      vertexShader: `
-        attribute float size;
-        attribute vec2 offset;
-        uniform float uTime;
-        uniform vec2 uMouse;
-        uniform vec2 uResolution;
-        uniform float uRadius;
-        uniform float uStrength;
-        
-        varying vec3 vColor;
-        
-        void main() {
-          vec3 pos = position;
-          
-          // Calculate distance from mouse in normalized coordinates
-          vec2 mousePos = vec2(uMouse.x * 2.0 - 1.0, -(uMouse.y * 2.0 - 1.0)) * vec2(uResolution.x / uResolution.y, 1.0);
-          vec2 currentPos = vec2(pos.x, pos.y);
-          float dist = distance(currentPos, mousePos);
-          
-          // Repel dots from mouse cursor (optimized)
-          if (dist < uRadius) {
-            vec2 dir = normalize(currentPos - mousePos);
-            float force = (1.0 - dist / uRadius) * uStrength;
-            pos.xy += dir * force;
-          }
-          
-          vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-          gl_Position = projectionMatrix * mvPosition;
-          gl_PointSize = size * (300.0 / -mvPosition.z);
-          
-          vColor = color;
-        }
-      `,
-      fragmentShader: `
-        varying vec3 vColor;
-        
-        void main() {
-          float dist = distance(gl_PointCoord, vec2(0.5));
-          // Match banner dot opacity (0.3-0.4 range)
-          float alpha = (1.0 - smoothstep(0.0, 0.5, dist)) * 0.35;
-          gl_FragColor = vec4(vColor, alpha);
-        }
-      `,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      vertexColors: true,
-    });
-    
-    const dots = new THREE.Points(geometry, material);
-    scene.add(dots);
-
-    // Mouse move handler
     const handleMouseMove = (e: MouseEvent) => {
-      if (!canvasRef.current) return;
-      const rect = canvasRef.current.getBoundingClientRect();
-      mouseRef.current.x = (e.clientX - rect.left) / rect.width;
-      mouseRef.current.y = (e.clientY - rect.top) / rect.height;
+      const el = containerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const mx = (e.clientX - rect.left) / rect.width;
+      const my = (e.clientY - rect.top) / rect.height;
+      targetRef.current.x = mx - 0.5;
+      targetRef.current.y = my - 0.5;
     };
-
+    const handleMouseLeave = () => {
+      targetRef.current.x = 0;
+      targetRef.current.y = 0;
+    };
     window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseleave', handleMouseLeave);
 
-    // Update resolution
-    const resolution = new THREE.Vector2(canvasRef.current.clientWidth, canvasRef.current.clientHeight);
+    const animate = () => {
+      const ease = 0.08;
+      currentRef.current.x += (targetRef.current.x - currentRef.current.x) * ease;
+      currentRef.current.y += (targetRef.current.y - currentRef.current.y) * ease;
 
-    // Animation loop
-    manager.animate((time) => {
-      if (!canvasRef.current) return;
-      resolution.set(canvasRef.current.clientWidth, canvasRef.current.clientHeight);
+      const dotsLayer = dotsLayerRef.current;
+      if (dotsLayer) {
+        const maxShift = 16; // px
+        const sx = Math.round(currentRef.current.x * maxShift);
+        const sy = Math.round(currentRef.current.y * maxShift);
+        const multipliers = [1.0, 1.15, 1.3, 1.45, 1.6, 1.75, 1.9, 2.05, 2.2, 2.35, 2.5, 2.65, 2.8, 2.95, 3.1];
+        dotsLayer.style.backgroundPosition = multipliers.map(m => `${Math.round(sx * m)}px ${Math.round(sy * m)}px`).join(', ');
+      }
 
-      // Update dot material
-      const material = dots.material as THREE.ShaderMaterial;
-      material.uniforms.uTime.value = reduceMotion ? 0 : time;
-      material.uniforms.uMouse.value.set(mouseRef.current.x, mouseRef.current.y);
-      material.uniforms.uResolution.value.copy(resolution);
-    });
+      const glow = glowRef.current;
+      if (glow) {
+        const maxTranslate = 24; // px
+        const tx = currentRef.current.x * maxTranslate;
+        const ty = currentRef.current.y * maxTranslate;
+        const scale = 1 + Math.hypot(currentRef.current.x, currentRef.current.y) * 0.08;
+        glow.style.transform = `translate(-50%, -50%) translate3d(${tx}px, ${ty}px, 0) scale(${scale})`;
+        glow.style.opacity = reduceMotionRef.current ? '0.18' : '0.26';
+      }
 
-    // Cleanup
+      rafRef.current = requestAnimationFrame(animate);
+    };
+    rafRef.current = requestAnimationFrame(animate);
+
     return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
       window.removeEventListener('mousemove', handleMouseMove);
-      if (managerRef.current) {
-        managerRef.current.dispose();
-        managerRef.current = null;
-      }
-      geometry.dispose();
-      material.dispose();
-      scene.remove(dots);
-      if (canvasRef.current && containerRef.current && containerRef.current.contains(canvasRef.current)) {
-        containerRef.current.removeChild(canvasRef.current);
-        canvasRef.current = null;
-      }
+      window.removeEventListener('mouseleave', handleMouseLeave);
     };
   }, []);
-
-  // Fallback to CSS gradient if WebGL not supported
-  if (!webglSupported) {
-    return (
-      <div
-        className="absolute inset-0"
-        style={{
-          background: '#000000',
-          backgroundImage: `
-            radial-gradient(circle at 2px 2px, rgba(255,255,255,0.4) 0.8px, transparent 0.8px),
-            radial-gradient(circle at 8px 5px, rgba(255,255,255,0.35) 0.7px, transparent 0.7px),
-            radial-gradient(circle at 15px 12px, rgba(255,255,255,0.3) 0.9px, transparent 0.9px)
-          `,
-          backgroundSize: '8px 8px, 9px 9px, 10px 10px',
-          opacity: 0.3,
-        }}
-      />
-    );
-  }
 
   return (
     <div
       ref={containerRef}
+      className="absolute inset-0 w-full h-full"
       style={{
         position: 'absolute',
         top: 0,
         left: 0,
+        right: 0,
+        bottom: 0,
         width: '100%',
         height: '100%',
         pointerEvents: 'none',
         zIndex: 0,
         overflow: 'hidden',
+        backgroundColor: '#000000',
       }}
-    />
+    >
+      <div
+        ref={glowRef}
+        className="absolute"
+        style={{
+          top: '50%',
+          left: '50%',
+          width: '480px',
+          height: '480px',
+          transform: 'translate(-50%, -50%)',
+          borderRadius: '9999px',
+          background: 'radial-gradient(circle, rgba(255, 77, 0, 0.18) 0%, rgba(255,77,0,0) 60%)',
+          opacity: 0.22,
+          willChange: 'transform, opacity',
+          mixBlendMode: 'screen',
+          filter: 'blur(60px)',
+          zIndex: 1,
+        }}
+      />
+      <div
+        ref={dotsLayerRef}
+        className="absolute inset-0"
+        style={{
+          pointerEvents: 'none',
+          zIndex: 1,
+          backgroundImage: `
+            radial-gradient(circle at 2px 2px, rgba(255,255,255,0.4) 0.8px, transparent 0.8px),
+            radial-gradient(circle at 8px 5px, rgba(255,255,255,0.35) 0.7px, transparent 0.7px),
+            radial-gradient(circle at 15px 12px, rgba(255,255,255,0.3) 0.9px, transparent 0.9px),
+            radial-gradient(circle at 22px 8px, rgba(255,255,255,0.38) 0.6px, transparent 0.6px),
+            radial-gradient(circle at 28px 18px, rgba(255,255,255,0.32) 0.85px, transparent 0.85px),
+            radial-gradient(circle at 35px 14px, rgba(255,255,255,0.36) 0.75px, transparent 0.75px),
+            radial-gradient(circle at 42px 25px, rgba(255,255,255,0.33) 0.8px, transparent 0.8px),
+            radial-gradient(circle at 48px 19px, rgba(255,255,255,0.37) 0.7px, transparent 0.7px),
+            radial-gradient(circle at 55px 31px, rgba(255,255,255,0.31) 0.9px, transparent 0.9px),
+            radial-gradient(circle at 62px 24px, rgba(255,255,255,0.34) 0.65px, transparent 0.65px),
+            radial-gradient(circle at 68px 38px, rgba(255,255,255,0.32) 0.8px, transparent 0.8px),
+            radial-gradient(circle at 75px 29px, rgba(255,255,255,0.35) 0.75px, transparent 0.75px),
+            radial-gradient(circle at 82px 42px, rgba(255,255,255,0.33) 0.7px, transparent 0.7px),
+            radial-gradient(circle at 88px 35px, rgba(255,255,255,0.36) 0.85px, transparent 0.85px),
+            radial-gradient(circle at 95px 47px, rgba(255,255,255,0.3) 0.8px, transparent 0.8px)
+          `,
+          backgroundSize: `
+            8px 8px, 9px 9px, 10px 10px, 8px 8px, 9px 9px, 10px 10px,
+            8px 8px, 9px 9px, 10px 10px, 8px 8px, 9px 9px, 10px 10px,
+            8px 8px, 9px 9px, 10px 10px
+          `,
+          opacity: 0.4,
+          willChange: 'background-position',
+        }}
+      />
+    </div>
   );
 }

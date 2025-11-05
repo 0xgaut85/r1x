@@ -20,7 +20,7 @@ export default function Home() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F7F7F7' }}>
       <Header />
-      <main className="pt-24 md:pt-[138.641px]">
+      <main className="pt-24 md:pt-[138.641px] overflow-x-hidden">
         <HeroSection />
         <ThesisSection />
         <RoboticsUseCasesSection />

@@ -289,7 +289,13 @@ app.post('/api/x402/pay', async (req, res) => {
     if (paymentProof) {
       const serviceId = req.body.serviceId || 'unknown-service';
       const serviceName = req.body.serviceName || 'Unknown Service';
-      const price = req.body.price || '0.01';
+      const totalPrice = req.body.price || '0.01'; // Total price paid (includes fee for external services)
+      const basePrice = req.body.basePrice || totalPrice; // Base price before fee (for external services)
+      const isExternal = req.body.isExternal === true;
+      
+      // For external services, fee is calculated on base price, not total price
+      // For our services, fee is calculated on total price (we receive full amount)
+      const priceForFeeCalculation = isExternal ? basePrice : totalPrice;
       
       // Wrap in Promise.race with timeout to prevent hanging
       Promise.race([
@@ -297,7 +303,7 @@ app.post('/api/x402/pay', async (req, res) => {
           proof: paymentProof,
           serviceId,
           serviceName,
-          price,
+          price: priceForFeeCalculation, // Use base price for external, total for our services
           feePercentage: parseFloat(process.env.PLATFORM_FEE_PERCENTAGE || '5'),
         }),
         new Promise((_, reject) => 

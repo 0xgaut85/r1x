@@ -129,6 +129,12 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
       // Using same origin eliminates CORS issues
       console.log('[Marketplace] Fetching payment quote from:', '/api/x402/pay');
       
+      // Calculate total price (add 5% fee for external services)
+      const basePrice = parseFloat(service.price);
+      const totalPrice = service.isExternal && service.priceWithFee 
+        ? service.priceWithFee 
+        : service.price; // Our services don't add fee on top
+      
       const response = await fetch('/api/x402/pay', {
         method: 'POST',
         headers: {
@@ -136,7 +142,11 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
         },
         body: JSON.stringify({
           serviceId: service.id,
-          amount: service.price,
+          serviceName: service.name,
+          price: totalPrice, // Use total price (with fee if external)
+          basePrice: basePrice.toString(), // Original price before fee
+          isExternal: service.isExternal || false,
+          endpoint: service.endpoint,
         }),
       });
 
@@ -220,19 +230,54 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
           >
             {service.category}
           </span>
-          <div className="flex items-baseline gap-1 mt-1">
-            <span 
-              className="text-2xl font-bold"
-              style={{ fontFamily: 'TWKEverett-Regular, sans-serif', color: '#000000' }}
-            >
-              {service.price}
-            </span>
-            <span 
-              className="text-sm text-gray-600"
-              style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
-            >
-              USDC
-            </span>
+          <div className="flex flex-col gap-1 mt-1">
+            {service.isExternal && service.priceWithFee ? (
+              <>
+                <div className="flex items-baseline gap-1">
+                  <span 
+                    className="text-2xl font-bold"
+                    style={{ fontFamily: 'TWKEverett-Regular, sans-serif', color: '#000000' }}
+                  >
+                    {service.priceWithFee}
+                  </span>
+                  <span 
+                    className="text-sm text-gray-600"
+                    style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                  >
+                    USDC
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span 
+                    className="text-xs text-gray-500 line-through"
+                    style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                  >
+                    {service.price} USDC
+                  </span>
+                  <span 
+                    className="text-xs text-[#FF4D00]"
+                    style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                  >
+                    +5% platform fee
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-baseline gap-1">
+                <span 
+                  className="text-2xl font-bold"
+                  style={{ fontFamily: 'TWKEverett-Regular, sans-serif', color: '#000000' }}
+                >
+                  {service.price}
+                </span>
+                <span 
+                  className="text-sm text-gray-600"
+                  style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                >
+                  USDC
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>

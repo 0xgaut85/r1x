@@ -84,10 +84,16 @@ export interface MarketplaceService {
   id: string;
   name: string;
   description: string;
-  price: string; // Price in USDC
+  price: string; // Base price in USDC (before fee)
+  priceWithFee?: string; // Total price with 5% platform fee (for external services)
   merchant: string; // Service provider address
   category: string;
   endpoint?: string; // API endpoint if applicable
   available: boolean;
+  isExternal?: boolean; // true if from PayAI facilitator (external merchant)
+  token?: string; // Token contract address
+  tokenSymbol?: string; // Token symbol (e.g., "USDC")
+  network?: string; // Network identifier (e.g., "base")
+  chainId?: number; // Chain ID (e.g., 8453 for Base)
 }
 
