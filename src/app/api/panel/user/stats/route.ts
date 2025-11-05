@@ -26,11 +26,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get user's transactions
+    // Get user's transactions (include pending, verified, and settled)
     const transactions = await prisma.transaction.findMany({
       where: {
         from: userAddress.toLowerCase(),
-        status: { in: ['verified', 'settled'] },
+        status: { in: ['pending', 'verified', 'settled'] },
       },
       include: {
         service: true,
@@ -38,13 +38,14 @@ export async function GET(request: NextRequest) {
       orderBy: { timestamp: 'desc' },
     });
 
-    // Calculate total spent
-    const totalSpent = transactions.reduce((sum, tx) => {
+    // Calculate total spent (only from verified and settled transactions)
+    const verifiedTransactions = transactions.filter(tx => ['verified', 'settled'].includes(tx.status));
+    const totalSpent = verifiedTransactions.reduce((sum, tx) => {
       return sum + BigInt(tx.amount);
     }, BigInt(0));
 
-    // Get unique services used
-    const uniqueServices = new Set(transactions.map(tx => tx.serviceId));
+    // Get unique services used (from verified and settled transactions)
+    const uniqueServices = new Set(verifiedTransactions.map(tx => tx.serviceId));
     
     // Get recent transactions (last 10)
     const recentTransactions = transactions.slice(0, 10).map(tx => ({
@@ -60,8 +61,8 @@ export async function GET(request: NextRequest) {
       blockExplorerUrl: `https://basescan.org/tx/${tx.transactionHash}`,
     }));
 
-    // Get transactions by category
-    const transactionsByCategory = transactions.reduce((acc, tx) => {
+    // Get transactions by category (from verified and settled transactions)
+    const transactionsByCategory = verifiedTransactions.reduce((acc, tx) => {
       const category = tx.service.category || 'Other';
       acc[category] = (acc[category] || 0) + 1;
       return acc;

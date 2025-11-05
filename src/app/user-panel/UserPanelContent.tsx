@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import WalletButton from '@/components/WalletButton';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useWallet } from '@/hooks/useWallet';
-import { modal } from '@/lib/wallet-provider';
 import { useAccount } from 'wagmi';
+import { modal } from '@/lib/wallet-provider';
 
 interface UserStats {
   address: string;
@@ -63,6 +64,7 @@ export default function UserPanelContent() {
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('30d');
+  const [lastRefresh, setLastRefresh] = useState(Date.now());
 
   useEffect(() => {
     if (isConnected && address) {
@@ -70,7 +72,14 @@ export default function UserPanelContent() {
     } else {
       setLoading(false);
     }
-  }, [isConnected, address, period]);
+  }, [isConnected, address, period, lastRefresh]);
+
+  // Refresh data when wallet connection changes
+  useEffect(() => {
+    if (isConnected && address) {
+      setLastRefresh(Date.now());
+    }
+  }, [isConnected, address]);
 
   const fetchUserData = async (address: string) => {
     setLoading(true);
@@ -110,15 +119,7 @@ export default function UserPanelContent() {
                   <p className="text-lg mb-8" style={{ fontFamily: 'TWKEverettMono-Regular, monospace', color: '#666666' }}>
                     Connect your wallet to view your transaction history and usage statistics.
                   </p>
-                  <motion.button
-                    onClick={() => modal.open()}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-[#FF4D00] to-[#FF6B35] text-white rounded-xl"
-                    style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
-                  >
-                    Connect Wallet
-                  </motion.button>
+                  <WalletButton variant="panel" className="w-full" />
                 </div>
               ) : (
                 <div className="text-center py-12">
@@ -140,19 +141,25 @@ export default function UserPanelContent() {
         <section style={{ paddingTop: '80px', paddingBottom: '80px' }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Header */}
-            <div className="mb-8">
-              <h1 
-                className="text-4xl sm:text-5xl md:text-6xl font-bold mb-4"
-                style={{ fontFamily: 'TWKEverett-Regular, sans-serif', color: '#000000' }}
-              >
-                User Panel
-              </h1>
-              <p 
-                className="text-sm text-gray-600 mb-4"
-                style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
-              >
-                {address.slice(0, 6)}...{address.slice(-4)}
-              </p>
+            <div className="mb-8 flex justify-between items-start">
+              <div>
+                <h1 
+                  className="text-4xl sm:text-5xl md:text-6xl font-bold mb-4"
+                  style={{ fontFamily: 'TWKEverett-Regular, sans-serif', color: '#000000' }}
+                >
+                  User Panel
+                </h1>
+                <motion.button
+                  onClick={() => modal.open()}
+                  whileHover={{ opacity: 0.7 }}
+                  className="text-sm text-gray-600 mb-4 cursor-pointer hover:underline"
+                  style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                  title="Click to change wallet or disconnect"
+                >
+                  {address.slice(0, 6)}...{address.slice(-4)}
+                </motion.button>
+              </div>
+              <WalletButton variant="panel" />
             </div>
 
             {/* Stats Cards */}
@@ -298,6 +305,7 @@ export default function UserPanelContent() {
                             <span className={`px-2 py-1 rounded ${
                               tx.status === 'settled' ? 'bg-green-100 text-green-800' :
                               tx.status === 'verified' ? 'bg-blue-100 text-blue-800' :
+                              tx.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                               'bg-gray-100 text-gray-800'
                             }`}>
                               {tx.status}
