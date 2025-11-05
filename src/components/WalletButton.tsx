@@ -10,6 +10,7 @@ interface WalletButtonProps {
 }
 
 export default function WalletButton({ variant = 'default', className = '' }: WalletButtonProps) {
+  // Always call hooks in the same order - wagmi will handle provider check
   const { address, isConnected } = useWallet();
 
   const handleClick = () => {

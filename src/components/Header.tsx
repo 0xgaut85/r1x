@@ -2,7 +2,10 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import WalletButton from '@/components/WalletButton';
+import dynamic from 'next/dynamic';
+
+// Dynamically import WalletButton with SSR disabled to avoid WagmiProvider issues
+const WalletButton = dynamic(() => import('@/components/WalletButton'), { ssr: false });
 
 export default function Header() {
   const [isUtilitiesMenuOpen, setIsUtilitiesMenuOpen] = useState(false);
