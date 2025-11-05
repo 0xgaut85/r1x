@@ -28,7 +28,7 @@ export default function PrivacyPolicy() {
                 Welcome to r1x ("we," "our," or "us"). r1x is a decentralized payment infrastructure enabling the machine economy, built on Base. We are committed to protecting your privacy and ensuring transparency about how we collect, use, and protect your information.
               </p>
               <p className="text-sm sm:text-base mb-4 leading-relaxed">
-                This Privacy Policy explains how we handle information when you use our services, including r1x Agent, r1x Plug, r1x SDK, and r1x Marketplace (collectively, "Services").
+                This Privacy Policy explains how we handle information when you use our services, including r1x Agent, RX1 Builder, r1x SDK, and r1x Marketplace (collectively, "Services").
               </p>
             </section>
 

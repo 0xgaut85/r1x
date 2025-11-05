@@ -10,6 +10,11 @@ const features = [
     description: 'HTTP 402 Payment Required, reborn for machines. Quote a price, pay from wallet, retry with proof. No accounts. No API keys. No humans. Just machines transacting. Built on Base with USDC. Every payment is on-chain. Every transaction is verifiable. The protocol that makes HTTP machine-payable.',
   },
   {
+    icon: <Code className="w-8 h-8" />,
+    title: 'RX1 Builder',
+    description: 'Drag‑and‑drop builder for x402 services. Price endpoints, set fees, and publish to a marketplace—no code required.',
+  },
+  {
     icon: <MessageSquare className="w-8 h-8" />,
     title: 'r1x Agent',
     description: 'An AI agent that thinks, pays, and accesses the world. Chat with Claude 3 Opus. It understands x402, purchases resources autonomously, and guides you through the machine economy. Pay-per-message. Create resources robots will buy. Build services agents will pay for. Intelligence that transacts.',
@@ -17,7 +22,7 @@ const features = [
   {
     icon: <Network className="w-8 h-8" />,
     title: 'Marketplace',
-    description: 'The marketplace for the machine economy. Browse AI inference services robots can purchase. Discover compute resources agents can buy. Access data streams machines can consume. Real-time service discovery. Everything priced. Everything payable. The infrastructure for autonomous commerce.',
+    description: 'Discover and list machine‑payable services: inference, data windows, compute bursts, routes, teleop. Price in dollars, settle on Base.',
   },
   {
     icon: <Wallet className="w-8 h-8" />,

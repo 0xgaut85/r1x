@@ -67,7 +67,7 @@ export default function HeroBackground() {
       u_diffuse: { value: 0.8 },
       u_time: { value: 0.0 },
       u_scanWidth: { value: 0.6 },
-      u_waveAmp: { value: 0.045 },
+      u_waveAmp: { value: 0.055 },
       u_waveFreq: { value: 6.0 },
       u_waveSpeedX: { value: 0.6 },
       u_waveSpeedY: { value: 0.8 },
@@ -219,7 +219,7 @@ export default function HeroBackground() {
 
     const animate = (t: number = 0) => {
       // Slower time for band and waves
-      uniforms.u_time.value = t * 0.001 * 0.45;
+      uniforms.u_time.value = t * 0.001 * 0.5;
 
       renderer.render(scene, camera);
       rafRef.current = requestAnimationFrame(animate);

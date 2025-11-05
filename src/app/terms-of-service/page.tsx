@@ -25,7 +25,7 @@ export default function TermsOfService() {
             <section className="mb-8 sm:mb-12">
               <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6" style={{ color: '#000000' }}>1. Agreement to Terms</h2>
               <p className="text-sm sm:text-base mb-4 leading-relaxed">
-                By accessing or using r1x services, including r1x Agent, r1x Plug, r1x SDK, r1x Marketplace, and any related platforms (collectively, "Services"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, do not use our Services.
+                By accessing or using r1x services, including r1x Agent, RX1 Builder, r1x SDK, r1x Marketplace, and any related platforms (collectively, "Services"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, do not use our Services.
               </p>
             </section>
 

@@ -134,8 +134,8 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
   // Determine amount - PayAI might return it in different formats
   let maxAmountRequired = '250000'; // Default: 0.25 USDC (6 decimals)
   let description = isChatRoute 
-    ? 'r1x Agent Chat - AI Assistant powered by Claude 3 Opus. Chat with an AI agent that helps you build, discover, and interact with x402 services. From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.'
-    : 'r1x Payment Service - Generic x402 payment endpoint for marketplace services. Enabling machines to operate in an autonomous economy. Pay-per-use access to services.';
+    ? 'From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.'
+    : 'From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.';
   
   // Parse amount from various possible PayAI response formats
   if (payaiResponse.accepts && Array.isArray(payaiResponse.accepts) && payaiResponse.accepts[0]) {

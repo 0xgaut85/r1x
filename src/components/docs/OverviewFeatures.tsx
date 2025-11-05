@@ -9,6 +9,10 @@ const features = [
     description: 'HTTP 402 for machines: server quotes a price, wallet pays in USDC on Base, client retries with proof (X‑PAYMENT). Minimal surface, maximal composability.',
   },
   {
+    title: 'RX1 Builder',
+    description: 'Drag‑and‑drop builder to turn HTTP endpoints into x402 products. Price per request, set fees, and publish to the marketplace—no code required.',
+  },
+  {
     title: 'r1x Agent',
     description: 'An AI agent that plans, prices, and pays. Chats with Claude 3 Opus, understands x402, and executes purchases to unlock capabilities—pay‑per‑message, pay‑per‑request.',
   },
