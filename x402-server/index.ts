@@ -79,8 +79,8 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-// Transform 402 responses to x402scan format (BEFORE paymentMiddleware so we can intercept its responses)
-app.use(x402scanResponseTransformer);
+// DISABLED: x402scan transformer - following PayAI docs exactly
+// app.use(x402scanResponseTransformer);
 
 // Explicit OPTIONS handlers for all protected routes (must be before paymentMiddleware)
 app.options('/api/r1x-agent/chat', (req, res) => {
