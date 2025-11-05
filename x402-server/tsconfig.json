@@ -16,7 +16,7 @@
     "declarationMap": true,
     "sourceMap": true
   },
-  "include": ["index.ts", "save-transaction.ts"],
+  "include": ["index.ts", "save-transaction.ts", "x402scan-response.ts"],
   "exclude": ["node_modules", "dist"]
 }
 

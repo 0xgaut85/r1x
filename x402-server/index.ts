@@ -11,6 +11,7 @@ import cors from 'cors';
 import { paymentMiddleware, Resource } from 'x402-express';
 import Anthropic from '@anthropic-ai/sdk';
 import { parsePaymentProof, saveTransaction } from './save-transaction';
+import { x402scanResponseTransformer } from './x402scan-response';
 
 config();
 
@@ -139,6 +140,9 @@ app.use(paymentMiddleware(
   },
   facilitatorConfig,
 ));
+
+// Transform 402 responses to x402scan format (after paymentMiddleware, before error handler)
+app.use(x402scanResponseTransformer);
 
 // Error handler middleware to catch payment middleware errors
 // Must be AFTER paymentMiddleware but BEFORE route handlers
@@ -331,14 +335,14 @@ app.listen(PORT, '0.0.0.0', () => {
 // Graceful shutdown - close database connections
 process.on('SIGTERM', async () => {
   console.log('[x402-server] SIGTERM received, closing connections...');
-  const { closeConnection } = await import('./save-transaction');
+  const { closeConnection } = await import('./save-transaction.js');
   await closeConnection();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('[x402-server] SIGINT received, closing connections...');
-  const { closeConnection } = await import('./save-transaction');
+  const { closeConnection } = await import('./save-transaction.js');
   await closeConnection();
   process.exit(0);
 });
