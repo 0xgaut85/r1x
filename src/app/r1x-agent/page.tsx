@@ -1,6 +1,7 @@
 'use client';
 
 import dynamicImport from 'next/dynamic';
+import { metadata } from './metadata';
 
 // Dynamically import the wallet-dependent component with SSR disabled
 const R1xAgentContent = dynamicImport(() => import('./R1xAgentContent'), {

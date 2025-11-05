@@ -1,13 +1,14 @@
 'use client';
 
-import { Twitter, Github, MessageCircle, Mail } from 'lucide-react';
+import { Twitter, Github, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
+import TelegramIcon from './icons/TelegramIcon';
 
 export default function Footer() {
   const socialLinks = [
     { icon: <Twitter className="w-4 h-4 sm:w-5 sm:h-5" />, href: '#' },
     { icon: <Github className="w-4 h-4 sm:w-5 sm:h-5" />, href: '#' },
-    { icon: <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />, href: '#' },
+    { icon: <TelegramIcon className="w-4 h-4 sm:w-5 sm:h-5" />, href: 'https://t.me/r1xbuilders' },
     { icon: <Mail className="w-4 h-4 sm:w-5 sm:h-5" />, href: '#' },
   ];
 

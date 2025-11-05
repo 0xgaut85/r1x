@@ -1,8 +1,9 @@
 'use client';
 
 import { StaggerChildren, StaggerChild } from './motion';
-import { Briefcase, MessageCircle, ArrowRight } from 'lucide-react';
+import { Briefcase, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import TelegramIcon from './icons/TelegramIcon';
 
 const careers = [
   {
@@ -16,12 +17,12 @@ const careers = [
     contentOrder: 'order-2 md:order-1',
   },
   {
-    icon: <MessageCircle className="w-6 h-6" />,
+    icon: <TelegramIcon className="w-6 h-6" />,
     number: '[02]',
     title: 'JOIN THE CONVERSATION',
     description: 'Be the first to know what we\'ve been up to and how we can help unleash the potential in your high-value data.',
-    link: '#',
-    linkText: 'Join the Discord',
+    link: 'https://t.me/r1xbuilders',
+    linkText: 'Join Telegram',
     imageOrder: 'order-1 md:order-1',
     contentOrder: 'order-2 md:order-2',
   },
