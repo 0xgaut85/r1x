@@ -7,28 +7,28 @@ export default function RoboticsUseCasesSection() {
   const useCases = [
     {
       icon: <Camera className="w-12 h-12" />,
-      title: 'Buy perception when uncertain',
-      description: 'A delivery bot needs intensive mapping for 30 seconds, then navigates autonomously for hours. Pay per frame for vision APIs. Pay per image for OCR. No monthly lock-in. Just machines buying sight when they need it.',
+      title: 'Perception on demand',
+      description: 'Call vision or OCR only when uncertain. Pay per frame or image in USDC. Zero subscriptions—just buy sight when you need it.',
     },
     {
       icon: <MapPin className="w-12 h-12" />,
-      title: 'Purchase routes when lost',
-      description: 'Buy HD map tiles per route segment. Pay per minute for navigation. Access routing services per destination. Why pay monthly for what you use sporadically? Navigation becomes a commodity robots buy.',
+      title: 'Navigation per segment',
+      description: 'Buy HD map tiles and routing per segment. Pay per minute for guidance. Navigation becomes a commodity robots purchase on demand.',
     },
     {
       icon: <Users className="w-12 h-12" />,
-      title: 'Escalate to human control only when needed',
-      description: 'Pay for teleoperation by the minute when autonomy hits edge cases. Machines buying human expertise only when needed. One request at a time. Complete transparency on-chain.',
+      title: 'Human‑in‑the‑loop fallback',
+      description: 'Escalate to teleop by the minute when autonomy hits edge cases. Pay only when you need human expertise. Transparent receipts on‑chain.',
     },
     {
       icon: <Radio className="w-12 h-12" />,
-      title: 'Robots compose capabilities like software',
-      description: 'Publish LiDAR sweeps. Consume sensor data from other robots. Build real-time sensor networks. Robots buying and selling perception data. A bazaar where autonomous services transact directly.',
+      title: 'Sensor markets',
+      description: 'Publish LiDAR/IMU windows. Consume peer sensor data. Compose real‑time perception networks that are priced per window.',
     },
     {
       icon: <Battery className="w-12 h-12" />,
-      title: 'Infrastructure becomes machine-payable',
-      description: 'Reserve charging slots per use. Pay for docking bays when docking. Access warehouse space per operation. The physical world becomes machine-payable. No subscriptions. Just pay for what you use.',
+      title: 'Machine‑payable infrastructure',
+      description: 'Reserve charging slots or docks per use. Settle per operation. Physical infrastructure becomes pay‑per‑use for fleets.',
     },
   ];
 
@@ -45,7 +45,7 @@ export default function RoboticsUseCasesSection() {
               marginBottom: '40px',
               marginTop: '0px'
             }}>
-              Robotics workloads are spiky. Pay per request, not per month.
+              Robotics workloads spike. Price per request, not per month.
             </h2>
           </FadeInUp>
 

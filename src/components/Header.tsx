@@ -100,12 +100,12 @@ export default function Header() {
                     </a>
                     <a 
                       href="/r1x-plug" 
-                      onClick={(e) => handleComingSoonClick(e, 'r1x-plug')}
+                      onClick={(e) => handleComingSoonClick(e, 'rx1-builder')}
                       className="block text-sm text-gray-700 hover:text-black py-3 transition-colors duration-200 relative overflow-hidden"
                       style={{ minHeight: '44px', display: 'flex', alignItems: 'center', fontFamily: 'TWKEverettMono-Regular, monospace' }}
                     >
                       <AnimatePresence mode="wait">
-                        {isComingSoonVisible('r1x-plug') ? (
+                        {isComingSoonVisible('rx1-builder') ? (
                           <motion.div
                             key="coming-soon"
                             initial={{ opacity: 0, scale: 0.8, y: -10 }}
@@ -137,7 +137,7 @@ export default function Header() {
                             exit={{ opacity: 0, scale: 0.8, y: -10 }}
                             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
                           >
-                            R1X PLUG
+                            RX1 BUILDER
                           </motion.span>
                         )}
                       </AnimatePresence>

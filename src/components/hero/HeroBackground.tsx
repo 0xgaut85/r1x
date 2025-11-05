@@ -11,6 +11,7 @@ export default function HeroBackground() {
   const currentRef = useRef({ x: 0.5, y: 0.5 }); // normalized 0..1
   const reduceMotionRef = useRef(false as boolean);
   const [webglSupported, setWebglSupported] = useState(true);
+  const logoTextureRef = useRef<THREE.Texture | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -56,48 +57,86 @@ export default function HeroBackground() {
     const scene = new THREE.Scene();
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -1, 1);
 
-    // Shaders: GPU repulsion near mouse, otherwise static
-    const uniforms = {
-      u_mouse: { value: new THREE.Vector2(9999, 9999) },
-      u_radius: { value: 0.2 }, // interaction radius
-      u_strength: { value: 0.03 }, // displacement amount
-      u_pointSize: { value: 1.8 }, // px size
+    // Shaders: default motion with waves, no cursor
+    const uniforms: { [key: string]: { value: any } } = {
+      u_pointSize: { value: 1.8 },
       u_pixelRatio: { value: Math.min(2, window.devicePixelRatio || 1) },
       u_baseAlpha: { value: 0.5 },
-    } as const;
+      u_glowColor: { value: new THREE.Color(1.0, 0.302, 0.0) },
+      u_ambient: { value: 0.35 },
+      u_diffuse: { value: 0.8 },
+      u_time: { value: 0.0 },
+      u_scanWidth: { value: 0.6 },
+      u_waveAmp: { value: 0.045 },
+      u_waveFreq: { value: 6.0 },
+      u_waveSpeedX: { value: 0.6 },
+      u_waveSpeedY: { value: 0.8 },
+    };
+
+    // (No cursor/logo mask required)
 
     const vertexShader = `
       precision mediump float;
       attribute vec3 position;
       attribute float aIntensity;
-      uniform vec2 u_mouse; // in clip space: x,y in [-1,1]
-      uniform float u_radius;
-      uniform float u_strength;
       uniform float u_pointSize;
       uniform float u_pixelRatio;
+      uniform float u_time;
+      uniform float u_scanWidth;
+      uniform float u_waveAmp;
+      uniform float u_waveFreq;
+      uniform float u_waveSpeedX;
+      uniform float u_waveSpeedY;
       varying float vAlpha;
+      varying float vMask;
+      varying float vScan;
       void main() {
         vec3 pos = position;
-        vec2 delta = vec2(pos.x - u_mouse.x, pos.y - u_mouse.y);
-        float dist = length(delta);
-        float influence = smoothstep(u_radius, 0.0, dist);
-        vec2 dir = normalize(delta + 1e-6);
-        pos.xy += dir * influence * u_strength;
+        // Wave motion
+        float wave1 = sin(pos.y * u_waveFreq + u_time * u_waveSpeedX);
+        float wave2 = sin(pos.x * (u_waveFreq * 1.2) - u_time * u_waveSpeedY);
+        float wave = 0.5 * (wave1 + wave2);
+        pos.x += u_waveAmp * wave * 0.8;
+        pos.y += u_waveAmp * wave * 0.6;
+        pos.z -= abs(wave) * 0.08;
+        // Scanning band left->right->left via sin time
+        float s = 0.5 + 0.5 * sin(u_time);
+        float scanCenter = mix(-1.2, 1.2, s);
+        float bandL = smoothstep(scanCenter - u_scanWidth, scanCenter, pos.x);
+        float bandR = 1.0 - smoothstep(scanCenter, scanCenter + u_scanWidth, pos.x);
+        float band = clamp(bandL * bandR, 0.0, 1.0);
+        vScan = band;
         gl_Position = vec4(pos, 1.0);
-        gl_PointSize = u_pointSize * u_pixelRatio;
-        vAlpha = aIntensity * ${/* embed base alpha in fragment via uniform */''} 1.0;
+        gl_PointSize = u_pointSize * (1.0 + abs(wave) * 0.5) * u_pixelRatio;
+        vAlpha = aIntensity * 1.0;
+        vMask = abs(wave);
       }
     `;
 
     const fragmentShader = `
       precision mediump float;
       uniform float u_baseAlpha;
+      uniform vec3 u_glowColor;
+      uniform float u_ambient;
+      uniform float u_diffuse;
       varying float vAlpha;
+      varying float vMask;
+      varying float vScan;
       void main() {
         vec2 c = gl_PointCoord - 0.5;
         float r = length(c);
-        float mask = smoothstep(0.5, 0.45, r); // soft edge circle
-        gl_FragColor = vec4(1.0, 1.0, 1.0, mask * vAlpha * u_baseAlpha);
+        float inside = step(r, 0.5);
+        // Fake sphere normal from point coord
+        vec3 n = normalize(vec3(c, sqrt(max(0.0, 0.25 - r*r))));
+        vec3 L = normalize(vec3(-0.35, 0.55, 0.75));
+        float lambert = max(0.0, dot(n, L));
+        float light = u_ambient + u_diffuse * lambert;
+        vec3 base = vec3(1.0);
+        vec3 tinted = mix(base, u_glowColor, clamp(pow(vMask, 1.2) * 0.6, 0.0, 1.0));
+        vec3 color = tinted * light;
+        float mask = smoothstep(0.5, 0.45, r) * inside;
+        float scanAlpha = max(0.12, vScan); // ensure subtle base visibility
+        gl_FragColor = vec4(color, mask * vAlpha * u_baseAlpha * scanAlpha);
       }
     `;
 
@@ -176,38 +215,11 @@ export default function HeroBackground() {
     window.addEventListener('resize', resize);
     setTimeout(resize, 0);
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const rect = container.getBoundingClientRect();
-      targetRef.current.x = (e.clientX - rect.left) / rect.width;
-      targetRef.current.y = (e.clientY - rect.top) / rect.height;
-    };
-    const handleMouseLeave = () => {
-      targetRef.current.x = 0.5;
-      targetRef.current.y = 0.5;
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseleave', handleMouseLeave);
+    // No cursor interaction
 
-    const animate = () => {
-      const ease = 0.1;
-      currentRef.current.x += (targetRef.current.x - currentRef.current.x) * ease;
-      currentRef.current.y += (targetRef.current.y - currentRef.current.y) * ease;
-
-      // Update mouse uniform in camera space
-      const mx = (currentRef.current.x * 2.0 - 1.0);
-      const my = - (currentRef.current.y * 2.0 - 1.0);
-      (uniforms.u_mouse.value as THREE.Vector2).set(mx, my);
-
-      // Subtle glow follows cursor
-      const glow = glowRef.current;
-      if (glow) {
-        const maxTranslate = 24;
-        const tx = (currentRef.current.x - 0.5) * 2 * maxTranslate;
-        const ty = (currentRef.current.y - 0.5) * 2 * maxTranslate;
-        const scale = 1 + Math.hypot(currentRef.current.x - 0.5, currentRef.current.y - 0.5) * 0.1;
-        glow.style.transform = `translate(-50%, -50%) translate3d(${tx}px, ${ty}px, 0) scale(${scale})`;
-        glow.style.opacity = reduceMotionRef.current ? '0.18' : '0.26';
-      }
+    const animate = (t: number = 0) => {
+      // Slower time for band and waves
+      uniforms.u_time.value = t * 0.001 * 0.45;
 
       renderer.render(scene, camera);
       rafRef.current = requestAnimationFrame(animate);
@@ -216,8 +228,7 @@ export default function HeroBackground() {
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseleave', handleMouseLeave);
+      // no mouse listeners to remove
       ro.disconnect();
       if (points) {
         scene.remove(points);

@@ -55,18 +55,21 @@ export function x402scanResponseTransformer(req: Request, res: Response, next: N
 
   // Track status code
   let statusCode = 200;
+  let responseBody: any = null;
 
   // Override status to track the status code
   res.status = function (code: number) {
     statusCode = code;
+    res.statusCode = code;
     return originalStatus(code);
   };
 
   // Override json to transform 402 responses
   res.json = function (body: any) {
+    responseBody = body;
     if (statusCode === 402 || res.statusCode === 402) {
       const transformed = transformToX402scanFormat(body, req);
-      console.log('[x402scan] Transforming 402 response to x402scan format');
+      console.log('[x402scan] Transforming 402 response to x402scan format:', JSON.stringify(transformed, null, 2));
       return originalJson(transformed);
     }
     return originalJson(body);
@@ -74,6 +77,7 @@ export function x402scanResponseTransformer(req: Request, res: Response, next: N
 
   // Override send to transform 402 responses
   res.send = function (body: any) {
+    responseBody = body;
     if (statusCode === 402 || res.statusCode === 402) {
       let parsedBody = body;
       if (typeof body === 'string') {
@@ -84,10 +88,30 @@ export function x402scanResponseTransformer(req: Request, res: Response, next: N
         }
       }
       const transformed = transformToX402scanFormat(parsedBody, req);
-      console.log('[x402scan] Transforming 402 response to x402scan format');
+      console.log('[x402scan] Transforming 402 response to x402scan format:', JSON.stringify(transformed, null, 2));
       return originalSend(JSON.stringify(transformed));
     }
     return originalSend(body);
+  };
+
+  // Override end to catch responses sent directly
+  res.end = function (chunk?: any, encoding?: any) {
+    if (statusCode === 402 || res.statusCode === 402) {
+      let parsedBody = responseBody || chunk;
+      if (typeof parsedBody === 'string') {
+        try {
+          parsedBody = JSON.parse(parsedBody);
+        } catch {
+          // Not JSON, transform empty/raw response
+          parsedBody = {};
+        }
+      }
+      const transformed = transformToX402scanFormat(parsedBody, req);
+      console.log('[x402scan] Transforming 402 response (via end) to x402scan format:', JSON.stringify(transformed, null, 2));
+      res.setHeader('Content-Type', 'application/json');
+      return originalEnd(JSON.stringify(transformed), encoding);
+    }
+    return originalEnd(chunk, encoding);
   };
 
   next();
@@ -110,8 +134,8 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
   // Determine amount - PayAI might return it in different formats
   let maxAmountRequired = '250000'; // Default: 0.25 USDC (6 decimals)
   let description = isChatRoute 
-    ? 'r1x Agent Chat - AI Assistant powered by Claude. From users to AI agents, from AI agents to robots.'
-    : 'r1x Payment Service - Enabling machines to operate in an autonomous economy.';
+    ? 'r1x Agent Chat - AI Assistant powered by Claude 3 Opus. Chat with an AI agent that helps you build, discover, and interact with x402 services. From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.'
+    : 'r1x Payment Service - Generic x402 payment endpoint for marketplace services. Enabling machines to operate in an autonomous economy. Pay-per-use access to services.';
   
   // Parse amount from various possible PayAI response formats
   if (payaiResponse.accepts && Array.isArray(payaiResponse.accepts) && payaiResponse.accepts[0]) {
@@ -183,15 +207,35 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
           },
         } : {}),
         extra: {
+          // Service identification
           serviceId: isChatRoute ? 'r1x-agent-chat' : 'r1x-x402-pay',
           serviceName: isChatRoute ? 'r1x Agent Chat' : 'r1x Payment',
           price: isChatRoute ? '$0.25' : '$0.01',
-          // r1x Labs metadata
+          
+          // Provider metadata (for x402scan display)
           name: 'r1x Labs',
-          description: 'From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.',
-          logo: 'https://www.r1xlabs.com/logo.png',
-          website: 'https://www.r1xlabs.com',
           provider: 'r1x Labs',
+          providerName: 'r1x Labs',
+          description: 'From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.',
+          
+          // Logo and branding (x402scan looks for these fields)
+          logo: 'https://www.r1xlabs.com/logosvg.svg',
+          logoUrl: 'https://www.r1xlabs.com/logosvg.svg',
+          image: 'https://www.r1xlabs.com/logosvg.svg',
+          icon: 'https://www.r1xlabs.com/logosvg.svg',
+          
+          // Website and links
+          website: 'https://www.r1xlabs.com',
+          websiteUrl: 'https://www.r1xlabs.com',
+          url: 'https://www.r1xlabs.com',
+          
+          // Service metadata
+          category: isChatRoute ? 'AI' : 'Payment',
+          network: 'base',
+          chainId: 8453,
+          token: 'USDC',
+          tokenAddress: USDC_BASE,
+          tokenSymbol: 'USDC',
         },
       },
     ],

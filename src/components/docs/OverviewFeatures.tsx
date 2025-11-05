@@ -6,27 +6,27 @@ import DocsSection from './DocsSection';
 const features = [
   {
     title: 'x402 Payment Protocol',
-    description: 'HTTP 402 Payment Required, reborn for machines. Quote a price, pay from wallet, retry with proof. No accounts. No API keys. No humans. Just machines transacting. Built on Base with USDC. Every payment is on-chain. Every transaction is verifiable. The protocol that makes HTTP machine-payable.',
+    description: 'HTTP 402 for machines: server quotes a price, wallet pays in USDC on Base, client retries with proof (X‑PAYMENT). Minimal surface, maximal composability.',
   },
   {
     title: 'r1x Agent',
-    description: 'An AI agent that thinks, pays, and accesses the world. Chat with Claude 3 Opus. It understands x402, purchases resources autonomously, and guides you through the machine economy. Pay-per-message. Create resources robots will buy. Build services agents will pay for. Intelligence that transacts.',
+    description: 'An AI agent that plans, prices, and pays. Chats with Claude 3 Opus, understands x402, and executes purchases to unlock capabilities—pay‑per‑message, pay‑per‑request.',
   },
   {
     title: 'Marketplace',
-    description: 'The marketplace for the machine economy. Browse AI inference services robots can purchase. Discover compute resources agents can buy. Access data streams machines can consume. Real-time service discovery. Everything priced. Everything payable. The infrastructure for autonomous commerce.',
+    description: 'Discover and list machine‑payable services: inference, data windows, compute bursts, routes, teleop. Price in dollars, settle on Base.',
   },
   {
     title: 'User & Platform Panels',
-    description: 'Watch the machine economy unfold. Monitor every transaction. Track every autonomous purchase. Create resources that robots will buy. Set prices that agents will pay. See the future of machine commerce in real-time. Complete analytics. Full transparency. The dashboard for the autonomous economy.',
+    description: 'Create priced endpoints, set fees, and monitor quotes, purchases, and receipts in real time. Analytics for adoption and spend.',
   },
   {
     title: 'On-Chain Settlement',
-    description: 'Every payment settles on-chain. Every transaction is verifiable. No intermediaries. No trusted parties. Just machines transacting with machines. Built on Base network. Secured by blockchain. The infrastructure for trustless machine commerce.',
+    description: 'Every payment settles on‑chain and is auditable. No custodial accounts. Verifiable machine‑to‑machine commerce on Base.',
   },
   {
     title: 'SDK & APIs',
-    description: 'Build the future of machine commerce. Express middleware for x402. Public APIs for service discovery. Transaction tracking and verification. Wallet integration for Base network. Everything you need to make your services machine-payable. The tools for the autonomous economy.',
+    description: 'Express middleware, public APIs, wallet utilities, and helpers for pricing, proof parsing, and verification—everything to ship x402 quickly.',
   },
 ];
 

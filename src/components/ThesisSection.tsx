@@ -8,17 +8,17 @@ export default function ThesisSection() {
     {
       icon: <MessageSquare className="w-12 h-12" />,
       title: '[Agent]',
-      description: 'An AI agent that thinks, pays, and accesses the world. Chat with Claude 3 Opus. It understands x402, purchases resources autonomously, and guides you through the machine economy. No code. No limits. Just intelligence that transacts.',
+      description: 'An AI agent that plans, prices, and pays in USDC on Base. Chats with Claude 3 Opus, understands x402 flows, and executes end‑to‑end purchases to unlock resources.',
     },
     {
       icon: <BarChart3 className="w-12 h-12" />,
       title: '[Panel]',
-      description: 'Watch the machine economy unfold in real-time. Every transaction, every quote, every autonomous purchase. Create resources that robots will buy. Set prices that agents will pay. Monitor the future of machine commerce.',
+      description: 'Create priced endpoints, set fees, and see quotes, receipts, and purchases in real time. Ship machine‑payable services and monitor adoption.',
     },
     {
       icon: <Zap className="w-12 h-12" />,
       title: '[x402]',
-      description: 'HTTP 402 Payment Required, reborn for machines. Quote a price. Pay from wallet. Retry with proof. No accounts. No API keys. No humans. Just machines transacting with machines. The protocol that makes HTTP machine-payable.',
+      description: 'HTTP 402 Payment Required for machines. Server quotes a price, wallet pays in USDC, client retries with proof via X‑PAYMENT header. Simple, verifiable, machine‑native.',
     },
   ];
 
@@ -35,7 +35,7 @@ export default function ThesisSection() {
               marginBottom: '0px',
               marginTop: '0px'
             }}>
-            The next economy isn't human. It's autonomous. Robotics workloads are spiky. A delivery bot needs intensive mapping for 30 seconds, then navigates autonomously for hours. Why pay monthly for what you use sporadically?
+            Autonomy needs pay‑per‑request, not subscriptions. We make HTTP machine‑payable with x402 and USDC on Base.
             </h2>
           </FadeInUp>
 
@@ -47,7 +47,7 @@ export default function ThesisSection() {
                 lineHeight: '1.4',
                 color: 'rgb(0, 0, 0)'
               }}>
-                <strong style={{ fontWeight: 600 }}>We're building the payment infrastructure for autonomous machines.</strong> The old model is broken. The new model: One request = One price = One payment. Pay per frame. Pay per minute. Pay per route. No lock-in. No contracts. No subscriptions. Just pay for what you use, when you use it. Every transaction is verifiable on-chain. Complete transparency.
+                <strong style={{ fontWeight: 600 }}>We’re building the payment rail for autonomous machines.</strong> One request → one price → one payment. Pay per frame, minute, or route. USDC on Base. Verifiable receipts. No accounts. No contracts. Just machines paying for what they use.
               </p>
             </StaggerChild>
             <StaggerChild>
@@ -57,7 +57,7 @@ export default function ThesisSection() {
                 lineHeight: '1.4',
                 color: 'rgb(0, 0, 0)'
               }}>
-                Robots compose capabilities like software. Buy perception when uncertain. Purchase routes when lost. Escalate to human control only when needed. R1x turns any HTTP endpoint into a marketplace. Price in dollars. Settle instantly. If you can return HTTP, you can sell it. If you can call HTTP, you can buy it. A bazaar where autonomous services transact directly. Robots buying from robots. Agents paying agents. All happening one request at a time.
+                Turn any HTTP endpoint into a priced service. If you can return HTTP, you can sell it. If you can call HTTP, you can buy it. Build perception, routing, teleop, or data windows as x402 services—and let robots and agents compose them on demand.
               </p>
             </StaggerChild>
           </StaggerChildren>

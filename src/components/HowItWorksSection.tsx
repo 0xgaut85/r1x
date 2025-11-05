@@ -8,19 +8,19 @@ const steps = [
   {
     number: '[01]',
     title: 'Robots request',
-    description: 'A delivery bot needs intensive mapping for 30 seconds. A robot needs perception when uncertain. The server responds with a price. One request = One price. No negotiation. No accounts.',
+    description: 'Client calls your HTTP endpoint. Server replies 402 Payment Required with a price quote. One request = one price. No accounts.',
     icon: <Send className="w-6 h-6" />,
   },
   {
     number: '[02]',
     title: 'Robots pay',
-    description: 'Payment approved from wallet. Transaction settles on Base. One payment. Verifiable on-chain. Complete transparency. Robots buying from robots. Agents paying agents.',
+    description: 'Wallet approves and pays in USDC on Base. Settlement is verifiable on‑chain. The quote becomes a receipt.',
     icon: <DollarSign className="w-6 h-6" />,
   },
   {
     number: '[03]',
     title: 'Robots access',
-    description: 'Resource unlocked. Access granted. Pay per frame. Pay per minute. Pay per route. Robots compose capabilities like software. The machine economy is in motion. All happening one request at a time.',
+    description: 'Client retries with proof via the X‑PAYMENT header. Resource unlocks. Compose capabilities on demand: per frame, per minute, per route.',
     icon: <CheckCircle className="w-6 h-6" />,
   },
 ];

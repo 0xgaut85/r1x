@@ -79,6 +79,9 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
+// Transform 402 responses to x402scan format (BEFORE paymentMiddleware so we can intercept its responses)
+app.use(x402scanResponseTransformer);
+
 // Explicit OPTIONS handlers for all protected routes (must be before paymentMiddleware)
 app.options('/api/r1x-agent/chat', (req, res) => {
   const origin = req.headers.origin;
@@ -140,9 +143,6 @@ app.use(paymentMiddleware(
   },
   facilitatorConfig,
 ));
-
-// Transform 402 responses to x402scan format (after paymentMiddleware, before error handler)
-app.use(x402scanResponseTransformer);
 
 // Error handler middleware to catch payment middleware errors
 // Must be AFTER paymentMiddleware but BEFORE route handlers
@@ -341,6 +341,176 @@ app.get('/health', (req, res) => {
     facilitator: facilitatorUrl,
     merchant: payTo,
   });
+});
+
+// Public API endpoints for x402scan
+app.get('/api/panel/public/services', async (req, res) => {
+  try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+    
+    const category = req.query.category as string | undefined;
+    const network = (req.query.network as string) || 'base';
+    const chainId = req.query.chainId ? parseInt(req.query.chainId as string) : 8453;
+
+    const where: any = {
+      available: true,
+      network,
+      chainId,
+    };
+
+    if (category) {
+      where.category = { equals: category, mode: 'insensitive' };
+    }
+
+    const services = await prisma.service.findMany({
+      where,
+      include: {
+        _count: {
+          select: {
+            transactions: {
+              where: {
+                status: { in: ['verified', 'settled'] },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const { formatUnits } = await import('viem');
+    const USDC_DECIMALS = 6;
+
+    const publicServices = services.map(service => ({
+      id: service.serviceId,
+      name: service.name,
+      description: service.description,
+      category: service.category || 'Other',
+      merchant: service.merchant,
+      network: service.network,
+      chainId: service.chainId,
+      token: service.token,
+      tokenSymbol: service.tokenSymbol,
+      price: service.priceDisplay,
+      priceWei: service.price,
+      endpoint: service.endpoint,
+      totalPurchases: service._count.transactions,
+      createdAt: service.createdAt,
+      updatedAt: service.updatedAt,
+    }));
+
+    await prisma.$disconnect();
+    
+    res.json({
+      services: publicServices,
+      total: publicServices.length,
+      network,
+      chainId,
+    });
+  } catch (error: any) {
+    console.error('[x402-server] Public services API error:', error);
+    res.status(500).json({
+      error: error.message || 'An error occurred',
+    });
+  }
+});
+
+app.get('/api/panel/public/transactions', async (req, res) => {
+  try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+    
+    const limit = parseInt((req.query.limit as string) || '100');
+    const offset = parseInt((req.query.offset as string) || '0');
+    const serviceId = req.query.serviceId as string | undefined;
+    const status = req.query.status as string | undefined;
+
+    const where: any = {
+      status: { in: ['verified', 'settled'] },
+    };
+
+    if (serviceId) {
+      const service = await prisma.service.findUnique({
+        where: { serviceId },
+      });
+      if (service) {
+        where.serviceId = service.id;
+      } else {
+        await prisma.$disconnect();
+        return res.json({
+          transactions: [],
+          pagination: { total: 0, limit, offset, hasMore: false },
+        });
+      }
+    }
+
+    if (status) {
+      where.status = status;
+    }
+
+    const { formatUnits } = await import('viem');
+    const USDC_DECIMALS = 6;
+
+    const [transactions, total] = await Promise.all([
+      prisma.transaction.findMany({
+        where,
+        include: {
+          service: {
+            select: {
+              serviceId: true,
+              name: true,
+              category: true,
+            },
+          },
+        },
+        orderBy: { timestamp: 'desc' },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.transaction.count({ where }),
+    ]);
+
+    const publicTransactions = transactions.map(tx => {
+      const explorerHash = tx.settlementHash || tx.transactionHash;
+      const explorerUrl = explorerHash 
+        ? `https://basescan.org/tx/${explorerHash}`
+        : null;
+      
+      return {
+        transactionHash: tx.transactionHash,
+        settlementHash: tx.settlementHash,
+        blockNumber: tx.blockNumber,
+        service: {
+          id: tx.service.serviceId,
+          name: tx.service.name,
+          category: tx.service.category,
+        },
+        amount: formatUnits(BigInt(tx.amount), USDC_DECIMALS),
+        fee: formatUnits(BigInt(tx.feeAmount), USDC_DECIMALS),
+        status: tx.status,
+        timestamp: tx.timestamp,
+        blockExplorerUrl: explorerUrl,
+      };
+    });
+
+    await prisma.$disconnect();
+
+    res.json({
+      transactions: publicTransactions,
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + limit < total,
+      },
+    });
+  } catch (error: any) {
+    console.error('[x402-server] Public transactions API error:', error);
+    res.status(500).json({
+      error: error.message || 'An error occurred',
+    });
+  }
 });
 
 app.listen(PORT, '0.0.0.0', () => {

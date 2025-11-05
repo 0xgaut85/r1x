@@ -53,7 +53,7 @@ export default function Footer() {
             <h4 className="text-xs sm:text-sm font-medium text-black mb-3 sm:mb-4" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>R1X UTILITIES</h4>
             <ul className="space-y-1 sm:space-y-2">
               <li><a href="/r1x-agent" className="text-gray-600 hover:text-[#FF4D00] transition-colors duration-200 text-xs sm:text-sm" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>R1X AGENT</a></li>
-              <li><a href="/r1x-plug" className="text-gray-600 hover:text-[#FF4D00] transition-colors duration-200 text-xs sm:text-sm" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>R1X PLUG</a></li>
+              <li><a href="/r1x-plug" className="text-gray-600 hover:text-[#FF4D00] transition-colors duration-200 text-xs sm:text-sm" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>RX1 BUILDER</a></li>
               <li><a href="/r1x-sdk" className="text-gray-600 hover:text-[#FF4D00] transition-colors duration-200 text-xs sm:text-sm" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>R1X SDK</a></li>
               <li><a href="/marketplace" className="text-gray-600 hover:text-[#FF4D00] transition-colors duration-200 text-xs sm:text-sm" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>R1X MARKETPLACE</a></li>
               <li className="pt-2 mt-2 border-t border-gray-300"><a href="/user-panel" className="text-gray-600 hover:text-[#FF4D00] transition-colors duration-200 text-xs sm:text-sm" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>USER PANEL</a></li>

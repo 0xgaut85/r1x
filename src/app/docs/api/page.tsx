@@ -104,7 +104,7 @@ export default function ApiPage() {
     <>
       <DocsPageHero 
         title="API Reference"
-        description="Complete API documentation for r1x endpoints. All endpoints support JSON responses and follow x402 protocol standards."
+        description="x402‑compatible endpoints for quote → pay → retry flows. JSON first, USDC on Base, proof via X‑PAYMENT header."
       />
 
       <DocsSection>

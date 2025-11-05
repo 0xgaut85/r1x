@@ -5,12 +5,12 @@ import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const demos = [
-  { title: "API access", desc: "Pay-per-call access to premium APIs, data feeds, and compute resources. No subscriptions, no accounts. Just pay when you use." },
-  { title: "Robot services", desc: "Robots and autonomous agents pay for task execution, sensor data, or navigation services on-demand." },
-  { title: "AI inference", desc: "LLM tools and agent frameworks pay for model inference, embeddings, or specialized AI services per-request." },
-  { title: "Data streams", desc: "Real-time data feeds, market data, or sensor streams available on a pay-per-access basis." },
-  { title: "Compute resources", desc: "On-demand compute, GPU access, or specialized processing without infrastructure setup." },
-  { title: "Digital content", desc: "Unlock premium content, reports, or digital assets with one-time payments verified on-chain." },
+  { title: "API access", desc: "Price any HTTP endpoint per request. Charge for data, compute, or premium routes in USDC on Base." },
+  { title: "Robot services", desc: "Robots and agents buy perception, routing, and teleop on demand. Quotes become receipts." },
+  { title: "AI inference", desc: "Charge per inference, embedding, or tool call. No keys—just 402 quotes and verifiable payment." },
+  { title: "Data streams", desc: "Sell real‑time feeds per window. Clients pay per access and retry with proof to unlock." },
+  { title: "Compute resources", desc: "Expose bursty GPU/CPU as x402 services. Set prices by minute or job and settle instantly." },
+  { title: "Digital content", desc: "Unlock files, reports, or assets with one‑time payments. Machine‑readable receipts by design." },
 ];
 
 export default function DemosSection() {

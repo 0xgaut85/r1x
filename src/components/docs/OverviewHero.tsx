@@ -22,14 +22,14 @@ export default function OverviewHero() {
           color: '#FFFFFF',
           textAlign: 'start',
         }}>
-          Documentation
+          Build machine‑payable APIs
         </h1>
         <p className="text-white text-lg sm:text-xl md:text-[22px] mb-8 max-w-3xl" style={{ 
           fontWeight: 400,
           fontFamily: 'TWKEverettMono-Regular, monospace',
           color: '#FFFFFF',
         }}>
-          Everything you need to know about r1x and the machine economy. Build on x402, powered by Base, secured by blockchain. The infrastructure for autonomous machines.
+          Everything you need to ship x402 services. Quote → pay → retry with proof. USDC on Base. Verifiable receipts. The infrastructure for autonomous machines.
         </p>
       </div>
     </section>

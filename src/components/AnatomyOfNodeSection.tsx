@@ -6,17 +6,17 @@ import { Shield, Zap, Globe } from 'lucide-react';
 const benefits = [
   {
     title: "[ ] Autonomous by design",
-    description: "Machines don't need accounts. They need wallets. Agents don't need API keys. They need payment standards. Built for autonomy from the ground up.",
+    description: "Machines use wallets, not accounts. Agents use payment standards, not API keys. Built for autonomy from the ground up.",
     icon: <Shield className="w-6 h-6" />,
   },
     {
-    title: "[ ] Machine-native payments",
-    description: "HTTP 402 wasn't built for humans. It was built for machines. Quote, pay, retry. The protocol the machine economy needs.",
+    title: "[ ] Machine‑native payments",
+    description: "Quote → pay → retry with proof. x402 brings pricing and settlement to HTTP so machines can transact directly.",
     icon: <Zap className="w-6 h-6" />,
     },
     {
     title: "[ ] Transparent economy",
-    description: "Watch the machine economy in real-time. See agents transacting. Track robot purchases. The autonomous economy is observable and verifiable.",
+    description: "Quotes and receipts are verifiable on‑chain. Observe adoption, track spend, and audit outcomes in real time.",
     icon: <Globe className="w-6 h-6" />,
   },
 ];

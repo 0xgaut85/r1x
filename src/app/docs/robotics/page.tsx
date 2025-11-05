@@ -27,7 +27,7 @@ export default function RoboticsDocsPage() {
               lineHeight: '1.6',
               color: 'rgb(0, 0, 0)'
             }}>
-              The machine economy won't run on subscriptions. Robots, agents, and APIs need to buy capabilities in bursts—per request, per frame, per minute. R1x makes HTTP machine‑payable so autonomy can scale without contracts or accounts.
+              Subscriptions don’t match robotic workloads. Robots, agents, and APIs buy capability in bursts—per request, per frame, per minute. R1x makes HTTP machine‑payable so autonomy scales without accounts or contracts.
             </p>
           </FadeInUp>
 
@@ -38,7 +38,7 @@ export default function RoboticsDocsPage() {
               lineHeight: '1.6',
               color: 'rgb(0, 0, 0)'
             }}>
-              In robotics, value happens at the edge and in spikes. A robot shouldn't rent a month of vision or maps to unlock five seconds of capability. With R1x, one request carries a price, you pay in dollars, you get a verifiable receipt. That's it.
+              Value happens at the edge and in spikes. Don’t rent a month of vision to unlock five seconds of capability. With R1x: one request carries a price, you pay in USDC on Base, you get a verifiable receipt.
             </p>
           </FadeInUp>
         </div>
@@ -65,7 +65,7 @@ export default function RoboticsDocsPage() {
                   lineHeight: '1.6',
                   color: 'rgb(0, 0, 0)'
                 }}>
-                  <strong>Per‑frame perception and OCR:</strong> Call vision or OCR only when needed; pay cents per frame. No monthly subscriptions for capabilities you use sporadically.
+                  <strong>Per‑frame perception and OCR:</strong> Call vision or OCR only when needed; pay cents per frame. No monthly lock‑in.
                 </span>
               </li>
               <li className="flex items-start">
@@ -76,7 +76,7 @@ export default function RoboticsDocsPage() {
                   lineHeight: '1.6',
                   color: 'rgb(0, 0, 0)'
                 }}>
-                  <strong>Route planning and HD map tiles per call:</strong> Buy HD tiles and routing per segment; no monthly lock‑in. Purchase navigation data exactly when you need it.
+                  <strong>Route planning and HD map tiles per call:</strong> Buy HD tiles and routing per segment; purchase navigation data exactly when you need it.
                 </span>
               </li>
               <li className="flex items-start">
@@ -87,7 +87,7 @@ export default function RoboticsDocsPage() {
                   lineHeight: '1.6',
                   color: 'rgb(0, 0, 0)'
                 }}>
-                  <strong>Teleop fallback by the minute:</strong> Escalate to human control by the minute during edge cases. Pay for teleoperation only when autonomy fails.
+                  <strong>Teleop fallback by the minute:</strong> Escalate to human control by the minute during edge cases. Pay only when autonomy fails.
                 </span>
               </li>
               <li className="flex items-start">
@@ -98,7 +98,7 @@ export default function RoboticsDocsPage() {
                   lineHeight: '1.6',
                   color: 'rgb(0, 0, 0)'
                 }}>
-                  <strong>Sensor data windows (LiDAR/IMU) on demand:</strong> Publish or consume LiDAR/IMU windows on demand. Access sensor data streams per time window, not per subscription.
+                  <strong>Sensor data windows (LiDAR/IMU) on demand:</strong> Publish or consume LiDAR/IMU windows on demand. Access streams per time window, not per subscription.
                 </span>
               </li>
               <li className="flex items-start">
@@ -109,7 +109,7 @@ export default function RoboticsDocsPage() {
                   lineHeight: '1.6',
                   color: 'rgb(0, 0, 0)'
                 }}>
-                  <strong>Charging slot reservations and fleet telemetry access:</strong> Reserve slots and settle once confirmed. Pay for infrastructure access per use, not per month.
+                  <strong>Charging slot reservations and fleet telemetry access:</strong> Reserve slots and settle once confirmed. Pay per use, not per month.
                 </span>
               </li>
             </ul>
@@ -135,7 +135,7 @@ export default function RoboticsDocsPage() {
               lineHeight: '1.6',
               color: 'rgb(0, 0, 0)'
             }}>
-              Robotics workloads are inherently spiky. A delivery robot might need intensive mapping for 30 seconds, then navigate autonomously for hours. A warehouse bot might require OCR for package sorting during peak hours, then idle for the rest of the day.
+              Robotics workloads are spiky. A delivery robot may need intensive mapping for 30 seconds, then navigate autonomously for hours. A warehouse bot might require OCR for peak sorting windows, then idle.
             </p>
           </FadeInUp>
 
@@ -146,7 +146,7 @@ export default function RoboticsDocsPage() {
               lineHeight: '1.6',
               color: 'rgb(0, 0, 0)'
             }}>
-              Traditional subscription models force you to pay for capacity you rarely use. R1x's per‑request pricing matches the reality of robotic operations: pay for what you consume, when you consume it. Every transaction is verifiable on‑chain, giving you complete transparency into operational costs.
+              Traditional subscriptions force you to pay for capacity you rarely use. Per‑request pricing matches reality: pay only for what you consume, when you consume it. Every transaction is verifiable on‑chain for transparent costs.
             </p>
           </FadeInUp>
         </div>
