@@ -1,0 +1,79 @@
+'use client';
+
+import { FadeInUp, StaggerChildren, StaggerChild } from './motion';
+import { Shield, Zap, Globe } from 'lucide-react';
+
+const benefits = [
+  {
+    title: "[ ] Autonomous by design",
+    description: "Machines don't need accounts. They need wallets. Agents don't need API keys. They need payment standards. Built for autonomy from the ground up.",
+    icon: <Shield className="w-6 h-6" />,
+  },
+    {
+    title: "[ ] Machine-native payments",
+    description: "HTTP 402 wasn't built for humans. It was built for machines. Quote, pay, retry. The protocol the machine economy needs.",
+    icon: <Zap className="w-6 h-6" />,
+    },
+    {
+    title: "[ ] Transparent economy",
+    description: "Watch the machine economy in real-time. See agents transacting. Track robot purchases. The autonomous economy is observable and verifiable.",
+    icon: <Globe className="w-6 h-6" />,
+  },
+];
+
+export default function AnatomyOfNodeSection() {
+  return (
+    <section style={{ backgroundColor: '#F7F7F7', paddingTop: '80px', paddingBottom: '80px' }}>
+      <div className="px-4 sm:px-6 md:px-10 lg:px-[40px]" style={{ maxWidth: 'none' }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 md:gap-16 items-start">
+          <div>
+            <FadeInUp>
+              <h3 className="text-black text-3xl sm:text-4xl md:text-[46.45px] leading-tight md:leading-[51.095px]" style={{
+              fontWeight: 400,
+              fontFamily: 'TWKEverett-Regular, sans-serif',
+              letterSpacing: '-1.858px',
+              color: 'rgb(0, 0, 0)',
+              marginBottom: '0px',
+              marginTop: '0px'
+            }}>
+                The infrastructure<br />for autonomy.
+            </h3>
+            </FadeInUp>
+            <StaggerChildren className="space-y-8 sm:space-y-12 list-none mt-6 sm:mt-8">
+              {benefits.map((benefit, idx) => (
+                <StaggerChild key={idx}>
+                  <li className="cursor-pointer group">
+                    <div className="flex items-start gap-3 mb-2 sm:mb-4">
+                      <div className="text-[#FF4D00] opacity-0 group-hover:opacity-100 transition-opacity duration-300 mt-1">
+                        {benefit.icon}
+                      </div>
+                      <h4 className="text-black text-xl sm:text-2xl md:text-[24px]" style={{
+                    fontWeight: 400,
+                    fontFamily: 'TWKEverettMono-Regular, monospace',
+                    lineHeight: '1.4',
+                    letterSpacing: '-0.96px',
+                    color: 'rgb(0, 0, 0)'
+                      }}>{benefit.title}</h4>
+                    </div>
+                  <p className="text-gray-700 leading-relaxed text-base sm:text-lg" style={{
+                    fontWeight: 400,
+                    fontFamily: 'BaselGrotesk-Regular, sans-serif',
+                    lineHeight: '1.4',
+                    color: 'rgb(0, 0, 0)'
+                    }}>{benefit.description}</p>
+                </li>
+                </StaggerChild>
+              ))}
+            </StaggerChildren>
+          </div>
+          <div className="order-first md:order-last">
+            <FadeInUp delay={0.2}>
+              <div className="w-full h-64 sm:h-80 md:h-96 bg-gray-100" style={{ borderRadius: '0px' }}></div>
+            </FadeInUp>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+

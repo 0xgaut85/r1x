@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>r1x Twitter Templates</title>
+    <style>
+        @font-face {
+            font-family: 'BaselGrotesk-Regular';
+            src: url('https://nillion.com/wp-content/themes/nillion/assets/fonts/BaselGrotesk-Regular.woff') format('woff'),
+                 url('https://nillion.com/wp-content/themes/nillion/assets/fonts/BaselGrotesk-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'TWKEverett-Regular';
+            src: url('https://nillion.com/wp-content/themes/nillion/assets/fonts/TWKEverett-Regular.woff') format('woff'),
+                 url('https://nillion.com/wp-content/themes/nillion/assets/fonts/TWKEverett-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'TWKEverettMono-Regular';
+            src: url('https://nillion.com/wp-content/themes/nillion/assets/fonts/TWKEverettMono-Regular.woff') format('woff'),
+                 url('https://nillion.com/wp-content/themes/nillion/assets/fonts/TWKEverettMono-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        :root {
+            --black-000: #000000;
+            --black-050: #050505;
+            --black-0A: #0A0A0A;
+            --black-12: #121212;
+            --black-1F: #1F1F1F;
+            --neutral-F7: #F7F7F7;
+            --accent-orange: #FF4D00;
+            --white-08: rgba(255, 255, 255, 0.08);
+            --white-15: rgba(255, 255, 255, 0.15);
+            --white-25: rgba(255, 255, 255, 0.25);
+            --white-40: rgba(255, 255, 255, 0.4);
+            --white-60: rgba(255, 255, 255, 0.6);
+            --white-85: rgba(255, 255, 255, 0.85);
+            --white-90: rgba(255, 255, 255, 0.9);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            min-height: 100vh;
+            background: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            gap: 120px;
+            padding: 60px 40px;
+        }
+
+        /* Shared utilities */
+        .grain-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 2px 2px, rgba(255,255,255,0.4) 0.8px, transparent 0.8px),
+                radial-gradient(circle at 8px 5px, rgba(255,255,255,0.35) 0.7px, transparent 0.7px),
+                radial-gradient(circle at 15px 12px, rgba(255,255,255,0.3) 0.9px, transparent 0.9px),
+                radial-gradient(circle at 22px 8px, rgba(255,255,255,0.38) 0.6px, transparent 0.6px),
+                radial-gradient(circle at 28px 18px, rgba(255,255,255,0.32) 0.85px, transparent 0.85px),
+                radial-gradient(circle at 35px 14px, rgba(255,255,255,0.36) 0.75px, transparent 0.75px),
+                radial-gradient(circle at 42px 25px, rgba(255,255,255,0.33) 0.8px, transparent 0.8px),
+                radial-gradient(circle at 48px 19px, rgba(255,255,255,0.37) 0.7px, transparent 0.7px),
+                radial-gradient(circle at 55px 31px, rgba(255,255,255,0.31) 0.9px, transparent 0.9px),
+                radial-gradient(circle at 62px 24px, rgba(255,255,255,0.34) 0.65px, transparent 0.65px),
+                radial-gradient(circle at 68px 38px, rgba(255,255,255,0.32) 0.8px, transparent 0.8px),
+                radial-gradient(circle at 75px 29px, rgba(255,255,255,0.35) 0.75px, transparent 0.75px),
+                radial-gradient(circle at 82px 42px, rgba(255,255,255,0.33) 0.7px, transparent 0.7px),
+                radial-gradient(circle at 88px 35px, rgba(255,255,255,0.36) 0.85px, transparent 0.85px),
+                radial-gradient(circle at 95px 47px, rgba(255,255,255,0.3) 0.8px, transparent 0.8px);
+            background-size: 
+                8px 8px, 9px 9px, 10px 10px, 8px 8px, 9px 9px, 10px 10px,
+                8px 8px, 9px 9px, 10px 10px, 8px 8px, 9px 9px, 10px 10px,
+                8px 8px, 9px 9px, 10px 10px;
+            opacity: 0.4;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .corner-marks {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .corner-mark {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border: 1px solid var(--white-40);
+        }
+
+        .corner-mark.top-left {
+            top: 16px;
+            left: 16px;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .corner-mark.top-right {
+            top: 16px;
+            right: 16px;
+            border-left: none;
+            border-bottom: none;
+        }
+
+        .corner-mark.bottom-left {
+            bottom: 16px;
+            left: 16px;
+            border-right: none;
+            border-top: none;
+        }
+
+        .corner-mark.bottom-right {
+            bottom: 16px;
+            right: 16px;
+            border-left: none;
+            border-top: none;
+        }
+
+        .artboard {
+            width: 1600px;
+            height: 900px;
+            position: relative;
+            background: var(--black-000);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .logo-white {
+            filter: brightness(0) invert(1);
+            object-fit: contain;
+        }
+
+        /* Template A - Structured Grid Canvas */
+        .template-a {
+            background: var(--black-000);
+        }
+
+        .template-a-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 79px,
+                    var(--white-08) 79px,
+                    var(--white-08) 80px
+                ),
+                repeating-linear-gradient(
+                    -45deg,
+                    transparent,
+                    transparent 79px,
+                    var(--white-08) 79px,
+                    var(--white-08) 80px
+                );
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .template-a-vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, transparent 0%, transparent 40%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0.7) 100%);
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .template-a-content {
+            position: absolute;
+            top: 120px;
+            left: 120px;
+            max-width: 800px;
+            z-index: 10;
+        }
+
+        .template-a-headline {
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 76px;
+            line-height: 1.1;
+            color: #ffffff;
+            margin-bottom: 32px;
+            letter-spacing: -2px;
+            font-weight: 400;
+        }
+
+        .template-a-body {
+            font-family: 'BaselGrotesk-Regular', sans-serif;
+            font-size: 20px;
+            line-height: 1.6;
+            color: var(--white-85);
+            margin-bottom: 24px;
+            font-weight: 400;
+        }
+
+        .template-a-logo-badge {
+            position: absolute;
+            top: 80px;
+            right: 80px;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .template-a-logo-capsule {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--white-25);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(8px);
+        }
+
+        .template-a-logo-capsule img {
+            width: 32px;
+            height: 32px;
+        }
+
+        .template-a-accent-line {
+            width: 40px;
+            height: 2px;
+            background: var(--accent-orange);
+            margin-top: 4px;
+        }
+
+        .template-a-baseline-bar {
+            position: absolute;
+            bottom: 60px;
+            left: 120px;
+            right: 120px;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .template-a-baseline-ticks {
+            display: flex;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .template-a-tick {
+            width: 1px;
+            height: 16px;
+            background: var(--white-40);
+        }
+
+        .template-a-tag {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 12px;
+            color: #ffffff;
+            border: 1px solid var(--accent-orange);
+            padding: 6px 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Template A enhancements */
+        .template-a-scanline {
+            position: absolute;
+            top: 260px;
+            left: 120px;
+            right: 600px;
+            height: 1px;
+            background: repeating-linear-gradient(
+                to right,
+                transparent 0px,
+                transparent 40px,
+                var(--white-15) 40px,
+                var(--white-15) 42px
+            );
+            z-index: 10;
+        }
+
+        .template-a-side-labels {
+            position: absolute;
+            left: 40px;
+            top: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 80px;
+            z-index: 10;
+        }
+
+        .template-a-side-label {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 10px;
+            color: var(--white-40);
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .template-a-corner-brackets {
+            position: absolute;
+            bottom: 60px;
+            left: 120px;
+            width: 60px;
+            height: 60px;
+            z-index: 10;
+        }
+
+        .template-a-corner-bracket {
+            position: absolute;
+            border: 1px dashed var(--white-15);
+        }
+
+        .template-a-corner-bracket.horizontal {
+            width: 40px;
+            height: 0;
+            bottom: 0;
+            left: 0;
+        }
+
+        .template-a-corner-bracket.vertical {
+            width: 0;
+            height: 40px;
+            bottom: 0;
+            left: 0;
+        }
+
+        .template-a-surface-reflection {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 200px;
+            background: linear-gradient(to top, rgba(255, 255, 255, 0.03) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* Template B - Floating Spotlight Canvas */
+        .template-b {
+            background: linear-gradient(135deg, var(--black-0A) 0%, var(--black-12) 50%, rgba(255, 77, 0, 0.08) 100%);
+        }
+
+        .template-b-border {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 1px solid var(--white-15);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .template-b-card {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 900px;
+            padding: 80px 100px;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(18px);
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            z-index: 10;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .template-b-card-headline {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 64px;
+            line-height: 1.2;
+            color: #ffffff;
+            margin-bottom: 32px;
+            font-weight: 400;
+            letter-spacing: -1px;
+        }
+
+        .template-b-card-body {
+            font-family: 'BaselGrotesk-Regular', sans-serif;
+            font-size: 20px;
+            line-height: 1.7;
+            color: var(--white-85);
+            margin-bottom: 24px;
+            font-weight: 400;
+        }
+
+        .template-b-logo-ribbon {
+            position: absolute;
+            bottom: 80px;
+            right: 80px;
+            z-index: 11;
+        }
+
+        .template-b-ribbon-bg {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--white-25);
+            padding: 12px 24px;
+            backdrop-filter: blur(8px);
+        }
+
+        .template-b-ribbon-bg img {
+            width: 40px;
+            height: 40px;
+            filter: brightness(0);
+        }
+
+        .template-b-chip {
+            position: absolute;
+            border: 1px solid var(--white-25);
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(4px);
+            z-index: 10;
+        }
+
+        .template-b-chip-top {
+            top: 140px;
+            right: 180px;
+        }
+
+        .template-b-chip-bottom {
+            bottom: 140px;
+            left: 180px;
+        }
+
+        .template-b-chip-text {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 11px;
+            color: var(--white-60);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .template-b-connector {
+            position: absolute;
+            border: 1px dashed var(--white-15);
+            z-index: 9;
+        }
+
+        .template-b-connector-1 {
+            top: 200px;
+            right: 380px;
+            width: 120px;
+            height: 1px;
+        }
+
+        .template-b-connector-2 {
+            bottom: 200px;
+            left: 380px;
+            width: 120px;
+            height: 1px;
+        }
+
+        .template-b-binary-line {
+            position: absolute;
+            left: 60px;
+            top: 120px;
+            bottom: 120px;
+            width: 1px;
+            background: var(--white-15);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0;
+        }
+
+        .template-b-binary-char {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 10px;
+            color: var(--white-40);
+            line-height: 1.2;
+            letter-spacing: 0;
+            margin: 0;
+        }
+
+        /* Template C - Columnar Framed Canvas */
+        .template-c {
+            background: var(--black-000);
+        }
+
+        .template-c-layout {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            height: 100%;
+        }
+
+        .template-c-left-rail {
+            position: relative;
+            border-right: 1px solid var(--white-15);
+            padding: 60px 40px;
+        }
+
+        .template-c-rail-logo {
+            margin-bottom: 80px;
+        }
+
+        .template-c-rail-logo img {
+            width: 48px;
+            height: 48px;
+        }
+
+        .template-c-rail-guides {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        .template-c-rail-guide {
+            width: 100%;
+            height: 1px;
+            background: repeating-linear-gradient(
+                to right,
+                var(--white-15) 0px,
+                var(--white-15) 8px,
+                transparent 8px,
+                transparent 16px
+            );
+        }
+
+        .template-c-right-column {
+            position: relative;
+            padding: 80px 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .template-c-panel {
+            background: var(--black-12);
+            border-top: 1px solid var(--white-15);
+            padding: 48px 0;
+            position: relative;
+        }
+
+        .template-c-panel:first-child {
+            border-top: none;
+        }
+
+        .template-c-headline {
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 78px;
+            line-height: 1.1;
+            color: #ffffff;
+            margin-bottom: 32px;
+            letter-spacing: -2px;
+            font-weight: 400;
+        }
+
+        .template-c-body {
+            font-family: 'BaselGrotesk-Regular', sans-serif;
+            font-size: 20px;
+            line-height: 1.7;
+            color: var(--white-85);
+            margin-bottom: 24px;
+            font-weight: 400;
+        }
+
+        .template-c-bottom-strip {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: rgba(255, 77, 0, 0.1);
+            border-top: 1px solid var(--white-15);
+            display: flex;
+            align-items: center;
+            padding: 0 100px;
+            z-index: 10;
+        }
+
+        .template-c-strip-text {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 12px;
+            color: var(--white-60);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .template-c-sheen {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 40%;
+            height: 100%;
+            background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.02) 50%, transparent 100%);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* Template C enhancements */
+        .template-c-panel-number {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 120px;
+            color: rgba(255, 255, 255, 0.03);
+            font-weight: 400;
+            line-height: 1;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .template-c-panel:nth-child(1) .template-c-panel-number::before { content: "01"; }
+        .template-c-panel:nth-child(2) .template-c-panel-number::before { content: "02"; }
+        .template-c-panel:nth-child(3) .template-c-panel-number::before { content: "03"; }
+
+        .template-c-modular-bars {
+            position: absolute;
+            top: 0;
+            right: 40px;
+            width: 120px;
+            height: 100%;
+            display: flex;
+            gap: 20px;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .template-c-modular-bar {
+            width: 1px;
+            height: 100%;
+            background: var(--white-08);
+        }
+
+        .template-c-brushed-texture {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(255, 255, 255, 0.01) 2px,
+                    rgba(255, 255, 255, 0.01) 3px
+                );
+            opacity: 0.3;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* Template D - End-of-Post Safety Notice */
+        .template-d {
+            background: radial-gradient(ellipse at center, var(--black-050) 0%, var(--black-000) 70%);
+        }
+
+        .template-d-vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.8) 100%);
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .template-d-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 10;
+            max-width: 1000px;
+        }
+
+        .template-d-separator {
+            width: 200px;
+            height: 1px;
+            background: repeating-linear-gradient(
+                to right,
+                transparent 0px,
+                transparent 4px,
+                var(--white-25) 4px,
+                var(--white-25) 8px
+            );
+            margin: 0 auto 60px;
+        }
+
+        .template-d-headline {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 84px;
+            line-height: 1.1;
+            color: #ffffff;
+            margin-bottom: 40px;
+            letter-spacing: 4px;
+            font-weight: 400;
+            text-transform: uppercase;
+        }
+
+        .template-d-body {
+            font-family: 'BaselGrotesk-Regular', sans-serif;
+            font-size: 22px;
+            line-height: 1.8;
+            color: var(--white-85);
+            margin-bottom: 60px;
+            font-weight: 400;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .template-d-warning-strip {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            background: rgba(255, 77, 0, 0.15);
+            border-top: 2px solid var(--accent-orange);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .template-d-warning-text {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 14px;
+            color: #ffffff;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .template-d-warning-text .handle {
+            color: var(--accent-orange);
+        }
+
+        .template-d-brand-text {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 60px;
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 48px;
+            color: #ffffff;
+            letter-spacing: -1px;
+            line-height: 1.2;
+        }
+
+        .template-d-brand-text .logo-x {
+            width: 56px;
+            height: 56px;
+            display: inline-block;
+            vertical-align: text-bottom;
+            filter: brightness(0) saturate(100%) invert(26%) sepia(98%) saturate(7462%) hue-rotate(359deg) brightness(104%) contrast(101%);
+            object-fit: contain;
+            margin-left: -8px;
+            transform: translateY(16px);
+        }
+    </style>
+</head>
+<body>
+    <!-- Template A - Structured Grid Canvas -->
+    <div class="artboard template-a">
+        <div class="grain-overlay"></div>
+        <div class="template-a-grid"></div>
+        <div class="template-a-vignette"></div>
+        <div class="corner-marks">
+            <div class="corner-mark top-left"></div>
+            <div class="corner-mark top-right"></div>
+            <div class="corner-mark bottom-left"></div>
+            <div class="corner-mark bottom-right"></div>
+        </div>
+        <div class="template-a-content">
+            <div class="template-a-headline">Headline Text Here</div>
+            <div class="template-a-body">Supporting paragraph text. This template works for announcements, insights, or any narrative content. Flexible spacing accommodates varied message lengths.</div>
+            <div class="template-a-body">Additional paragraph or bullet points can be added here as needed for longer form content.</div>
+        </div>
+        <div class="template-a-logo-badge">
+            <div class="template-a-logo-capsule">
+                <img src="./public/logosvg.svg" alt="r1x Logo" class="logo-white" />
+            </div>
+            <div class="template-a-accent-line"></div>
+        </div>
+        <div class="template-a-baseline-bar">
+            <div class="template-a-baseline-ticks">
+                <div class="template-a-tick"></div>
+                <div class="template-a-tick"></div>
+                <div class="template-a-tick"></div>
+                <div class="template-a-tick"></div>
+                <div class="template-a-tick"></div>
+                <div class="template-a-tick"></div>
+                <div class="template-a-tick"></div>
+                <div class="template-a-tick"></div>
+                <div class="template-a-tick"></div>
+                <div class="template-a-tick"></div>
+            </div>
+            <div class="template-a-tag">CTA</div>
+        </div>
+        <div class="template-a-scanline"></div>
+        <div class="template-a-side-labels">
+            <div class="template-a-side-label">Context</div>
+            <div class="template-a-side-label">Insight</div>
+        </div>
+        <div class="template-a-corner-brackets">
+            <div class="template-a-corner-bracket horizontal"></div>
+            <div class="template-a-corner-bracket vertical"></div>
+        </div>
+        <div class="template-a-surface-reflection"></div>
+    </div>
+
+    <!-- Template B - Floating Spotlight Canvas -->
+    <div class="artboard template-b">
+        <div class="grain-overlay"></div>
+        <div class="template-b-border"></div>
+        <div class="corner-marks">
+            <div class="corner-mark top-left"></div>
+            <div class="corner-mark top-right"></div>
+            <div class="corner-mark bottom-left"></div>
+            <div class="corner-mark bottom-right"></div>
+        </div>
+        <div class="template-b-binary-line">
+            <div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div>
+        </div>
+        <div class="template-b-card">
+            <div class="template-b-card-headline">THE NEXT ECONOMY ISN'T HUMAN</div>
+        </div>
+        <div class="template-b-logo-ribbon">
+            <div class="template-b-ribbon-bg">
+                <img src="./public/logosvg.svg" alt="r1x Logo" />
+            </div>
+        </div>
+        <div class="template-b-chip template-b-chip-top">
+            <div class="template-b-chip-text">Thread</div>
+        </div>
+        <div class="template-b-chip template-b-chip-bottom">
+            <div class="template-b-chip-text">r1x</div>
+        </div>
+        <div class="template-b-connector template-b-connector-1"></div>
+        <div class="template-b-connector template-b-connector-2"></div>
+    </div>
+
+    <!-- Template C - Columnar Framed Canvas -->
+    <div class="artboard template-c">
+        <div class="grain-overlay"></div>
+        <div class="template-c-sheen"></div>
+        <div class="corner-marks">
+            <div class="corner-mark top-left"></div>
+            <div class="corner-mark top-right"></div>
+            <div class="corner-mark bottom-left"></div>
+            <div class="corner-mark bottom-right"></div>
+        </div>
+        <div class="template-c-layout">
+            <div class="template-c-left-rail">
+                <div class="template-c-rail-logo">
+                    <img src="./public/logosvg.svg" alt="r1x Logo" class="logo-white" />
+                </div>
+                <div class="template-c-rail-guides">
+                    <div class="template-c-rail-guide"></div>
+                    <div class="template-c-rail-guide"></div>
+                    <div class="template-c-rail-guide"></div>
+                </div>
+            </div>
+            <div class="template-c-right-column">
+                <div class="template-c-panel">
+                    <div class="template-c-panel-number"></div>
+                    <div class="template-c-headline">Columnar Layout</div>
+                    <div class="template-c-body">This template uses an asymmetrical column structure with a narrow left rail and wide content area. Perfect for structured information, lists, or multi-section narratives.</div>
+                </div>
+                <div class="template-c-panel">
+                    <div class="template-c-panel-number"></div>
+                    <div class="template-c-body">Additional panels can be stacked vertically, each separated by subtle dividers. The layout supports flexible content lengths.</div>
+                </div>
+            </div>
+        </div>
+        <div class="template-c-modular-bars">
+            <div class="template-c-modular-bar"></div>
+            <div class="template-c-modular-bar"></div>
+            <div class="template-c-modular-bar"></div>
+            <div class="template-c-modular-bar"></div>
+        </div>
+        <div class="template-c-brushed-texture"></div>
+        <div class="template-c-bottom-strip">
+            <div class="template-c-strip-text">Optional CTA or Link</div>
+        </div>
+    </div>
+
+    <!-- Template D - End-of-Post Safety Notice -->
+    <div class="artboard template-d">
+        <div class="grain-overlay" style="opacity: 0.6;"></div>
+        <div class="template-d-vignette"></div>
+        <div class="corner-marks">
+            <div class="corner-mark top-left"></div>
+            <div class="corner-mark top-right"></div>
+            <div class="corner-mark bottom-left"></div>
+            <div class="corner-mark bottom-right"></div>
+        </div>
+        <div class="template-d-content">
+            <div class="template-d-brand-text">
+                <span>r1</span>
+                <img src="./public/logosvg.svg" alt="x" class="logo-x" />
+                <span>labs</span>
+            </div>
+            <div class="template-d-separator"></div>
+            <div class="template-d-headline">END OF POST</div>
+            <div class="template-d-body">Any replies to this post that look like us are likely a scam. Do not click on links from other posts. Always verify our official handle <span class="handle">@r1xlabs</span> before interacting.</div>
+        </div>
+        <div class="template-d-warning-strip">
+            <div class="template-d-warning-text">ONLY TRUST <span class="handle">@r1xlabs</span> — VERIFY BEFORE INTERACTING</div>
+        </div>
+    </div>
+</body>
+</html>
+

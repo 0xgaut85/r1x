@@ -1,0 +1,98 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  serviceId   String   @unique // PayAI service identifier
+  name        String
+  description String?
+  category    String?
+  merchant    String   // Merchant wallet address
+  network     String   @default("base") // Network identifier
+  chainId     Int      @default(8453) // Base chain ID
+  token       String   // Token contract address
+  tokenSymbol String?  // e.g., "USDC"
+  price       String   // Price in token's smallest unit (wei)
+  priceDisplay String  // Human-readable price
+  endpoint    String?  // Service API endpoint
+  available   Boolean  @default(true)
+  metadata    Json?    // Additional PayAI facilitator metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  transactions Transaction[]
+  
+  @@index([merchant])
+  @@index([network, chainId])
+  @@index([category])
+  @@index([available])
+}
+
+model Transaction {
+  id              String   @id @default(cuid())
+  serviceId       String
+  service         Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  
+  // Payment details
+  transactionHash String   @unique
+  blockNumber     Int?
+  from            String   // Payer address
+  to              String   // Merchant address
+  amount          String   // Amount in wei
+  token           String   // Token contract address
+  chainId         Int      @default(8453)
+  
+  // Quote details
+  quoteNonce      String?
+  quoteDeadline   Int?
+  
+  // Fee distribution
+  feeAmount       String   // Platform fee amount
+  merchantAmount  String   // Amount to merchant after fee
+  
+  // Status
+  status          String   @default("pending") // pending, verified, settled, failed
+  verificationStatus String? // verified, failed
+  settlementHash  String?
+  
+  // Timestamps
+  timestamp       DateTime @default(now())
+  verifiedAt      DateTime?
+  settledAt       DateTime?
+  
+  fees            Fee[]
+  
+  @@index([transactionHash])
+  @@index([from])
+  @@index([to])
+  @@index([status])
+  @@index([serviceId])
+  @@index([timestamp])
+}
+
+model Fee {
+  id              String   @id @default(cuid())
+  transactionId   String
+  transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  
+  feeAmount       String
+  feeRecipient    String   // r1x fee wallet address
+  transferHash    String?  // On-chain transfer transaction hash
+  transferred     Boolean  @default(false)
+  transferredAt   DateTime?
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([transactionId])
+  @@index([feeRecipient])
+  @@index([transferred])
+}

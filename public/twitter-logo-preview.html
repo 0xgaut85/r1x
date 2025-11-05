@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>r1x Logo Preview</title>
+    <style>
+        @font-face {
+            font-family: 'TWKEverettMono-Regular';
+            src: url('https://nillion.com/wp-content/themes/nillion/assets/fonts/TWKEverettMono-Regular.woff') format('woff'),
+                 url('https://nillion.com/wp-content/themes/nillion/assets/fonts/TWKEverettMono-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            min-height: 100vh;
+            background: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            gap: 40px;
+            padding: 40px;
+        }
+
+        .container {
+            width: 500px;
+            height: 500px;
+            position: relative;
+            background: #000000;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        /* Particle based grain texture - white particles on black background */
+        .grain {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            opacity: 1;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* r1x Logo */
+        .logo-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            width: 400px;
+            height: 400px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        .logo-background {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .logo {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: brightness(0) invert(1); /* Make SVG white */
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Twitter Banner */
+        .banner-container {
+            width: 1500px;
+            height: 500px;
+            position: relative;
+            background: #000000;
+            overflow: hidden;
+            flex-shrink: 0;
+            border: 2px solid #000000;
+        }
+
+        /* Fine grain pattern mesh covering entire banner - particle based */
+        .banner-text-mesh {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9;
+            background-image: 
+                radial-gradient(circle at 2px 2px, rgba(255,255,255,0.4) 0.8px, transparent 0.8px),
+                radial-gradient(circle at 8px 5px, rgba(255,255,255,0.35) 0.7px, transparent 0.7px),
+                radial-gradient(circle at 15px 12px, rgba(255,255,255,0.3) 0.9px, transparent 0.9px),
+                radial-gradient(circle at 22px 8px, rgba(255,255,255,0.38) 0.6px, transparent 0.6px),
+                radial-gradient(circle at 28px 18px, rgba(255,255,255,0.32) 0.85px, transparent 0.85px),
+                radial-gradient(circle at 35px 14px, rgba(255,255,255,0.36) 0.75px, transparent 0.75px),
+                radial-gradient(circle at 42px 25px, rgba(255,255,255,0.33) 0.8px, transparent 0.8px),
+                radial-gradient(circle at 48px 19px, rgba(255,255,255,0.37) 0.7px, transparent 0.7px),
+                radial-gradient(circle at 55px 31px, rgba(255,255,255,0.31) 0.9px, transparent 0.9px),
+                radial-gradient(circle at 62px 24px, rgba(255,255,255,0.34) 0.65px, transparent 0.65px),
+                radial-gradient(circle at 68px 38px, rgba(255,255,255,0.32) 0.8px, transparent 0.8px),
+                radial-gradient(circle at 75px 29px, rgba(255,255,255,0.35) 0.75px, transparent 0.75px),
+                radial-gradient(circle at 82px 42px, rgba(255,255,255,0.33) 0.7px, transparent 0.7px),
+                radial-gradient(circle at 88px 35px, rgba(255,255,255,0.36) 0.85px, transparent 0.85px),
+                radial-gradient(circle at 95px 47px, rgba(255,255,255,0.3) 0.8px, transparent 0.8px);
+            background-size: 
+                8px 8px,
+                9px 9px,
+                10px 10px,
+                8px 8px,
+                9px 9px,
+                10px 10px,
+                8px 8px,
+                9px 9px,
+                10px 10px,
+                8px 8px,
+                9px 9px,
+                10px 10px,
+                8px 8px,
+                9px 9px,
+                10px 10px;
+            opacity: 1;
+            /* Fade effect that disappears near borders */
+            mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0) 25%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.7) 55%, rgba(0,0,0,1) 70%, rgba(0,0,0,0.9) 80%, rgba(0,0,0,0.6) 88%, rgba(0,0,0,0.3) 95%, rgba(0,0,0,0) 100%);
+            -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0) 25%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.7) 55%, rgba(0,0,0,1) 70%, rgba(0,0,0,0.9) 80%, rgba(0,0,0,0.6) 88%, rgba(0,0,0,0.3) 95%, rgba(0,0,0,0) 100%);
+            pointer-events: none;
+        }
+
+        /* r1x labs text */
+        .banner-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            color: #ffffff;
+            font-size: 48px;
+            font-weight: 400;
+            letter-spacing: 2px;
+            font-family: 'TWKEverettMono-Regular', monospace;
+            border: 1px solid #ffffff;
+            padding: 8px 16px;
+            box-shadow: 
+                0 0 0 1px #ffffff;
+        }
+
+        /* Pattern squares bottom right */
+        .banner-squares {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .banner-square-row {
+            display: flex;
+        }
+
+        .banner-square {
+            width: 40px;
+            height: 40px;
+        }
+
+        .banner-square-white {
+            background: #ffffff;
+        }
+
+        .banner-square-black {
+            background: #000000;
+        }
+
+        /* Vignette effect on banner corners */
+        .banner-vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 8;
+            pointer-events: none;
+            background-image: 
+                radial-gradient(ellipse at top left, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 30%, rgba(0,0,0,0.2) 50%, transparent 70%),
+                radial-gradient(ellipse at top right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 30%, rgba(0,0,0,0.2) 50%, transparent 70%),
+                radial-gradient(ellipse at bottom left, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 30%, rgba(0,0,0,0.2) 50%, transparent 70%),
+                radial-gradient(ellipse at bottom right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 30%, rgba(0,0,0,0.2) 50%, transparent 70%);
+            background-size: 50% 50%, 50% 50%, 50% 50%, 50% 50%;
+            background-position: top left, top right, bottom left, bottom right;
+            background-repeat: no-repeat;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="grain"></div>
+        <div class="logo-container">
+            <div class="logo-background"></div>
+            <img src="./public/logosvg.svg" alt="r1x Logo" class="logo" onerror="this.style.border='2px solid red'; console.error('Logo path:', this.src);" />
+        </div>
+    </div>
+
+    <div class="banner-container">
+        <div class="banner-text-mesh"></div>
+        <div class="banner-vignette"></div>
+        <div class="banner-text">r1x labs</div>
+        <div class="banner-squares">
+            <div class="banner-square-row">
+                <div class="banner-square banner-square-white"></div>
+            </div>
+            <div class="banner-square-row">
+                <div class="banner-square banner-square-black"></div>
+                <div class="banner-square banner-square-white"></div>
+                <div class="banner-square banner-square-black"></div>
+            </div>
+            <div class="banner-square-row">
+                <div class="banner-square banner-square-white"></div>
+                <div class="banner-square banner-square-black"></div>
+                <div class="banner-square banner-square-white"></div>
+                <div class="banner-square banner-square-black"></div>
+                <div class="banner-square banner-square-white"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
