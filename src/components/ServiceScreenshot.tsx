@@ -39,11 +39,18 @@ export default function ServiceScreenshot({
     // Normalize URL - ensure it has protocol
     let normalizedUrl = url.trim();
     
-    // If it's a relative path (starts with /), try to construct full URL
-    if (normalizedUrl.startsWith('/')) {
-      // For API endpoints, try to get the base domain
-      // In production, this could be extracted from service metadata
-      // For now, skip screenshots for relative API endpoints
+    // Skip API endpoints - these won't render well as screenshots
+    // Check for common API patterns
+    const isApiEndpoint = 
+      normalizedUrl.includes('/api/') ||
+      normalizedUrl.includes('/v1/') ||
+      normalizedUrl.includes('/v2/') ||
+      normalizedUrl.includes('/v3/') ||
+      normalizedUrl.startsWith('/') ||
+      normalizedUrl.match(/^https?:\/\/[^\/]+\/(api|v\d+)/i);
+    
+    if (isApiEndpoint) {
+      console.log('[ServiceScreenshot] Skipping API endpoint:', normalizedUrl);
       setLoading(false);
       setError(true);
       return;

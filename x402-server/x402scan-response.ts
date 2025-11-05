@@ -144,6 +144,9 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
   let network = 'base';
   let resource = `${req.protocol}://${req.get('host')}${req.originalUrl}`; // Fallback
   
+  // Extract facilitator address if present (for payment routing)
+  let facilitatorAddress: string | undefined = undefined;
+  
   // Extract from PayAI response if it exists (preserve original structure)
   if (payaiResponse.accepts && Array.isArray(payaiResponse.accepts) && payaiResponse.accepts[0]) {
     const originalAccept = payaiResponse.accepts[0];
@@ -156,6 +159,7 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
     asset = originalAccept.asset || asset;
     scheme = originalAccept.scheme || scheme;
     network = originalAccept.network || network;
+    facilitatorAddress = originalAccept.extra?.facilitator || originalAccept.facilitator || undefined;
   } else if (payaiResponse.payment) {
     // PayAI format with payment object
     if (payaiResponse.payment.amountRaw) {
@@ -167,6 +171,7 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
     }
     payTo = payaiResponse.payment.payTo || payTo;
     asset = payaiResponse.payment.asset || asset;
+    facilitatorAddress = payaiResponse.payment.facilitator || undefined;
   } else if (payaiResponse.error && payaiResponse.error.includes('0.25')) {
     // Try to extract from error message
     maxAmountRequired = '250000';
@@ -227,6 +232,9 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
           serviceId: isChatRoute ? 'r1x-agent-chat' : 'r1x-x402-pay',
           serviceName: isChatRoute ? 'r1x Agent Chat' : 'r1x Payment',
           price: isChatRoute ? '$0.25' : '$0.01',
+          
+          // Facilitator address (for payment routing)
+          facilitator: facilitatorAddress,
           
           // Provider metadata (for x402scan display)
           name: 'r1x Labs',

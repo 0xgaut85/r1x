@@ -158,13 +158,47 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
         // Payment required - extract quote
         const data = await response.json();
         console.log('[Marketplace] Payment quote received:', data);
-        // Express Railway returns payment quote in data.payment or data.quote
-        const quote = data.payment || data.quote;
+        
+        // Handle x402scan format (accepts array) or PayAI format (payment/quote)
+        let quote: PaymentQuote | null = null;
+        
+        if (data.accepts && Array.isArray(data.accepts) && data.accepts[0]) {
+          // x402scan format - convert accepts[0] to PaymentQuote
+          const accept = data.accepts[0];
+          const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+          
+          quote = {
+            amount: accept.maxAmountRequired || '0',
+            token: accept.asset || USDC_BASE,
+            merchant: accept.payTo || '',
+            facilitator: accept.extra?.facilitator || undefined,
+            deadline: Date.now() + (accept.maxTimeoutSeconds || 3600) * 1000,
+            nonce: accept.extra?.nonce || `${Date.now()}-${Math.random()}`,
+            chainId: accept.extra?.chainId || 8453,
+          };
+        } else if (data.payment) {
+          // PayAI format with payment object
+          const payment = data.payment;
+          quote = {
+            amount: payment.amountRaw || payment.amount || '0',
+            token: payment.token || '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+            merchant: payment.merchant || '',
+            facilitator: payment.facilitator || undefined,
+            deadline: payment.deadline || Date.now() + 3600000,
+            nonce: payment.nonce || `${Date.now()}-${Math.random()}`,
+            chainId: payment.chainId || 8453,
+          };
+        } else if (data.quote) {
+          // Direct quote format
+          quote = data.quote;
+        }
+        
         if (quote) {
           setPaymentQuote(quote);
           setShowPaymentModal(true);
         } else {
-          throw new Error('Invalid payment quote format');
+          console.error('[Marketplace] Invalid payment quote format:', data);
+          throw new Error('Invalid payment quote format. Expected accepts array, payment object, or quote.');
         }
       } else if (response.ok) {
         // Already paid or free
@@ -285,13 +319,13 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
                 </div>
                 <div className="flex items-center gap-2">
                   <span 
-                    className="text-xs text-gray-500 line-through"
+                    className="text-xs text-gray-600"
                     style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
                   >
-                    {service.price} {service.tokenSymbol || 'USDC'}
+                    {service.price} {service.tokenSymbol || 'USDC'} base
                   </span>
                   <span 
-                    className="text-xs text-[#FF4D00]"
+                    className="text-xs text-[#FF4D00] font-semibold"
                     style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
                   >
                     +5% platform fee

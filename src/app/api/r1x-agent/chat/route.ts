@@ -16,13 +16,31 @@ export async function POST(request: NextRequest) {
     // Get Express server URL (server-side only, not exposed to client)
     const expressServerUrl = getX402ServerUrl();
     
-    if (!expressServerUrl || expressServerUrl.includes('localhost')) {
-      console.error('[Next.js Proxy] Invalid Express server URL:', expressServerUrl);
+    // Check if we're in development (localhost is OK) or production (localhost is not OK)
+    const isDevelopment = process.env.NODE_ENV === 'development' || 
+                         process.env.NEXT_PUBLIC_BASE_URL?.includes('localhost') ||
+                         !process.env.NEXT_PUBLIC_BASE_URL;
+    
+    if (!expressServerUrl) {
+      console.error('[Next.js Proxy] Express server URL not configured:', expressServerUrl);
       return NextResponse.json(
         { 
           error: 'Express server URL not configured',
-          message: 'X402_SERVER_URL environment variable is missing or set to localhost. Please set it in Railway.',
+          message: 'X402_SERVER_URL environment variable is missing. Please set it in Railway or use default localhost:4021 for development.',
           expressServerUrl: expressServerUrl || 'not set'
+        },
+        { status: 500 }
+      );
+    }
+    
+    // In production, reject localhost URLs (they won't work)
+    if (!isDevelopment && expressServerUrl.includes('localhost')) {
+      console.error('[Next.js Proxy] Invalid Express server URL for production:', expressServerUrl);
+      return NextResponse.json(
+        { 
+          error: 'Express server URL not configured',
+          message: 'X402_SERVER_URL is set to localhost in production. Please set it to your Railway Express service URL.',
+          expressServerUrl: expressServerUrl
         },
         { status: 500 }
       );
@@ -59,6 +77,12 @@ export async function POST(request: NextRequest) {
     
     const targetUrl = `${expressServerUrl}/api/r1x-agent/chat`;
     console.log('[Next.js Proxy] Forwarding to Express server:', targetUrl);
+    console.log('[Next.js Proxy] Request details:', {
+      method: 'POST',
+      hasXPayment: !!xPaymentHeader,
+      bodySize: JSON.stringify(body).length,
+      expressServerUrl: expressServerUrl,
+    });
     
     // Forward request to Express server with timeout
     const controller = new AbortController();
@@ -73,28 +97,42 @@ export async function POST(request: NextRequest) {
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
+      console.log('[Next.js Proxy] Express server response:', {
+        status: response.status,
+        statusText: response.statusText,
+        hasBody: !!response.body,
+      });
     } catch (fetchError: any) {
       clearTimeout(timeoutId);
+      
+      console.error('[Next.js Proxy] Fetch error details:', {
+        name: fetchError.name,
+        message: fetchError.message,
+        cause: fetchError.cause,
+        targetUrl: targetUrl,
+      });
       
       if (fetchError.name === 'AbortError') {
         console.error('[Next.js Proxy] Request timeout to Express server:', targetUrl);
         return NextResponse.json(
           { 
             error: 'Express server timeout',
-            message: 'The Express server did not respond within 30 seconds. Please check if the Express service is running on Railway.',
-            expressServerUrl: expressServerUrl
+            message: 'The Express server did not respond within 30 seconds. Please check if the Express service is running.',
+            expressServerUrl: expressServerUrl,
+            targetUrl: targetUrl,
           },
           { status: 504 }
         );
       }
       
-      console.error('[Next.js Proxy] Fetch error:', fetchError);
       return NextResponse.json(
         { 
           error: 'Failed to connect to Express server',
           message: fetchError.message || 'Network error',
           expressServerUrl: expressServerUrl,
-          details: 'Check Railway logs for Express service status'
+          targetUrl: targetUrl,
+          errorType: fetchError.name,
+          details: 'Check Express server logs for errors'
         },
         { status: 502 }
       );
