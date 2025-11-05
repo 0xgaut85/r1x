@@ -28,20 +28,21 @@ export interface PayAIService {
 
 /**
  * Fetch services from PayAI facilitator
- * Based on PayAI facilitator API: https://facilitator.payai.network/list
+ * PayAI facilitator API endpoints: /verify, /settle, /resources
+ * Service discovery via /resources endpoint
  */
 export async function fetchPayAIServices(): Promise<PayAIService[]> {
   try {
-    // PayAI facilitator list endpoint
-    const facilitatorUrl = `${PAYAI_FACILITATOR_URL}/list`;
-    console.log(`[PayAI] Fetching services from facilitator: ${facilitatorUrl}`);
+    console.log(`[PayAI] Fetching services from facilitator: ${PAYAI_FACILITATOR_URL}`);
     
-    // Try endpoints in order of likelihood based on PayAI docs
+    // PayAI facilitator service discovery endpoints
+    // Based on PayAI facilitator API structure
     const endpoints = [
-      '/list',              // Primary endpoint per PayAI docs
-      '/services',          // Alternative
-      '/v1/list',           // Versioned
-      '/v1/services',       // Versioned alternative
+      '/resources',         // PayAI resources endpoint (main service discovery)
+      '/api/resources',     // Alternative API path
+      '/v1/resources',      // Versioned endpoint
+      '/services',          // Alternative naming
+      '/list',              // Legacy endpoint
       '/discover',          // Discovery endpoint
     ];
 
@@ -55,13 +56,26 @@ export async function fetchPayAIServices(): Promise<PayAIService[]> {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
         
+        // PayAI facilitator may require CDP API key authentication for Base mainnet
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'User-Agent': 'r1x-marketplace/1.0',
+        };
+        
+        // Add CDP API key authentication if available (required for Base mainnet)
+        const cdpApiKeyId = process.env.CDP_API_KEY_ID;
+        const cdpApiKeySecret = process.env.CDP_API_KEY_SECRET;
+        
+        if (cdpApiKeyId && cdpApiKeySecret) {
+          const auth = Buffer.from(`${cdpApiKeyId}:${cdpApiKeySecret}`).toString('base64');
+          headers['Authorization'] = `Basic ${auth}`;
+          console.log(`[PayAI] Using CDP API key authentication for ${endpoint}`);
+        }
+        
         const response = await fetch(url, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'User-Agent': 'r1x-marketplace/1.0',
-          },
+          headers,
           signal: controller.signal,
         });
         
@@ -79,22 +93,33 @@ export async function fetchPayAIServices(): Promise<PayAIService[]> {
         console.log(`[PayAI] ${endpoint} response received (first 1000 chars):`, JSON.stringify(data).substring(0, 1000));
         
         // Handle different response formats from PayAI facilitator
+        // PayAI resources endpoint may return: { resources: [...] } or direct array
         let services: any[] = [];
+        
+        console.log(`[PayAI] Response structure for ${endpoint}:`, {
+          isArray: Array.isArray(data),
+          keys: typeof data === 'object' && data !== null ? Object.keys(data) : [],
+          hasResources: data?.resources !== undefined,
+          hasData: data?.data !== undefined,
+        });
         
         if (Array.isArray(data)) {
           // Direct array response
           services = data;
-        } else if (data.services && Array.isArray(data.services)) {
-          services = data.services;
-        } else if (data.data && Array.isArray(data.data)) {
-          services = data.data;
-        } else if (data.items && Array.isArray(data.items)) {
-          services = data.items;
-        } else if (data.result && Array.isArray(data.result)) {
-          services = data.result;
-        } else if (data.resources && Array.isArray(data.resources)) {
+          console.log(`[PayAI] Direct array response with ${services.length} items`);
+        } else if (data?.resources && Array.isArray(data.resources)) {
+          // PayAI resources format: { resources: [...] }
           services = data.resources;
-        } else if (data.apis && Array.isArray(data.apis)) {
+          console.log(`[PayAI] Resources array with ${services.length} items`);
+        } else if (data?.data && Array.isArray(data.data)) {
+          services = data.data;
+        } else if (data?.services && Array.isArray(data.services)) {
+          services = data.services;
+        } else if (data?.items && Array.isArray(data.items)) {
+          services = data.items;
+        } else if (data?.result && Array.isArray(data.result)) {
+          services = data.result;
+        } else if (data?.apis && Array.isArray(data.apis)) {
           services = data.apis;
         } else if (typeof data === 'object' && data !== null) {
           // Try to extract services from object values
@@ -102,11 +127,35 @@ export async function fetchPayAIServices(): Promise<PayAIService[]> {
           const arrays = values.filter((v: any) => Array.isArray(v) && v.length > 0);
           if (arrays.length > 0) {
             services = arrays.flat();
+            console.log(`[PayAI] Extracted ${services.length} services from nested arrays`);
           } else {
             // Single service object?
-            if (data.id || data.name || data.endpoint) {
+            if (data.id || data.name || data.endpoint || data.api) {
               services = [data];
+              console.log(`[PayAI] Single service object found`);
             }
+          }
+        }
+        
+        // Filter for PayAI services (might have @PayAI tag or identifier)
+        if (services.length > 0) {
+          // PayAI services might be tagged or identified in metadata
+          const payaiServices = services.filter((service: any) => {
+            const serviceStr = JSON.stringify(service).toLowerCase();
+            return (
+              serviceStr.includes('payai') ||
+              serviceStr.includes('@payai') ||
+              service?.facilitator === PAYAI_FACILITATOR_URL ||
+              service?.provider === 'payai' ||
+              service?.tags?.includes('payai') ||
+              service?.tags?.includes('@payai') ||
+              true // Include all for now, filter later if needed
+            );
+          });
+          
+          if (payaiServices.length < services.length) {
+            console.log(`[PayAI] Filtered ${payaiServices.length} PayAI services from ${services.length} total`);
+            services = payaiServices;
           }
         }
 

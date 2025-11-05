@@ -145,8 +145,7 @@ export default function HeroSection() {
       style={{ 
         backgroundColor: '#000000', 
         position: 'relative', 
-        zIndex: 0,
-        width: typeof window !== 'undefined' ? `${window.innerWidth}px` : '100vw'
+        zIndex: 0
       }}
     >
       <HeroBackground />
