@@ -5,7 +5,7 @@
  */
 
 import { prisma } from '@/lib/db';
-import { formatUnits } from 'viem';
+import { formatUnits, parseUnits } from 'viem';
 
 const PAYAI_FACILITATOR_URL = process.env.FACILITATOR_URL || 'https://facilitator.payai.network';
 const BASE_CHAIN_ID = 8453;
@@ -130,7 +130,7 @@ export async function fetchPayAIServices(): Promise<PayAIService[]> {
             console.log(`[PayAI] Extracted ${services.length} services from nested arrays`);
           } else {
             // Single service object?
-            if (data.id || data.name || data.endpoint || data.api) {
+            if (data.id || data.name || data.endpoint || data.api || data.resource) {
               services = [data];
               console.log(`[PayAI] Single service object found`);
             }
@@ -191,149 +191,181 @@ export async function fetchPayAIServices(): Promise<PayAIService[]> {
 
 /**
  * Normalize PayAI service data to our format
- * Based on PayAI facilitator API structure
+ * PayAI facilitator /list endpoint returns resources with structure:
+ * {
+ *   resource: string,        // Resource URL
+ *   type: string,            // "http"
+ *   x402Version: number,     // Protocol version
+ *   accepts: [{              // Payment requirements array
+ *     asset: string,         // Token address
+ *     payTo: string,         // Merchant address
+ *     scheme: string,        // Payment scheme
+ *     network: string,       // "base" or "base-sepolia"
+ *     description: string,   // Service description
+ *     resource: string,      // Resource URL
+ *     extra: { name: "USD Coin", version: "2" }
+ *     // ... price info might be here
+ *   }],
+ *   lastUpdated: number,     // Unix timestamp
+ *   metadata: {              // Optional metadata
+ *     name?: string,
+ *     category?: string,
+ *     provider?: string,
+ *   }
+ * }
  */
 function normalizePayAIService(service: any): PayAIService {
-  console.log('Normalizing PayAI service:', JSON.stringify(service).substring(0, 200));
+  console.log('Normalizing PayAI service:', JSON.stringify(service).substring(0, 500));
   
-  // Extract service name - try multiple fields
-  const name = service.name || 
-               service.title || 
+  // PayAI resource format: extract from accepts array and metadata
+  const accepts = Array.isArray(service.accepts) ? service.accepts : [];
+  const firstAccept = accepts.length > 0 ? accepts[0] : {};
+  const metadata = service.metadata || {};
+  
+  // Extract name - from metadata.name, first accept description, or resource URL
+  const name = metadata.name || 
+               metadata.title ||
+               metadata.label ||
+               firstAccept.description ||
+               firstAccept.name ||
+               service.name ||
                service.serviceName ||
-               service.apiName ||
-               service.resourceName ||
-               (service.metadata && service.metadata.name) ||
-               (service.metadata && service.metadata.title) ||
-               service.path ||
-               service.route ||
-               'Unnamed Service';
+               service.title ||
+               // Fallback: extract from resource URL
+               (service.resource ? (() => {
+                 try {
+                   const url = new URL(service.resource);
+                   return url.pathname.split('/').filter(Boolean).pop() || 'Service';
+                 } catch {
+                   return service.resource.split('/').filter(Boolean).pop() || 'Service';
+                 }
+               })() : 'Unnamed Service');
   
-  // Extract description - try multiple fields
-  const description = service.description || 
-                     service.desc || 
-                     service.summary ||
-                     service.details ||
-                     (service.metadata && service.metadata.description) ||
-                     service.doc ||
-                     '';
+  // Extract description - from first accept description or metadata
+  const description = firstAccept.description ||
+                      metadata.description ||
+                      metadata.desc ||
+                      service.description ||
+                      service.desc ||
+                      '';
   
-  // Extract price - handle different formats
-  let price = '0';
-  if (service.price) {
-    price = service.price.toString();
-  } else if (service.amount) {
-    price = service.amount.toString();
-  } else if (service.priceWei) {
-    price = service.priceWei.toString();
-  } else if (service.cost) {
-    price = service.cost.toString();
-  } else if (service.fee) {
-    price = service.fee.toString();
-  } else if (service.paymentAmount) {
-    price = service.paymentAmount.toString();
-  } else if (service.metadata && service.metadata.price) {
-    price = service.metadata.price.toString();
-  }
+  // Extract merchant address - from first accept payTo
+  const merchant = firstAccept.payTo ||
+                   service.merchant ||
+                   service.merchantAddress ||
+                   metadata.merchant ||
+                   metadata.owner ||
+                   '';
   
-  // Ensure price is in wei format (for USDC, 6 decimals)
-  // If price is already in smallest unit, use as-is
-  // If price looks like human-readable format, assume it needs conversion
-  if (price !== '0' && (price.includes('.') || parseFloat(price) < 1000000)) {
-    // Likely human-readable format, convert to wei (6 decimals for USDC)
-    const decimals = 6;
-    const numericPrice = parseFloat(price);
-    if (!isNaN(numericPrice) && numericPrice > 0) {
-      price = (BigInt(Math.floor(numericPrice * Math.pow(10, decimals)))).toString();
-    }
-  }
-  
-  // Extract merchant address - try multiple fields
-  const merchant = service.merchant || 
-                   service.merchantAddress || 
-                   service.merchant_address ||
-                   service.provider ||
-                   service.owner ||
-                   service.address ||
-                   (service.metadata && service.metadata.merchant) ||
-                   '0x0000000000000000000000000000000000000000';
-  
-  // Extract token address - try multiple fields
-  const token = service.token || 
-                service.tokenAddress || 
-                service.token_address ||
-                service.currency ||
-                service.paymentToken ||
-                service.payment_token ||
-                (service.metadata && service.metadata.token) ||
-                (service.metadata && service.metadata.currency) ||
+  // Extract token address - from first accept asset
+  const token = firstAccept.asset ||
+                service.token ||
+                service.tokenAddress ||
+                metadata.token ||
+                metadata.currency ||
                 USDC_BASE_ADDRESS;
   
-  // Extract token symbol - try multiple fields
-  let tokenSymbol = service.tokenSymbol || 
+  // Extract token symbol - from first accept extra.name or determine from token address
+  let tokenSymbol = firstAccept.extra?.name ||
+                    metadata.tokenSymbol ||
+                    service.tokenSymbol ||
                     service.token_symbol ||
-                    service.currencySymbol ||
-                    service.currency_symbol ||
-                    (service.metadata && service.metadata.tokenSymbol) ||
-                    (service.metadata && service.metadata.token_symbol);
+                    '';
   
-  // If no token symbol, try to determine from token address
+  // If no token symbol, determine from token address
   if (!tokenSymbol) {
     if (token.toLowerCase() === USDC_BASE_ADDRESS.toLowerCase()) {
       tokenSymbol = 'USDC';
+    } else if (token.toLowerCase() === '0x036CbD53842c5426634e7929541eC2318f3dCF7e'.toLowerCase()) {
+      // USDC on Base Sepolia
+      tokenSymbol = 'USDC';
     } else {
-      // Try to get from known token addresses or mint
-      tokenSymbol = service.mint || service.mintAddress || 'UNKNOWN';
+      tokenSymbol = 'UNKNOWN';
     }
   }
   
-  // Extract endpoint/API URL - try multiple fields
-  const endpoint = service.endpoint || 
-                   service.apiEndpoint || 
-                   service.api_endpoint ||
-                   service.path ||
-                   service.route ||
-                   service.api ||
-                   (service.metadata && service.metadata.endpoint) ||
+  // Extract price - PayAI resources may have price in accepts array
+  // Price might be in accepts[0].amount, accepts[0].value, or similar
+  let priceValue = firstAccept.amount ||
+                   firstAccept.value ||
+                   firstAccept.price ||
+                   service.price ||
+                   metadata.price ||
+                   '0'; // Default to 0 if no price found
+  
+  // Ensure price is in wei format (for USDC, 6 decimals)
+  // PayAI might return price as string "$0.001" or as amount in wei
+  let priceWei = priceValue;
+  if (typeof priceValue === 'string') {
+    // Check if it's a dollar amount like "$0.001"
+    if (priceValue.startsWith('$')) {
+      const decimals = tokenSymbol === 'USDC' ? 6 : 18;
+      try {
+        const numericPrice = priceValue.replace('$', '').trim();
+        priceWei = parseUnits(numericPrice, decimals).toString();
+      } catch {
+        priceWei = '0';
+      }
+    } else if (priceValue.includes('.')) {
+      // Likely human-readable format, convert to wei
+      const decimals = tokenSymbol === 'USDC' ? 6 : 18;
+      try {
+        priceWei = parseUnits(priceValue, decimals).toString();
+      } catch {
+        priceWei = '0';
+      }
+    }
+    // Otherwise assume it's already in wei format
+  } else if (typeof priceValue === 'number') {
+    const decimals = tokenSymbol === 'USDC' ? 6 : 18;
+    priceWei = parseUnits(priceValue.toString(), decimals).toString();
+  }
+  
+  // If still no valid price, default to a small amount (0.001 USDC)
+  if (!priceWei || priceWei === '0') {
+    const decimals = tokenSymbol === 'USDC' ? 6 : 18;
+    priceWei = parseUnits('0.001', decimals).toString();
+  }
+  
+  // Extract endpoint/API URL - from resource field (PayAI format)
+  const endpoint = service.resource ||
+                   firstAccept.resource ||
+                   service.endpoint ||
+                   service.apiEndpoint ||
                    '';
   
-  // Extract website URL for screenshot - try multiple fields
-  const websiteUrl = service.website || 
-                     service.websiteUrl ||
-                     service.url ||
-                     service.homepage ||
-                     service.homepageUrl ||
-                     (service.metadata && service.metadata.website) ||
-                     (service.metadata && service.metadata.websiteUrl) ||
-                     (service.metadata && service.metadata.homepage) ||
-                     (service.metadata && service.metadata.url) ||
-                     // If endpoint is a full URL (not relative), use it as website
-                     (endpoint && (endpoint.startsWith('http://') || endpoint.startsWith('https://')) ? endpoint : '') ||
+  // Extract website URL for screenshot - use resource URL if it's a full URL
+  const websiteUrl = metadata.website ||
+                     metadata.websiteUrl ||
+                     metadata.homepage ||
+                     metadata.url ||
+                     // Use resource URL as website if it's a full URL
+                     (service.resource && (service.resource.startsWith('http://') || service.resource.startsWith('https://')) ? service.resource : '') ||
                      '';
   
-  // Extract service ID - try multiple fields
-  const serviceId = service.id || 
-                    service.serviceId || 
-                    service.service_id ||
+  // Extract service ID - use resource URL as ID or generate from resource
+  const serviceId = service.id ||
                     service.resourceId ||
-                    service.resource_id ||
-                    (name && name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')) ||
-                    (endpoint && endpoint.replace(/[^a-z0-9-]/gi, '-')) ||
-                    `service-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+                    (service.resource ? 
+                      service.resource.replace(/[^a-z0-9-]/gi, '-').substring(0, 100) :
+                      `service-${Date.now()}-${Math.random().toString(36).substring(7)}`
+                    );
   
-  // Extract network and chainId
-  const network = service.network || 
-                  service.chain || 
-                  (service.metadata && service.metadata.network) ||
+  // Extract network and chainId from first accept or service
+  const network = firstAccept.network ||
+                  service.network ||
+                  metadata.network ||
                   'base';
   
-  const chainId = service.chainId || 
-                  service.chain_id ||
+  // Map network name to chainId
+  const chainId = network === 'base' ? 8453 :
+                  network === 'base-sepolia' ? 84532 :
                   service.chainId ||
-                  (service.metadata && service.metadata.chainId) ||
+                  metadata.chainId ||
                   BASE_CHAIN_ID;
   
   // Log if we're creating an unnamed service
-  if (name === 'Unnamed Service') {
+  if (name === 'Unnamed Service' || name === 'Service') {
     console.warn('Found service with no name:', {
       id: serviceId,
       keys: Object.keys(service),
@@ -350,7 +382,7 @@ function normalizePayAIService(service: any): PayAIService {
     chainId: typeof chainId === 'string' ? parseInt(chainId) : chainId,
     token: token,
     tokenSymbol: tokenSymbol || 'USDC',
-    price: price,
+    price: priceWei,
     endpoint: endpoint,
     websiteUrl: websiteUrl,
     metadata: service,
@@ -417,10 +449,9 @@ export async function syncPayAIServices(): Promise<{ synced: number; errors: num
   }
 
   // If no services were synced from PayAI, seed with example services
-  if (synced === 0 && services.length === 0) {
+  if (synced === 0) {
     console.log('No PayAI services found, seeding with example services...');
     await seedExampleServices();
-    synced = 5; // Return count of seeded services
   }
 
   return { synced, errors };
@@ -429,57 +460,87 @@ export async function syncPayAIServices(): Promise<{ synced: number; errors: num
 /**
  * Seed example services when PayAI has no services
  */
-async function seedExampleServices(): Promise<void> {
+async function seedExampleServices() {
   const exampleServices = [
     {
-      serviceId: 'claude-sonnet-api',
-      name: 'Claude Sonnet API',
-      description: 'Access to Anthropic Claude Sonnet 3.5 model for AI inference',
+      serviceId: 'example-1',
+      name: 'AI Chat Service',
+      description: 'AI-powered chat service',
+      category: 'AI',
       merchant: '0x0000000000000000000000000000000000000000',
-      category: 'AI Inference',
+      network: 'base',
+      chainId: 8453,
+      token: USDC_BASE_ADDRESS,
+      tokenSymbol: 'USDC',
       price: '1000000', // 1 USDC
       priceDisplay: '1.0',
-      endpoint: '/api/ai/claude',
+      endpoint: 'https://example.com/api/chat',
+      available: true,
+      metadata: {},
     },
     {
-      serviceId: 'gpt-4-api',
-      name: 'GPT-4 API Access',
-      description: 'Pay-per-use access to OpenAI GPT-4 model',
+      serviceId: 'example-2',
+      name: 'Data Processing',
+      description: 'Process large datasets',
+      category: 'Compute',
       merchant: '0x0000000000000000000000000000000000000000',
-      category: 'AI Inference',
+      network: 'base',
+      chainId: 8453,
+      token: USDC_BASE_ADDRESS,
+      tokenSymbol: 'USDC',
       price: '1500000', // 1.5 USDC
       priceDisplay: '1.5',
-      endpoint: '/api/ai/gpt4',
+      endpoint: 'https://example.com/api/process',
+      available: true,
+      metadata: {},
     },
     {
-      serviceId: 'realtime-data-feed',
-      name: 'Real-time Data Feed',
-      description: 'Stream real-time market data and analytics',
+      serviceId: 'example-3',
+      name: 'Image Generation',
+      description: 'Generate images from text',
+      category: 'AI',
       merchant: '0x0000000000000000000000000000000000000000',
-      category: 'Data Streams',
+      network: 'base',
+      chainId: 8453,
+      token: USDC_BASE_ADDRESS,
+      tokenSymbol: 'USDC',
       price: '500000', // 0.5 USDC
       priceDisplay: '0.5',
-      endpoint: '/api/data/stream',
+      endpoint: 'https://example.com/api/generate',
+      available: true,
+      metadata: {},
     },
     {
-      serviceId: 'gpu-compute',
-      name: 'GPU Compute Resources',
-      description: 'Access to high-performance GPU compute for ML workloads',
+      serviceId: 'example-4',
+      name: 'Video Processing',
+      description: 'Process and encode video files',
+      category: 'Media',
       merchant: '0x0000000000000000000000000000000000000000',
-      category: 'Compute Resources',
+      network: 'base',
+      chainId: 8453,
+      token: USDC_BASE_ADDRESS,
+      tokenSymbol: 'USDC',
       price: '5000000', // 5 USDC
       priceDisplay: '5.0',
-      endpoint: '/api/compute/gpu',
+      endpoint: 'https://example.com/api/video',
+      available: true,
+      metadata: {},
     },
     {
-      serviceId: 'digital-content-api',
-      name: 'Digital Content API',
-      description: 'Access to premium digital content and media assets',
+      serviceId: 'example-5',
+      name: 'API Gateway',
+      description: 'Proxy and rate limit API requests',
+      category: 'Infrastructure',
       merchant: '0x0000000000000000000000000000000000000000',
-      category: 'Digital Content',
+      network: 'base',
+      chainId: 8453,
+      token: USDC_BASE_ADDRESS,
+      tokenSymbol: 'USDC',
       price: '2000000', // 2 USDC
       priceDisplay: '2.0',
-      endpoint: '/api/content/access',
+      endpoint: 'https://example.com/api/gateway',
+      available: true,
+      metadata: {},
     },
   ];
 
@@ -487,58 +548,41 @@ async function seedExampleServices(): Promise<void> {
     try {
       await prisma.service.upsert({
         where: { serviceId: service.serviceId },
-        update: {
-          name: service.name,
-          description: service.description,
-          category: service.category,
-          price: service.price,
-          priceDisplay: service.priceDisplay,
-          endpoint: service.endpoint,
-          available: true,
-          updatedAt: new Date(),
-        },
-        create: {
-          serviceId: service.serviceId,
-          name: service.name,
-          description: service.description,
-          category: service.category,
-          merchant: service.merchant,
-          network: 'base',
-          chainId: 8453,
-          token: USDC_BASE_ADDRESS,
-          tokenSymbol: 'USDC',
-          price: service.price,
-          priceDisplay: service.priceDisplay,
-          endpoint: service.endpoint,
-          available: true,
-        },
+        update: service,
+        create: service,
       });
     } catch (error: any) {
-      console.error(`Error seeding service ${service.serviceId}:`, error.message);
+      console.error(`Error seeding example service ${service.serviceId}:`, error.message);
     }
   }
 }
 
 /**
- * Extract category from service name/description
+ * Extract category from service name or description
  */
-function extractCategory(name?: string, description?: string): string {
-  const text = `${name || ''} ${description || ''}`.toLowerCase();
+function extractCategory(name: string, description?: string): string {
+  const text = `${name} ${description || ''}`.toLowerCase();
   
-  if (text.includes('api') || text.includes('claude') || text.includes('gpt') || text.includes('ai inference') || text.includes('llm')) {
-    return 'AI Inference';
+  if (text.includes('ai') || text.includes('chat') || text.includes('llm') || text.includes('gpt')) {
+    return 'AI';
   }
-  if (text.includes('data') || text.includes('feed') || text.includes('stream')) {
-    return 'Data Streams';
+  if (text.includes('image') || text.includes('photo') || text.includes('picture')) {
+    return 'Media';
   }
-  if (text.includes('compute') || text.includes('gpu') || text.includes('processing')) {
-    return 'Compute Resources';
+  if (text.includes('video') || text.includes('movie') || text.includes('stream')) {
+    return 'Media';
   }
-  if (text.includes('content') || text.includes('digital') || text.includes('asset')) {
-    return 'Digital Content';
+  if (text.includes('data') || text.includes('database') || text.includes('storage')) {
+    return 'Data';
   }
-  if (text.includes('robot') || text.includes('agent') || text.includes('autonomous')) {
-    return 'Robot Services';
+  if (text.includes('compute') || text.includes('processing') || text.includes('gpu')) {
+    return 'Compute';
+  }
+  if (text.includes('api') || text.includes('endpoint') || text.includes('gateway')) {
+    return 'Infrastructure';
+  }
+  if (text.includes('marketplace') || text.includes('buy') || text.includes('sell')) {
+    return 'Marketplace';
   }
   
   return 'Other';

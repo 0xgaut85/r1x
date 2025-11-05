@@ -32,18 +32,26 @@ export default function HeroBackground() {
     canvas.style.zIndex = '0';
     container.appendChild(canvas);
 
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-    if (!gl) {
+    // Test WebGL support on a temporary canvas to avoid occupying the real one
+    try {
+      const test = document.createElement('canvas');
+      const testCtx = test.getContext('webgl') || test.getContext('experimental-webgl');
+      if (!testCtx) {
+        setWebglSupported(false);
+        return () => {
+          if (container.contains(canvas)) container.removeChild(canvas);
+        };
+      }
+    } catch (e) {
       setWebglSupported(false);
       return () => {
         if (container.contains(canvas)) container.removeChild(canvas);
       };
     }
 
-    setWebglSupported(true);
-
-    // Three.js setup
+    // Three.js setup (let Three create its own context on this canvas)
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true, premultipliedAlpha: true });
+    setWebglSupported(true);
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
     const scene = new THREE.Scene();
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -1, 1);
@@ -51,20 +59,18 @@ export default function HeroBackground() {
     // Shaders: GPU repulsion near mouse, otherwise static
     const uniforms = {
       u_mouse: { value: new THREE.Vector2(9999, 9999) },
-      u_aspect: { value: 1 },
-      u_radius: { value: 0.16 }, // interaction radius
-      u_strength: { value: 0.018 }, // displacement amount
-      u_pointSize: { value: 1.4 }, // px size
+      u_radius: { value: 0.2 }, // interaction radius
+      u_strength: { value: 0.03 }, // displacement amount
+      u_pointSize: { value: 1.8 }, // px size
       u_pixelRatio: { value: Math.min(2, window.devicePixelRatio || 1) },
-      u_baseAlpha: { value: 0.4 },
-    };
+      u_baseAlpha: { value: 0.5 },
+    } as const;
 
     const vertexShader = `
       precision mediump float;
       attribute vec3 position;
       attribute float aIntensity;
-      uniform vec2 u_mouse; // in camera space: x in [-aspect, aspect], y in [-1,1]
-      uniform float u_aspect;
+      uniform vec2 u_mouse; // in clip space: x,y in [-1,1]
       uniform float u_radius;
       uniform float u_strength;
       uniform float u_pointSize;
@@ -73,7 +79,6 @@ export default function HeroBackground() {
       void main() {
         vec3 pos = position;
         vec2 delta = vec2(pos.x - u_mouse.x, pos.y - u_mouse.y);
-        delta.x /= u_aspect; // aspect-correct distance
         float dist = length(delta);
         float influence = smoothstep(u_radius, 0.0, dist);
         vec2 dir = normalize(delta + 1e-6);
@@ -156,13 +161,11 @@ export default function HeroBackground() {
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
       renderer.setSize(w, h, false);
-      const aspect = w / h;
-      camera.left = -aspect;
-      camera.right = aspect;
+      camera.left = -1;
+      camera.right = 1;
       camera.top = 1;
       camera.bottom = -1;
       camera.updateProjectionMatrix();
-      uniforms.u_aspect.value = aspect;
       uniforms.u_pixelRatio.value = Math.min(2, window.devicePixelRatio || 1);
       build(w, h);
       renderer.render(scene, camera);
@@ -191,8 +194,7 @@ export default function HeroBackground() {
       currentRef.current.y += (targetRef.current.y - currentRef.current.y) * ease;
 
       // Update mouse uniform in camera space
-      const aspect = uniforms.u_aspect.value as number;
-      const mx = (currentRef.current.x * 2.0 - 1.0) * aspect;
+      const mx = (currentRef.current.x * 2.0 - 1.0);
       const my = - (currentRef.current.y * 2.0 - 1.0);
       (uniforms.u_mouse.value as THREE.Vector2).set(mx, my);
 
