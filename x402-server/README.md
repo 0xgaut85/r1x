@@ -24,6 +24,9 @@ Voir le guide complet dans [RAILWAY.md](./RAILWAY.md)
 - `CDP_API_KEY_ID` - Coinbase Developer Platform API Key ID (requis pour Base mainnet)
 - `CDP_API_KEY_SECRET` - Coinbase Developer Platform API Key Secret
 - `ANTHROPIC_API_KEY` - Pour r1x Agent chat
+- `DATABASE_URL` - PostgreSQL connection string (pour sauvegarder les transactions)
+- `FEE_RECIPIENT_ADDRESS` - Adresse wallet pour recevoir les fees (optionnel)
+- `PLATFORM_FEE_PERCENTAGE` - Pourcentage de fee plateforme (default: 5)
 - `PORT` - Port du serveur (Railway le définit automatiquement)
 
 ## 📡 Endpoints

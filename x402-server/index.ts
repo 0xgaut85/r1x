@@ -10,6 +10,7 @@ import express from 'express';
 import cors from 'cors';
 import { paymentMiddleware, Resource } from 'x402-express';
 import Anthropic from '@anthropic-ai/sdk';
+import { parsePaymentProof, saveTransaction } from './save-transaction';
 
 config();
 
@@ -181,10 +182,26 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
       hasPayment: !!req.headers['x-payment'],
     });
 
-    // Log minimal detail about X-Payment header for diagnostics (length only)
+    // Parse and save transaction to database
     const xPaymentHeader = typeof req.headers['x-payment'] === 'string' ? req.headers['x-payment'] as string : undefined;
     if (xPaymentHeader) {
-      console.log('[x402-server] X-Payment header present, length:', xPaymentHeader.length);
+      console.log('[x402-server] X-Payment header present, saving transaction...');
+      const paymentProof = parsePaymentProof(xPaymentHeader);
+      
+      if (paymentProof) {
+        // Save transaction asynchronously (don't wait for it)
+        saveTransaction({
+          proof: paymentProof,
+          serviceId: 'r1x-agent-chat',
+          serviceName: 'r1x Agent Chat',
+          price: '0.25', // $0.25 per message
+          feePercentage: parseFloat(process.env.PLATFORM_FEE_PERCENTAGE || '5'),
+        }).catch((error) => {
+          console.error('[x402-server] Failed to save transaction (non-blocking):', error);
+        });
+      } else {
+        console.warn('[x402-server] Could not parse payment proof from X-Payment header');
+      }
     }
 
     // Import Anthropic depuis le chemin relatif ou via API
@@ -249,6 +266,30 @@ app.post('/api/x402/pay', async (req, res) => {
     return;
   }
 
+  // Parse and save transaction to database
+  const xPaymentHeader = typeof req.headers['x-payment'] === 'string' ? req.headers['x-payment'] as string : undefined;
+  if (xPaymentHeader) {
+    console.log('[x402-server] Payment verified, saving transaction...');
+    const paymentProof = parsePaymentProof(xPaymentHeader);
+    
+    if (paymentProof) {
+      const serviceId = req.body.serviceId || 'unknown-service';
+      const serviceName = req.body.serviceName || 'Unknown Service';
+      const price = req.body.price || '0.01';
+      
+      // Save transaction asynchronously (don't wait for it)
+      saveTransaction({
+        proof: paymentProof,
+        serviceId,
+        serviceName,
+        price,
+        feePercentage: parseFloat(process.env.PLATFORM_FEE_PERCENTAGE || '5'),
+      }).catch((error) => {
+        console.error('[x402-server] Failed to save transaction (non-blocking):', error);
+      });
+    }
+  }
+
   // On peut maintenant donner accès au service
   console.log('[x402-server] Payment verified, granting access:', {
     serviceId: req.body.serviceId,
@@ -278,4 +319,26 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server listening at http://0.0.0.0:${PORT}`);
   console.log(`Facilitator: ${facilitatorUrl}`);
   console.log(`Merchant: ${payTo}`);
+  
+  // Check if DATABASE_URL is configured for transaction saving
+  if (process.env.DATABASE_URL) {
+    console.log('[x402-server] Transaction saving enabled (DATABASE_URL configured)');
+  } else {
+    console.warn('[x402-server] Transaction saving disabled (DATABASE_URL not set)');
+  }
+});
+
+// Graceful shutdown - close database connections
+process.on('SIGTERM', async () => {
+  console.log('[x402-server] SIGTERM received, closing connections...');
+  const { closeConnection } = await import('./save-transaction');
+  await closeConnection();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('[x402-server] SIGINT received, closing connections...');
+  const { closeConnection } = await import('./save-transaction');
+  await closeConnection();
+  process.exit(0);
 });
