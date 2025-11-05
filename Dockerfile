@@ -56,8 +56,10 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/scripts ./scripts
 
 RUN chown -R nextjs:nodejs /app
+RUN chmod +x scripts/start.sh
 
 USER nextjs
 
@@ -66,4 +68,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+# Use start script that runs migrations before starting
+CMD ["sh", "scripts/start.sh"]

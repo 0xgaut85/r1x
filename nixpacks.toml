@@ -14,11 +14,12 @@ nixPkgs = ["nodejs-20_x"]
 cmds = ["npm ci --prefer-offline --no-audit --include=dev"]
 
 [phases.build]
-# Skip Prisma generate in build (postinstall handles it)
-# Use Next.js build cache if available
+# Prisma generate runs in postinstall
+# Migrations run via start.sh script on startup
 cmds = ["npm run build"]
 
 [start]
-cmd = "npm start"
+# Use start script that runs migrations before starting
+cmd = "sh scripts/start.sh"
 
 

@@ -1,7 +1,17 @@
 # Database Migration Guide
 
-## Initial Setup
+## Platform-Specific Setup
 
+### Railway Setup (Recommended)
+See **[Railway Database Setup Guide](./railway-database-setup.md)** for complete Railway configuration.
+
+**Quick Railway Setup:**
+1. Create PostgreSQL database service on Railway
+2. Railway automatically generates `DATABASE_URL`
+3. Migrations run automatically on startup via `scripts/start.sh`
+4. Verify with: `GET /api/health/db`
+
+### Vercel Setup (Legacy)
 1. **Get Database URL from Vercel:**
    - Go to Vercel Dashboard → Storage → r1x-db
    - Copy the connection string
@@ -53,6 +63,14 @@ vercel env pull .env.local
 
 ## Verification
 
+### Health Check Endpoint (Railway)
+```bash
+curl https://your-app.up.railway.app/api/health/db
+```
+
+Returns database status, table counts, and migration information.
+
+### Prisma Studio (Local Development)
 Check database connection:
 ```bash
 npx prisma studio
