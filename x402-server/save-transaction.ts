@@ -73,8 +73,29 @@ function decodeBase64(str: string): string {
 }
 
 /**
+ * Generate a unique transaction hash from PayAI authorization
+ * Uses signature and authorization data to create a unique identifier
+ */
+function generateTransactionHash(payload: any): string {
+  const crypto = require('crypto');
+  const auth = payload.authorization || {};
+  const signature = payload.signature || '';
+  
+  // Create a unique hash from authorization data and signature
+  const hashInput = JSON.stringify({
+    from: auth.from,
+    to: auth.to,
+    value: auth.value,
+    nonce: auth.nonce,
+    signature: signature.substring(0, 20), // Use first 20 chars of signature
+  });
+  
+  return '0x' + crypto.createHash('sha256').update(hashInput).digest('hex').substring(0, 64);
+}
+
+/**
  * Parse payment proof from X-Payment header
- * Handles both JSON string and base64-encoded JSON (standard and URL-safe)
+ * Handles PayAI format (x402Version, scheme, network, payload) and legacy formats
  */
 export function parsePaymentProof(xPaymentHeader: string | undefined): PaymentProof | null {
   if (!xPaymentHeader) return null;
@@ -127,29 +148,87 @@ export function parsePaymentProof(xPaymentHeader: string | undefined): PaymentPr
       }
     }
     
-    // Validate required fields
-    if (!proof.transactionHash || !proof.from || !proof.to || !proof.amount) {
-      console.error('[Save Transaction] Invalid payment proof structure:', {
-        hasTransactionHash: !!proof.transactionHash,
-        hasFrom: !!proof.from,
-        hasTo: !!proof.to,
-        hasAmount: !!proof.amount,
-        proofKeys: Object.keys(proof),
-        proofPreview: JSON.stringify(proof).substring(0, 200),
+    // Handle PayAI format (x402Version, scheme, network, payload)
+    if (proof.x402Version && proof.payload && proof.payload.authorization) {
+      const auth = proof.payload.authorization;
+      const payload = proof.payload;
+      
+      // Extract payment details from PayAI authorization format
+      const from = auth.from;
+      const to = auth.to;
+      const amount = auth.value; // Amount in atomic units
+      
+      if (!from || !to || !amount) {
+        console.error('[Save Transaction] Invalid PayAI authorization structure:', {
+          hasFrom: !!from,
+          hasTo: !!to,
+          hasAmount: !!amount,
+          authKeys: Object.keys(auth),
+          proofKeys: Object.keys(proof),
+        });
+        return null;
+      }
+      
+      // Generate transaction hash from signature and authorization data
+      const transactionHash = generateTransactionHash(payload);
+      
+      // Determine chain ID from network
+      let chainId = BASE_CHAIN_ID;
+      if (proof.network) {
+        if (proof.network.includes('base-sepolia') || proof.network.includes('sepolia')) {
+          chainId = 84532; // Base Sepolia
+        } else if (proof.network.includes('base')) {
+          chainId = 8453; // Base Mainnet
+        }
+      }
+      
+      console.log('[Save Transaction] Parsed PayAI payment proof:', {
+        from,
+        to,
+        amount,
+        network: proof.network,
+        chainId,
+        transactionHash: transactionHash.substring(0, 20) + '...',
       });
-      return null;
+      
+      return {
+        transactionHash,
+        blockNumber: undefined, // PayAI authorization doesn't include block number
+        from: from.toLowerCase(),
+        to: to.toLowerCase(),
+        amount: amount.toString(),
+        token: USDC_BASE_ADDRESS, // PayAI uses USDC on Base
+        timestamp: auth.validAfter ? parseInt(auth.validAfter) * 1000 : Date.now(),
+        chainId,
+      };
     }
-
-    return {
-      transactionHash: proof.transactionHash,
-      blockNumber: proof.blockNumber || undefined,
-      from: proof.from.toLowerCase(),
-      to: proof.to.toLowerCase(),
-      amount: proof.amount.toString(),
-      token: proof.token || USDC_BASE_ADDRESS,
-      timestamp: proof.timestamp || Date.now(),
-      chainId: proof.chainId || BASE_CHAIN_ID,
-    };
+    
+    // Handle legacy format (direct transactionHash, from, to, amount)
+    if (proof.transactionHash && proof.from && proof.to && proof.amount) {
+      return {
+        transactionHash: proof.transactionHash,
+        blockNumber: proof.blockNumber || undefined,
+        from: proof.from.toLowerCase(),
+        to: proof.to.toLowerCase(),
+        amount: proof.amount.toString(),
+        token: proof.token || USDC_BASE_ADDRESS,
+        timestamp: proof.timestamp || Date.now(),
+        chainId: proof.chainId || BASE_CHAIN_ID,
+      };
+    }
+    
+    // Invalid format
+    console.error('[Save Transaction] Invalid payment proof structure:', {
+      hasTransactionHash: !!proof.transactionHash,
+      hasFrom: !!proof.from,
+      hasTo: !!proof.to,
+      hasAmount: !!proof.amount,
+      hasX402Version: !!proof.x402Version,
+      hasPayload: !!proof.payload,
+      proofKeys: Object.keys(proof),
+      proofPreview: JSON.stringify(proof).substring(0, 300),
+    });
+    return null;
   } catch (error) {
     console.error('[Save Transaction] Unexpected error parsing payment proof:', {
       error: error instanceof Error ? error.message : String(error),
