@@ -1,5 +1,7 @@
 'use client';
 
+import HeroBackground from '@/components/hero/HeroBackground';
+
 export default function OverviewHero() {
   return (
     <section 
@@ -11,7 +13,8 @@ export default function OverviewHero() {
         scrollMarginTop: '200px',
       }}
     >
-      <div className="w-full px-4 sm:px-6 md:px-10 lg:px-[40px]" style={{ maxWidth: 'none' }}>
+      <HeroBackground />
+      <div className="w-full px-4 sm:px-6 md:px-10 lg:px-[40px] relative z-10" style={{ maxWidth: 'none' }}>
         <h1 className="text-white text-3xl sm:text-4xl md:text-[46.45px] leading-tight md:leading-[51.095px] mb-6" style={{ 
           fontWeight: 400,
           fontFamily: 'TWKEverett-Regular, sans-serif',

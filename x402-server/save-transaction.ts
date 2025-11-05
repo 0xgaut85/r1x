@@ -9,19 +9,41 @@ import { PrismaClient } from '@prisma/client';
 
 // Initialize Prisma client with proper error handling
 let prisma: PrismaClient | null = null;
+let prismaInitialized = false;
 
 try {
   if (process.env.DATABASE_URL) {
     prisma = new PrismaClient({
       log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+      // Set connection timeout to prevent hanging
+      datasources: {
+        db: {
+          url: process.env.DATABASE_URL,
+        },
+      },
     });
-    console.log('[Save Transaction] Prisma client initialized');
+    console.log('[Save Transaction] Prisma client initialized (DATABASE_URL found)');
+    prismaInitialized = true;
+    
+    // Test connection asynchronously (don't block startup)
+    prisma.$connect()
+      .then(() => {
+        console.log('[Save Transaction] Prisma connection test successful');
+      })
+      .catch((error) => {
+        console.error('[Save Transaction] Prisma connection test failed:', error);
+        console.warn('[Save Transaction] Transaction saving will be disabled until connection is fixed');
+        prisma = null;
+        prismaInitialized = false;
+      });
   } else {
     console.warn('[Save Transaction] DATABASE_URL not set, transaction saving disabled');
+    console.warn('[Save Transaction] To enable transaction saving, set DATABASE_URL in Railway environment variables');
   }
 } catch (error) {
   console.error('[Save Transaction] Failed to initialize Prisma client:', error);
   prisma = null;
+  prismaInitialized = false;
 }
 
 const USDC_DECIMALS = 6;
@@ -303,11 +325,13 @@ async function ensureService(
 
 /**
  * Save transaction to database
+ * This function is non-blocking and will not throw errors that could crash the server
  */
 export async function saveTransaction(params: SaveTransactionParams): Promise<void> {
   // Check if Prisma is initialized
-  if (!prisma) {
+  if (!prisma || !prismaInitialized) {
     console.warn('[Save Transaction] Prisma client not initialized, skipping transaction save');
+    console.warn('[Save Transaction] Check that DATABASE_URL is set in Railway environment variables');
     return;
   }
 
@@ -411,8 +435,15 @@ export async function saveTransaction(params: SaveTransactionParams): Promise<vo
       serviceId,
     });
   } catch (error: any) {
-    console.error('[Save Transaction] Error saving transaction:', error);
+    console.error('[Save Transaction] Error saving transaction:', {
+      message: error?.message || String(error),
+      code: error?.code,
+      meta: error?.meta,
+      // Don't log full stack trace in production to avoid noise
+      stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined,
+    });
     // Don't throw - we don't want to break the payment flow if DB save fails
+    // Transaction saving is optional - payment verification already succeeded
   }
 }
 

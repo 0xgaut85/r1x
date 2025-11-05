@@ -186,7 +186,7 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
       hasPayment: !!req.headers['x-payment'],
     });
 
-    // Parse and save transaction to database
+    // Parse and save transaction to database (non-blocking, with timeout)
     const xPaymentHeader = typeof req.headers['x-payment'] === 'string' ? req.headers['x-payment'] as string : undefined;
     if (xPaymentHeader) {
       console.log('[x402-server] X-Payment header present, saving transaction...');
@@ -194,14 +194,24 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
       
       if (paymentProof) {
         // Save transaction asynchronously (don't wait for it)
-        saveTransaction({
-          proof: paymentProof,
-          serviceId: 'r1x-agent-chat',
-          serviceName: 'r1x Agent Chat',
-          price: '0.25', // $0.25 per message
-          feePercentage: parseFloat(process.env.PLATFORM_FEE_PERCENTAGE || '5'),
-        }).catch((error) => {
-          console.error('[x402-server] Failed to save transaction (non-blocking):', error);
+        // Wrap in Promise.race with timeout to prevent hanging
+        Promise.race([
+          saveTransaction({
+            proof: paymentProof,
+            serviceId: 'r1x-agent-chat',
+            serviceName: 'r1x Agent Chat',
+            price: '0.25', // $0.25 per message
+            feePercentage: parseFloat(process.env.PLATFORM_FEE_PERCENTAGE || '5'),
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Transaction save timeout (5s)')), 5000)
+          ),
+        ]).catch((error) => {
+          console.error('[x402-server] Failed to save transaction (non-blocking):', {
+            message: error?.message || String(error),
+            // Don't log full stack in production
+            stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined,
+          });
         });
       } else {
         console.warn('[x402-server] Could not parse payment proof from X-Payment header');
@@ -270,7 +280,7 @@ app.post('/api/x402/pay', async (req, res) => {
     return;
   }
 
-  // Parse and save transaction to database
+  // Parse and save transaction to database (non-blocking, with timeout)
   const xPaymentHeader = typeof req.headers['x-payment'] === 'string' ? req.headers['x-payment'] as string : undefined;
   if (xPaymentHeader) {
     console.log('[x402-server] Payment verified, saving transaction...');
@@ -281,15 +291,23 @@ app.post('/api/x402/pay', async (req, res) => {
       const serviceName = req.body.serviceName || 'Unknown Service';
       const price = req.body.price || '0.01';
       
-      // Save transaction asynchronously (don't wait for it)
-      saveTransaction({
-        proof: paymentProof,
-        serviceId,
-        serviceName,
-        price,
-        feePercentage: parseFloat(process.env.PLATFORM_FEE_PERCENTAGE || '5'),
-      }).catch((error) => {
-        console.error('[x402-server] Failed to save transaction (non-blocking):', error);
+      // Wrap in Promise.race with timeout to prevent hanging
+      Promise.race([
+        saveTransaction({
+          proof: paymentProof,
+          serviceId,
+          serviceName,
+          price,
+          feePercentage: parseFloat(process.env.PLATFORM_FEE_PERCENTAGE || '5'),
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Transaction save timeout (5s)')), 5000)
+        ),
+      ]).catch((error) => {
+        console.error('[x402-server] Failed to save transaction (non-blocking):', {
+          message: error?.message || String(error),
+          stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined,
+        });
       });
     }
   }
