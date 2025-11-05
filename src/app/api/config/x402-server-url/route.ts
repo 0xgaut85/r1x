@@ -31,14 +31,14 @@ export async function GET() {
     );
   }
 
-  // Normalize URL to ensure it has a protocol
-  let normalizedUrl = serverUrl;
-  if (!serverUrl.startsWith('http://') && !serverUrl.startsWith('https://')) {
+  // Normalize URL to ensure it has a protocol and no trailing slash
+  let normalizedUrl = serverUrl.trim().replace(/\/+$/, ''); // Remove trailing slashes
+  if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
     // Assume https for production URLs (no localhost)
-    if (!serverUrl.includes('localhost') && !serverUrl.includes('127.0.0.1')) {
-      normalizedUrl = `https://${serverUrl}`;
+    if (!normalizedUrl.includes('localhost') && !normalizedUrl.includes('127.0.0.1')) {
+      normalizedUrl = `https://${normalizedUrl}`;
     } else {
-      normalizedUrl = `http://${serverUrl}`;
+      normalizedUrl = `http://${normalizedUrl}`;
     }
   }
 

@@ -1,21 +1,24 @@
 /**
- * Normalize URL to ensure it has a protocol
+ * Normalize URL to ensure it has a protocol and no trailing slash
  */
 function normalizeUrl(url: string): string {
   if (!url) return url;
   
-  // If URL already has a protocol, return as-is
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
+  // Remove trailing slash to avoid double slashes when appending paths
+  let normalized = url.trim().replace(/\/+$/, '');
+  
+  // If URL already has a protocol, return as-is (after removing trailing slash)
+  if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
+    return normalized;
   }
   
   // Assume https for production URLs (no localhost)
-  if (!url.includes('localhost') && !url.includes('127.0.0.1')) {
-    return `https://${url}`;
+  if (!normalized.includes('localhost') && !normalized.includes('127.0.0.1')) {
+    return `https://${normalized}`;
   }
   
   // Use http for localhost
-  return `http://${url}`;
+  return `http://${normalized}`;
 }
 
 /**

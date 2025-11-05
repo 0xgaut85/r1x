@@ -11,6 +11,7 @@ export default function HeroBackground() {
   const currentRef = useRef({ x: 0.5, y: 0.5 }); // normalized 0..1
   const reduceMotionRef = useRef(false as boolean);
   const [webglSupported, setWebglSupported] = useState(true);
+  const headerObserverRef = useRef<ResizeObserver | null>(null);
   const logoTextureRef = useRef<THREE.Texture | null>(null);
 
   useEffect(() => {
@@ -30,7 +31,7 @@ export default function HeroBackground() {
     canvas.style.width = '100%';
     canvas.style.height = '100%';
     canvas.style.pointerEvents = 'none';
-    canvas.style.zIndex = '0';
+    canvas.style.zIndex = '1';
     container.appendChild(canvas);
 
     // Test WebGL support on a temporary canvas to avoid occupying the real one
@@ -71,6 +72,9 @@ export default function HeroBackground() {
       u_waveFreq: { value: 6.0 },
       u_waveSpeedX: { value: 0.6 },
       u_waveSpeedY: { value: 0.8 },
+      u_edgeTopStart: { value: 0.8 },
+      u_edgeTopEnd: { value: 1.0 },
+      u_edgeTopMin: { value: 0.2 },
     };
 
     // (No cursor/logo mask required)
@@ -79,6 +83,7 @@ export default function HeroBackground() {
       precision mediump float;
       attribute vec3 position;
       attribute float aIntensity;
+      attribute float aBand;
       uniform float u_pointSize;
       uniform float u_pixelRatio;
       uniform float u_time;
@@ -87,29 +92,40 @@ export default function HeroBackground() {
       uniform float u_waveFreq;
       uniform float u_waveSpeedX;
       uniform float u_waveSpeedY;
+      uniform float u_edgeTopStart;
+      uniform float u_edgeTopEnd;
+      uniform float u_edgeTopMin;
       varying float vAlpha;
       varying float vMask;
       varying float vScan;
       void main() {
         vec3 pos = position;
+        vec3 orig = position;
         // Wave motion
         float wave1 = sin(pos.y * u_waveFreq + u_time * u_waveSpeedX);
         float wave2 = sin(pos.x * (u_waveFreq * 1.2) - u_time * u_waveSpeedY);
         float wave = 0.5 * (wave1 + wave2);
-        pos.x += u_waveAmp * wave * 0.8;
-        pos.y += u_waveAmp * wave * 0.6;
-        pos.z -= abs(wave) * 0.08;
+        float waveFactor = 1.0 - aBand; // top band disables wave
+        pos.x += u_waveAmp * wave * 0.8 * waveFactor;
+        // Reduce vertical displacement near top edge to avoid exposing background
+        float topTaper = smoothstep(u_edgeTopStart, u_edgeTopEnd, orig.y);
+        float yFactor = mix(1.0, u_edgeTopMin, topTaper);
+        pos.y += u_waveAmp * wave * 0.6 * yFactor * waveFactor;
+        // Do not allow upward movement beyond original y near the very top
+        float topClamp = smoothstep(0.9, 1.0, orig.y);
+        pos.y = mix(pos.y, min(pos.y, orig.y - 0.002), topClamp);
+        pos.z -= abs(wave) * 0.08 * yFactor * waveFactor;
         // Scanning band left->right->left via sin time
         float s = 0.5 + 0.5 * sin(u_time);
         float scanCenter = mix(-1.2, 1.2, s);
         float bandL = smoothstep(scanCenter - u_scanWidth, scanCenter, pos.x);
         float bandR = 1.0 - smoothstep(scanCenter, scanCenter + u_scanWidth, pos.x);
         float band = clamp(bandL * bandR, 0.0, 1.0);
-        vScan = band;
+        vScan = mix(band, 1.0, aBand);
         gl_Position = vec4(pos, 1.0);
-        gl_PointSize = u_pointSize * (1.0 + abs(wave) * 0.5) * u_pixelRatio;
+        gl_PointSize = u_pointSize * (1.0 + abs(wave) * 0.5 * waveFactor) * u_pixelRatio;
         vAlpha = aIntensity * 1.0;
-        vMask = abs(wave);
+        vMask = abs(wave) * waveFactor;
       }
     `;
 
@@ -160,12 +176,13 @@ export default function HeroBackground() {
 
       const positions: number[] = [];
       const intensities: number[] = [];
+      const bands: number[] = [];
 
       const columnSpacings = [8, 9, 10, 8, 9, 10, 8, 9, 10, 8, 9, 10, 8, 9, 10];
       const rowSpacing = 8;
 
       // Build x positions with overscan beyond edges
-      const overscanX = Math.ceil(width * 0.1);
+      const overscanX = Math.ceil(width * 0.15);
       const xPositionsPx: number[] = [];
       let currentX = -overscanX;
       let colIndex = 0;
@@ -179,7 +196,7 @@ export default function HeroBackground() {
       }
 
       // Build y positions with overscan beyond edges
-      const overscanY = Math.ceil(height * 0.1);
+      const overscanY = Math.ceil(height * 0.8);
       const yPositionsPx: number[] = [];
       let currentY = -overscanY;
       while (currentY < height + overscanY) {
@@ -196,16 +213,34 @@ export default function HeroBackground() {
           const py = yPositionsPx[yi];
           const hash = ((px * 131 + py * 137) % 1000) / 1000.0;
           const intensity = 0.75 + hash * 0.25;
-          const x = ((px + overscanX) / (width + 2.0 * overscanX)) * 2.0 - 1.0;
-          const y = -(((py + overscanY) / (height + 2.0 * overscanY)) * 2.0 - 1.0);
+          const x = (px / width) * 2.0 - 1.0;
+          const y = -((py / height) * 2.0 - 1.0);
           positions.push(x, y, 0);
           intensities.push(intensity);
+          bands.push(0);
+        }
+      }
+
+      // Add a static top band (3 rows) pinned near top inside the viewport
+      const bandRowsPx = [0, 6, 12];
+      for (let br = 0; br < bandRowsPx.length; br++) {
+        const py = bandRowsPx[br];
+        const y = -((py / height) * 2.0 - 1.0);
+        for (let xi = 0; xi < xPositionsPx.length; xi++) {
+          const px = xPositionsPx[xi];
+          const hash = ((px * 131 + py * 137) % 1000) / 1000.0;
+          const intensity = 0.75 + hash * 0.25;
+          const x = (px / width) * 2.0 - 1.0;
+          positions.push(x, y, 0);
+          intensities.push(intensity);
+          bands.push(1);
         }
       }
 
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
       geometry.setAttribute('aIntensity', new THREE.Float32BufferAttribute(intensities, 1));
+      geometry.setAttribute('aBand', new THREE.Float32BufferAttribute(bands, 1));
       points = new THREE.Points(geometry, material);
       scene.add(points);
     };
@@ -235,6 +270,24 @@ export default function HeroBackground() {
     window.addEventListener('resize', resize);
     setTimeout(resize, 0);
 
+    // Dynamically extend background to cover header height exactly
+    const adjustForHeader = () => {
+      const el = containerRef.current;
+      if (!el) return;
+      const header = document.querySelector('header');
+      const h = header ? Math.ceil((header as HTMLElement).getBoundingClientRect().height) : 0;
+      el.style.top = h > 0 ? `-${h}px` : '0px';
+      el.style.height = h > 0 ? `calc(100% + ${h}px)` : '100%';
+    };
+    adjustForHeader();
+    window.addEventListener('resize', adjustForHeader);
+    const head = document.querySelector('header');
+    if (head) {
+      const ho = new ResizeObserver(adjustForHeader);
+      ho.observe(head);
+      headerObserverRef.current = ho;
+    }
+
     // No cursor interaction
 
     const animate = (t: number = 0) => {
@@ -250,6 +303,12 @@ export default function HeroBackground() {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       // no mouse listeners to remove
       ro.disconnect();
+      if (headerObserverRef.current) {
+        headerObserverRef.current.disconnect();
+        headerObserverRef.current = null;
+      }
+      window.removeEventListener('resize', resize);
+      window.removeEventListener('resize', adjustForHeader);
       if (points) {
         scene.remove(points);
         (points.geometry as THREE.BufferGeometry).dispose();
@@ -278,6 +337,37 @@ export default function HeroBackground() {
         backgroundColor: '#000000',
       }}
     >
+      {/* Static dot underlay to guarantee full coverage at edges */}
+      <div
+        className="absolute inset-0"
+        style={{
+          pointerEvents: 'none',
+          zIndex: 0,
+          backgroundImage: `
+            radial-gradient(circle at 2px 2px, rgba(255,255,255,0.35) 0.8px, transparent 0.8px),
+            radial-gradient(circle at 8px 5px, rgba(255,255,255,0.32) 0.7px, transparent 0.7px),
+            radial-gradient(circle at 15px 12px, rgba(255,255,255,0.28) 0.9px, transparent 0.9px),
+            radial-gradient(circle at 22px 8px, rgba(255,255,255,0.34) 0.6px, transparent 0.6px),
+            radial-gradient(circle at 28px 18px, rgba(255,255,255,0.29) 0.85px, transparent 0.85px),
+            radial-gradient(circle at 35px 14px, rgba(255,255,255,0.31) 0.75px, transparent 0.75px),
+            radial-gradient(circle at 42px 25px, rgba(255,255,255,0.3) 0.8px, transparent 0.8px),
+            radial-gradient(circle at 48px 19px, rgba(255,255,255,0.33) 0.7px, transparent 0.7px),
+            radial-gradient(circle at 55px 31px, rgba(255,255,255,0.27) 0.9px, transparent 0.9px),
+            radial-gradient(circle at 62px 24px, rgba(255,255,255,0.3) 0.65px, transparent 0.65px),
+            radial-gradient(circle at 68px 38px, rgba(255,255,255,0.29) 0.8px, transparent 0.8px),
+            radial-gradient(circle at 75px 29px, rgba(255,255,255,0.31) 0.75px, transparent 0.75px),
+            radial-gradient(circle at 82px 42px, rgba(255,255,255,0.29) 0.7px, transparent 0.7px),
+            radial-gradient(circle at 88px 35px, rgba(255,255,255,0.32) 0.85px, transparent 0.85px),
+            radial-gradient(circle at 95px 47px, rgba(255,255,255,0.28) 0.8px, transparent 0.8px)
+          `,
+          backgroundSize: `
+            8px 8px, 9px 9px, 10px 10px, 8px 8px, 9px 9px, 10px 10px,
+            8px 8px, 9px 9px, 10px 10px, 8px 8px, 9px 9px, 10px 10px,
+            8px 8px, 9px 9px, 10px 10px
+          `,
+          opacity: 0.22,
+        }}
+      />
       <div
         ref={glowRef}
         className="absolute"
@@ -293,41 +383,9 @@ export default function HeroBackground() {
           willChange: 'transform, opacity',
           mixBlendMode: 'screen',
           filter: 'blur(60px)',
-          zIndex: 1,
+          zIndex: 2,
         }}
       />
-      {!webglSupported && (
-        <div
-          className="absolute inset-0"
-          style={{
-            pointerEvents: 'none',
-            zIndex: 1,
-            backgroundImage: `
-              radial-gradient(circle at 2px 2px, rgba(255,255,255,0.4) 0.8px, transparent 0.8px),
-              radial-gradient(circle at 8px 5px, rgba(255,255,255,0.35) 0.7px, transparent 0.7px),
-              radial-gradient(circle at 15px 12px, rgba(255,255,255,0.3) 0.9px, transparent 0.9px),
-              radial-gradient(circle at 22px 8px, rgba(255,255,255,0.38) 0.6px, transparent 0.6px),
-              radial-gradient(circle at 28px 18px, rgba(255,255,255,0.32) 0.85px, transparent 0.85px),
-              radial-gradient(circle at 35px 14px, rgba(255,255,255,0.36) 0.75px, transparent 0.75px),
-              radial-gradient(circle at 42px 25px, rgba(255,255,255,0.33) 0.8px, transparent 0.8px),
-              radial-gradient(circle at 48px 19px, rgba(255,255,255,0.37) 0.7px, transparent 0.7px),
-              radial-gradient(circle at 55px 31px, rgba(255,255,255,0.31) 0.9px, transparent 0.9px),
-              radial-gradient(circle at 62px 24px, rgba(255,255,255,0.34) 0.65px, transparent 0.65px),
-              radial-gradient(circle at 68px 38px, rgba(255,255,255,0.32) 0.8px, transparent 0.8px),
-              radial-gradient(circle at 75px 29px, rgba(255,255,255,0.35) 0.75px, transparent 0.75px),
-              radial-gradient(circle at 82px 42px, rgba(255,255,255,0.33) 0.7px, transparent 0.7px),
-              radial-gradient(circle at 88px 35px, rgba(255,255,255,0.36) 0.85px, transparent 0.85px),
-              radial-gradient(circle at 95px 47px, rgba(255,255,255,0.3) 0.8px, transparent 0.8px)
-            `,
-            backgroundSize: `
-              8px 8px, 9px 9px, 10px 10px, 8px 8px, 9px 9px, 10px 10px,
-              8px 8px, 9px 9px, 10px 10px, 8px 8px, 9px 9px, 10px 10px,
-              8px 8px, 9px 9px, 10px 10px
-            `,
-            opacity: 0.4,
-          }}
-        />
-      )}
     </div>
   );
 }

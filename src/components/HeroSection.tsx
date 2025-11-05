@@ -141,7 +141,7 @@ export default function HeroSection() {
   return (
     <section 
       ref={sectionRef}
-      className="relative min-h-screen flex items-center justify-center overflow-hidden" 
+      className="relative min-h-screen flex items-center justify-center overflow-visible" 
       style={{ 
         backgroundColor: '#000000', 
         position: 'relative', 

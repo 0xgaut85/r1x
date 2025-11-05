@@ -75,13 +75,38 @@ export async function POST(request: NextRequest) {
       console.log('[Next.js Proxy] No X-Payment header - first request (will get 402)');
     }
     
+    // Test health endpoint first (diagnostic)
+    const healthUrl = `${expressServerUrl}/health`;
     const targetUrl = `${expressServerUrl}/api/r1x-agent/chat`;
-    console.log('[Next.js Proxy] Forwarding to Express server:', targetUrl);
+    
+    console.log('[Next.js Proxy] Express server URL:', expressServerUrl);
+    console.log('[Next.js Proxy] Health check URL:', healthUrl);
+    console.log('[Next.js Proxy] Target URL:', targetUrl);
     console.log('[Next.js Proxy] Request details:', {
       method: 'POST',
       hasXPayment: !!xPaymentHeader,
       bodySize: JSON.stringify(body).length,
-      expressServerUrl: expressServerUrl,
+    });
+    
+    // Quick health check (non-blocking, for diagnostics only)
+    fetch(healthUrl, { 
+      method: 'GET',
+      signal: AbortSignal.timeout(5000), // 5 second timeout for health check
+    }).then(healthResponse => {
+      console.log('[Next.js Proxy] Health check response:', {
+        status: healthResponse.status,
+        ok: healthResponse.ok,
+      });
+      if (healthResponse.ok) {
+        healthResponse.json().then(data => {
+          console.log('[Next.js Proxy] Health check data:', data);
+        }).catch(() => {});
+      }
+    }).catch(healthError => {
+      console.warn('[Next.js Proxy] Health check failed (non-blocking):', {
+        message: healthError.message,
+        name: healthError.name,
+      });
     });
     
     // Forward request to Express server with timeout
@@ -109,7 +134,11 @@ export async function POST(request: NextRequest) {
         name: fetchError.name,
         message: fetchError.message,
         cause: fetchError.cause,
+        code: fetchError.code,
+        errno: fetchError.errno,
+        syscall: fetchError.syscall,
         targetUrl: targetUrl,
+        expressServerUrl: expressServerUrl,
       });
       
       if (fetchError.name === 'AbortError') {
@@ -120,10 +149,18 @@ export async function POST(request: NextRequest) {
             message: 'The Express server did not respond within 30 seconds. Please check if the Express service is running.',
             expressServerUrl: expressServerUrl,
             targetUrl: targetUrl,
+            healthUrl: healthUrl,
           },
           { status: 504 }
         );
       }
+      
+      // Check if it's a DNS/connection error
+      const isConnectionError = fetchError.message?.includes('ECONNREFUSED') || 
+                                fetchError.message?.includes('ENOTFOUND') ||
+                                fetchError.message?.includes('getaddrinfo') ||
+                                fetchError.code === 'ECONNREFUSED' ||
+                                fetchError.code === 'ENOTFOUND';
       
       return NextResponse.json(
         { 
@@ -131,8 +168,13 @@ export async function POST(request: NextRequest) {
           message: fetchError.message || 'Network error',
           expressServerUrl: expressServerUrl,
           targetUrl: targetUrl,
+          healthUrl: healthUrl,
           errorType: fetchError.name,
-          details: 'Check Express server logs for errors'
+          errorCode: fetchError.code,
+          isConnectionError: isConnectionError,
+          details: isConnectionError 
+            ? 'Cannot reach Express server. Verify X402_SERVER_URL is correct and Express service is running.'
+            : 'Check Express server logs for errors'
         },
         { status: 502 }
       );
