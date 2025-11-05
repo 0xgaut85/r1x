@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import Header from '@/components/Header';
+import dynamicImport from 'next/dynamic';
 import Footer from '@/components/Footer';
+
+const Header = dynamicImport(() => import('@/components/Header'), { ssr: false });
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 interface AnalyticsData {
@@ -103,6 +105,8 @@ interface ServicesData {
 }
 
 const COLORS = ['#FF4D00', '#FF6B35', '#FF8C5A', '#FFA87F', '#FFC4A5'];
+
+export const dynamic = 'force-dynamic';
 
 export default function PlatformPanelPage() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);

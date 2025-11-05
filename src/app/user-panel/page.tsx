@@ -1,8 +1,9 @@
 'use client';
 
 import dynamicImport from 'next/dynamic';
-import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+
+const Header = dynamicImport(() => import('@/components/Header'), { ssr: false });
 
 // Dynamically import the wallet-dependent component with SSR disabled
 const UserPanelContent = dynamicImport(() => import('./UserPanelContent'), {

@@ -2,6 +2,8 @@
 
 import { FadeInUp } from '@/components/motion';
 
+export const dynamic = 'force-dynamic';
+
 export default function RoboticsDocsPage() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F7F7F7' }}>

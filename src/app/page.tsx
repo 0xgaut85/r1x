@@ -1,4 +1,6 @@
-import Header from '@/components/Header';
+'use client';
+
+import dynamicImport from 'next/dynamic';
 import HeroSection from '@/components/HeroSection';
 import ThesisSection from '@/components/ThesisSection';
 import RoboticsUseCasesSection from '@/components/RoboticsUseCasesSection';
@@ -9,6 +11,10 @@ import EventSection from '@/components/EventSection';
 import LatestSection from '@/components/LatestSection';
 import CareersSection from '@/components/CareersSection';
 import Footer from '@/components/Footer';
+
+const Header = dynamicImport(() => import('@/components/Header'), { ssr: false });
+
+export const dynamic = 'force-dynamic';
 
 export default function Home() {
   return (

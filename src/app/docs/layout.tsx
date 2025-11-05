@@ -2,6 +2,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import DocsShell from '@/components/docs/DocsShell';
 
+export const dynamic = 'force-dynamic';
+
 export default function DocsLayout({
   children,
 }: {
@@ -15,5 +17,6 @@ export default function DocsLayout({
     </>
   );
 }
+
 
 

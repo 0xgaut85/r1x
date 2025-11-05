@@ -1,5 +1,11 @@
-import Header from '@/components/Header';
+'use client';
+
+import dynamicImport from 'next/dynamic';
 import Footer from '@/components/Footer';
+
+const Header = dynamicImport(() => import('@/components/Header'), { ssr: false });
+
+export const dynamic = 'force-dynamic';
 
 export default function TermsOfService() {
   return (

@@ -2,11 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Header from '@/components/Header';
+import dynamicImport from 'next/dynamic';
 import Footer from '@/components/Footer';
 import PaymentModal from '@/components/PaymentModal';
 // No longer need x402-server-url - using Next.js API routes (same origin)
 import { MarketplaceService, PaymentQuote, PaymentProof } from '@/lib/types/x402';
+
+// Dynamically import Header to prevent SSR issues with WalletProvider context
+const Header = dynamicImport(() => import('@/components/Header'), { ssr: false });
+
+export const dynamic = 'force-dynamic';
 
 export default function MarketplacePage() {
   const [services, setServices] = useState<MarketplaceService[]>([]);

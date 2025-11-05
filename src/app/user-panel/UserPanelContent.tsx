@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import Header from '@/components/Header';
+import dynamicImport from 'next/dynamic';
 import Footer from '@/components/Footer';
+
+const Header = dynamicImport(() => import('@/components/Header'), { ssr: false });
 import WalletButton from '@/components/WalletButton';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useWallet } from '@/hooks/useWallet';

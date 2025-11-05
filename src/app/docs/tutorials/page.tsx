@@ -7,6 +7,8 @@ import DocsPageHero from '@/components/docs/DocsPageHero';
 import { FadeInUp } from '@/components/motion';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 const tutorials = [
   {
     title: 'Setting Up Your First x402 Service',

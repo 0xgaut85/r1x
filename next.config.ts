@@ -34,6 +34,12 @@ const nextConfig: NextConfig = {
   turbopack: {
     // Turbopack optimizations are handled automatically
   },
+  
+  // Disable static generation for pages that use client-side context
+  // Pages with 'use client' and WalletProvider will be rendered dynamically
+  generateBuildId: async () => {
+    return 'build-' + Date.now();
+  },
 };
 
 export default nextConfig;

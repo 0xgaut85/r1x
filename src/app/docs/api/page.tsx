@@ -6,6 +6,8 @@ import DocsCodeBlock from '@/components/docs/DocsCodeBlock';
 import DocsPageHero from '@/components/docs/DocsPageHero';
 import { FadeInUp } from '@/components/motion';
 
+export const dynamic = 'force-dynamic';
+
 const endpoints = [
   {
     method: 'POST',
