@@ -1,0 +1,23 @@
+{
+  "worktrees": [
+    {
+      "name": "main",
+      "path": ".",
+      "branch": "master",
+      "setup": [
+        "npm install"
+      ]
+    },
+    {
+      "name": "agent2",
+      "path": "../x402robotics-agent2",
+      "branch": "master",
+      "setup": [
+        "npm install"
+      ]
+    }
+  ],
+  "setup-worktree": [
+    "npm install"
+  ]
+}
