@@ -119,6 +119,7 @@ export function x402scanResponseTransformer(req: Request, res: Response, next: N
 
 /**
  * Transform PayAI 402 response to x402scan format
+ * Preserves original PayAI structure to ensure signature verification works
  */
 function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanResponse {
   // Extract payment info from PayAI response
@@ -131,17 +132,26 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
   // Determine the route to set appropriate outputSchema
   const isChatRoute = req.originalUrl.includes('/api/r1x-agent/chat');
   
-  // Determine amount - PayAI might return it in different formats
+  // Start with original PayAI response structure if it exists
   let maxAmountRequired = '250000'; // Default: 0.25 USDC (6 decimals)
   let description = isChatRoute 
     ? 'From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.'
     : 'From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.';
+  let payTo = merchantAddress;
+  let asset = USDC_BASE;
+  let scheme = 'exact';
+  let network = 'base';
   
-  // Parse amount from various possible PayAI response formats
+  // Extract from PayAI response if it exists (preserve original structure)
   if (payaiResponse.accepts && Array.isArray(payaiResponse.accepts) && payaiResponse.accepts[0]) {
-    // Already in accepts format, extract amount
-    maxAmountRequired = payaiResponse.accepts[0].maxAmountRequired || maxAmountRequired;
-    description = payaiResponse.accepts[0].description || description;
+    const originalAccept = payaiResponse.accepts[0];
+    // Preserve original PayAI fields for signature verification
+    maxAmountRequired = originalAccept.maxAmountRequired || maxAmountRequired;
+    description = originalAccept.description || description;
+    payTo = originalAccept.payTo || payTo;
+    asset = originalAccept.asset || asset;
+    scheme = originalAccept.scheme || scheme;
+    network = originalAccept.network || network;
   } else if (payaiResponse.payment) {
     // PayAI format with payment object
     if (payaiResponse.payment.amountRaw) {
@@ -151,26 +161,28 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
       const amountStr = payaiResponse.payment.amount.replace('$', '');
       maxAmountRequired = (parseFloat(amountStr) * 1e6).toString();
     }
+    payTo = payaiResponse.payment.payTo || payTo;
+    asset = payaiResponse.payment.asset || asset;
   } else if (payaiResponse.error && payaiResponse.error.includes('0.25')) {
     // Try to extract from error message
     maxAmountRequired = '250000';
   }
   
-  // Build x402scan-compliant response
+  // Build x402scan-compliant response, preserving PayAI structure
   const x402scanResponse: X402scanResponse = {
-    x402Version: 1,
+    x402Version: payaiResponse.x402Version || 1,
     error: payaiResponse.error || 'Payment Required',
     accepts: [
       {
-        scheme: 'exact',
-        network: 'base',
+        scheme: scheme as 'exact',
+        network: network as 'base',
         maxAmountRequired: maxAmountRequired,
         resource: resource,
         description: description,
-        mimeType: 'application/json',
-        payTo: merchantAddress,
-        maxTimeoutSeconds: 3600, // 1 hour
-        asset: USDC_BASE,
+        mimeType: payaiResponse.accepts?.[0]?.mimeType || 'application/json',
+        payTo: payTo,
+        maxTimeoutSeconds: payaiResponse.accepts?.[0]?.maxTimeoutSeconds || 3600,
+        asset: asset,
         ...(isChatRoute ? {
           outputSchema: {
             input: {

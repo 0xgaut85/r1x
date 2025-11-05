@@ -164,28 +164,30 @@ export default function HeroBackground() {
       const columnSpacings = [8, 9, 10, 8, 9, 10, 8, 9, 10, 8, 9, 10, 8, 9, 10];
       const rowSpacing = 8;
 
-      // Build x positions ensuring coverage to the very edge
+      // Build x positions with overscan beyond edges
+      const overscanX = Math.ceil(width * 0.1);
       const xPositionsPx: number[] = [];
-      let currentX = 0;
+      let currentX = -overscanX;
       let colIndex = 0;
-      while (currentX < width) {
+      while (currentX < width + overscanX) {
         xPositionsPx.push(currentX);
         currentX += columnSpacings[colIndex % columnSpacings.length];
         colIndex++;
       }
-      if (xPositionsPx.length === 0 || xPositionsPx[xPositionsPx.length - 1] < width) {
-        xPositionsPx.push(width);
+      if (xPositionsPx.length === 0 || xPositionsPx[xPositionsPx.length - 1] < width + overscanX) {
+        xPositionsPx.push(width + overscanX);
       }
 
-      // Build y positions ensuring coverage to the very edge
+      // Build y positions with overscan beyond edges
+      const overscanY = Math.ceil(height * 0.1);
       const yPositionsPx: number[] = [];
-      let currentY = 0;
-      while (currentY < height) {
+      let currentY = -overscanY;
+      while (currentY < height + overscanY) {
         yPositionsPx.push(currentY);
         currentY += rowSpacing;
       }
-      if (yPositionsPx.length === 0 || yPositionsPx[yPositionsPx.length - 1] < height) {
-        yPositionsPx.push(height);
+      if (yPositionsPx.length === 0 || yPositionsPx[yPositionsPx.length - 1] < height + overscanY) {
+        yPositionsPx.push(height + overscanY);
       }
 
       for (let xi = 0; xi < xPositionsPx.length; xi++) {
