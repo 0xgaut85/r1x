@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import dynamicImport from 'next/dynamic';
 import Footer from '@/components/Footer';
+import CryptoLogo from '@/components/CryptoLogo';
 
 const Header = dynamicImport(() => import('@/components/Header'), { ssr: false });
 import WalletButton from '@/components/WalletButton';
@@ -23,6 +24,7 @@ interface UserStats {
   recentTransactions: Array<{
     id: string;
     transactionHash: string;
+    settlementHash?: string | null;
     serviceName: string;
     serviceId: string;
     amount: string;
@@ -30,7 +32,7 @@ interface UserStats {
     status: string;
     timestamp: string;
     blockNumber: number | null;
-    blockExplorerUrl: string;
+    blockExplorerUrl: string | null;
   }>;
 }
 
@@ -176,7 +178,11 @@ export default function UserPanelContent() {
                     Total Spent
                   </p>
                   <p className="text-2xl font-bold" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
-                    {parseFloat(stats.stats.totalSpent).toFixed(2)} USDC
+                    <span className="flex items-center gap-1">
+                      {parseFloat(stats.stats.totalSpent).toFixed(2)} 
+                      <CryptoLogo symbol="USDC" size={16} />
+                      USDC
+                    </span>
                   </p>
                 </motion.div>
                 <motion.div
@@ -301,8 +307,16 @@ export default function UserPanelContent() {
                       {stats.recentTransactions.map((tx) => (
                         <tr key={tx.id} className="border-b border-gray-100">
                           <td className="py-2 px-4">{tx.serviceName}</td>
-                          <td className="py-2 px-4">{tx.amount} USDC</td>
-                          <td className="py-2 px-4">{tx.fee} USDC</td>
+                          <td className="py-2 px-4">
+                            <span className="flex items-center gap-1">
+                              {tx.amount} <CryptoLogo symbol="USDC" size={14} /> USDC
+                            </span>
+                          </td>
+                          <td className="py-2 px-4">
+                            <span className="flex items-center gap-1">
+                              {tx.fee} <CryptoLogo symbol="USDC" size={14} /> USDC
+                            </span>
+                          </td>
                           <td className="py-2 px-4">
                             <span className={`px-2 py-1 rounded ${
                               tx.status === 'settled' ? 'bg-green-100 text-green-800' :
@@ -315,14 +329,18 @@ export default function UserPanelContent() {
                           </td>
                           <td className="py-2 px-4">{new Date(tx.timestamp).toLocaleDateString()}</td>
                           <td className="py-2 px-4">
-                            <a 
-                              href={tx.blockExplorerUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-[#FF4D00] hover:underline"
-                            >
-                              View
-                            </a>
+                            {tx.blockExplorerUrl ? (
+                              <a 
+                                href={tx.blockExplorerUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-[#FF4D00] hover:underline"
+                              >
+                                View
+                              </a>
+                            ) : (
+                              <span className="text-gray-400 text-xs">No hash</span>
+                            )}
                           </td>
                         </tr>
                       ))}

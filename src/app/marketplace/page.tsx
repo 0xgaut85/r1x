@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import dynamicImport from 'next/dynamic';
 import Footer from '@/components/Footer';
 import PaymentModal from '@/components/PaymentModal';
+import CryptoLogo from '@/components/CryptoLogo';
+import ServiceScreenshot from '@/components/ServiceScreenshot';
 // No longer need x402-server-url - using Next.js API routes (same origin)
 import { MarketplaceService, PaymentQuote, PaymentProof } from '@/lib/types/x402';
 
@@ -207,6 +209,19 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
       transition={{ delay: index * 0.1 }}
       className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200"
     >
+      {/* Service Screenshot */}
+      {service.websiteUrl && (
+        <div className="mb-4 rounded-lg overflow-hidden border border-gray-200">
+          <ServiceScreenshot 
+            url={service.websiteUrl} 
+            alt={service.name}
+            width={400}
+            height={250}
+            className="w-full"
+          />
+        </div>
+      )}
+      
       <div className="mb-4">
         <h3 
           className="text-xl font-semibold mb-2"
@@ -223,14 +238,34 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
       </div>
 
       <div className="flex items-center justify-between mb-4">
-        <div>
-          <span 
-            className="text-xs text-gray-500"
-            style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
-          >
-            {service.category}
-          </span>
-          <div className="flex flex-col gap-1 mt-1">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <span 
+              className="text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded"
+              style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+            >
+              {service.category}
+            </span>
+            {service.tokenSymbol && service.tokenSymbol !== 'USDC' && (
+              <span 
+                className="text-xs text-[#FF4D00] px-2 py-1 bg-orange-50 rounded flex items-center gap-1"
+                style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                title={`Token: ${service.token}`}
+              >
+                <CryptoLogo symbol={service.tokenSymbol} size={14} />
+                {service.tokenSymbol}
+              </span>
+            )}
+            {service.isExternal && (
+              <span 
+                className="text-xs text-blue-600 px-2 py-1 bg-blue-50 rounded"
+                style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+              >
+                PayAI
+              </span>
+            )}
+          </div>
+          <div className="flex flex-col gap-1">
             {service.isExternal && service.priceWithFee ? (
               <>
                 <div className="flex items-baseline gap-1">
@@ -241,10 +276,11 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
                     {service.priceWithFee}
                   </span>
                   <span 
-                    className="text-sm text-gray-600"
+                    className="text-sm text-gray-600 flex items-center gap-1"
                     style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
                   >
-                    USDC
+                    <CryptoLogo symbol={service.tokenSymbol || 'USDC'} size={16} />
+                    {service.tokenSymbol || 'USDC'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -252,7 +288,7 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
                     className="text-xs text-gray-500 line-through"
                     style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
                   >
-                    {service.price} USDC
+                    {service.price} {service.tokenSymbol || 'USDC'}
                   </span>
                   <span 
                     className="text-xs text-[#FF4D00]"
@@ -271,14 +307,26 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
                   {service.price}
                 </span>
                 <span 
-                  className="text-sm text-gray-600"
+                  className="text-sm text-gray-600 flex items-center gap-1"
                   style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
                 >
-                  USDC
+                  <CryptoLogo symbol={service.tokenSymbol || 'USDC'} size={16} />
+                  {service.tokenSymbol || 'USDC'}
                 </span>
               </div>
             )}
           </div>
+          {service.endpoint && (
+            <div className="mt-2">
+              <span 
+                className="text-xs text-gray-400 break-all"
+                style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                title={service.endpoint}
+              >
+                {service.endpoint.length > 40 ? `${service.endpoint.substring(0, 40)}...` : service.endpoint}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

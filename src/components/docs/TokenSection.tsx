@@ -1,6 +1,7 @@
 'use client';
 
 import { FadeInUp, StaggerChildren, StaggerChild, ScaleOnHover } from '@/components/motion';
+import CryptoLogo from '@/components/CryptoLogo';
 
 const tokenFeatures = [
   {
@@ -93,7 +94,8 @@ export default function TokenSection() {
                 <p className="text-white/80 text-sm mb-2" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
                   NETWORK
                 </p>
-                <p className="text-white text-lg font-medium" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
+                <p className="text-white text-lg font-medium flex items-center gap-2" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
+                  <CryptoLogo symbol="BASE" size={20} />
                   Base
                 </p>
               </div>

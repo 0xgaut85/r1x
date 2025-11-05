@@ -8,17 +8,17 @@ export default function ThesisSection() {
     {
       icon: <MessageSquare className="w-12 h-12" />,
       title: '[Agent]',
-      description: 'Chat with an AI agent that understands x402, fetches paid resources, and guides you through wallet approval. Create and sell your own resources. No code needed.',
+      description: 'An AI agent that thinks, pays, and accesses the world. Chat with Claude 3 Opus. It understands x402, purchases resources autonomously, and guides you through the machine economy. No code. No limits. Just intelligence that transacts.',
     },
     {
       icon: <BarChart3 className="w-12 h-12" />,
       title: '[Panel]',
-      description: 'Monitor everything from one place: quotes, payments, receipts, and explorer links. Create resources, set prices, and track transactions in real time.',
+      description: 'Watch the machine economy unfold in real-time. Every transaction, every quote, every autonomous purchase. Create resources that robots will buy. Set prices that agents will pay. Monitor the future of machine commerce.',
     },
     {
       icon: <Zap className="w-12 h-12" />,
       title: '[x402]',
-      description: 'HTTP 402 Payment Required, revived. Quote a price, pay from your wallet, retry with proof. No accounts, no API keys. Just pay and access.',
+      description: 'HTTP 402 Payment Required, reborn for machines. Quote a price. Pay from wallet. Retry with proof. No accounts. No API keys. No humans. Just machines transacting with machines. The protocol that makes HTTP machine-payable.',
     },
   ];
 
@@ -35,7 +35,7 @@ export default function ThesisSection() {
               marginBottom: '0px',
               marginTop: '0px'
             }}>
-            The machine economy is spiky. Robots buy capabilities per request—per frame, per meter, per minute. No subscriptions, no accounts. x402 makes HTTP machine‑payable in dollars.
+            The next economy isn't human. It's autonomous. Robotics workloads are spiky. A delivery bot needs intensive mapping for 30 seconds, then navigates autonomously for hours. Why pay monthly for what you use sporadically?
             </h2>
           </FadeInUp>
 
@@ -47,7 +47,7 @@ export default function ThesisSection() {
                 lineHeight: '1.4',
                 color: 'rgb(0, 0, 0)'
               }}>
-                <strong style={{ fontWeight: 600 }}>We're building the payment layer for the machine economy.</strong> In robotics, value happens at the edge and in spikes. A robot shouldn't rent a month of vision or maps to unlock five seconds of capability. With r1x, one request carries a price, you pay in dollars, you get a verifiable receipt.
+                <strong style={{ fontWeight: 600 }}>We're building the payment infrastructure for autonomous machines.</strong> The old model is broken. The new model: One request = One price = One payment. Pay per frame. Pay per minute. Pay per route. No lock-in. No contracts. No subscriptions. Just pay for what you use, when you use it. Every transaction is verifiable on-chain. Complete transparency.
               </p>
             </StaggerChild>
             <StaggerChild>
@@ -57,7 +57,7 @@ export default function ThesisSection() {
                 lineHeight: '1.4',
                 color: 'rgb(0, 0, 0)'
               }}>
-                This is bigger than payments. This is machines becoming economic agents. Robots autonomously purchasing compute, data, and services—per frame, per route, per minute. AI agents transacting without human intervention. The infrastructure for the autonomous economy is here.
+                Robots compose capabilities like software. Buy perception when uncertain. Purchase routes when lost. Escalate to human control only when needed. R1x turns any HTTP endpoint into a marketplace. Price in dollars. Settle instantly. If you can return HTTP, you can sell it. If you can call HTTP, you can buy it. A bazaar where autonomous services transact directly. Robots buying from robots. Agents paying agents. All happening one request at a time.
               </p>
             </StaggerChild>
           </StaggerChildren>

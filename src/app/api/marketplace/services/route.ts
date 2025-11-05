@@ -59,17 +59,27 @@ export async function GET(request: NextRequest) {
     }
 
     // Convert database services to MarketplaceService format
-    const dbServices: MarketplaceService[] = services.map((service: any) => ({
-      id: service.serviceId,
-      name: service.name,
-      description: service.description || '',
-      price: service.priceDisplay,
-      merchant: service.merchant,
-      category: service.category || 'Other',
-      endpoint: service.endpoint || undefined,
-      available: service.available,
-      isExternal: false, // Services from our database
-    }));
+    const dbServices: MarketplaceService[] = services.map((service: any) => {
+      // Extract website URL from metadata if available
+      const websiteUrl = service.metadata?.website || 
+                        service.metadata?.websiteUrl ||
+                        service.metadata?.homepage ||
+                        service.metadata?.url ||
+                        undefined;
+      
+      return {
+        id: service.serviceId,
+        name: service.name,
+        description: service.description || '',
+        price: service.priceDisplay,
+        merchant: service.merchant,
+        category: service.category || 'Other',
+        endpoint: service.endpoint || undefined,
+        websiteUrl: websiteUrl,
+        available: service.available,
+        isExternal: false, // Services from our database
+      };
+    });
 
     // Fetch services from PayAI facilitator in real-time
     let payaiServices: MarketplaceService[] = [];
@@ -97,6 +107,7 @@ export async function GET(request: NextRequest) {
           merchant: service.merchant,
           category: extractCategory(service.name, service.description) || 'Other',
           endpoint: service.endpoint || undefined,
+          websiteUrl: service.websiteUrl || undefined,
           available: true,
           isExternal: true, // Services from PayAI facilitator
           token: service.token,

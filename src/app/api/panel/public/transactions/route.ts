@@ -60,20 +60,30 @@ export async function GET(request: NextRequest) {
       prisma.transaction.count({ where }),
     ]);
 
-    const publicTransactions = transactions.map(tx => ({
-      transactionHash: tx.transactionHash,
-      blockNumber: tx.blockNumber,
-      service: {
-        id: tx.service.serviceId,
-        name: tx.service.name,
-        category: tx.service.category,
-      },
-      amount: formatUnits(BigInt(tx.amount), USDC_DECIMALS),
-      fee: formatUnits(BigInt(tx.feeAmount), USDC_DECIMALS),
-      status: tx.status,
-      timestamp: tx.timestamp,
-      blockExplorerUrl: `https://basescan.org/tx/${tx.transactionHash}`,
-    }));
+    const publicTransactions = transactions.map(tx => {
+      // For x402 transactions, prefer settlement hash if available (final settlement transaction)
+      // Otherwise use transaction hash (original payment transaction)
+      const explorerHash = tx.settlementHash || tx.transactionHash;
+      const explorerUrl = explorerHash 
+        ? `https://basescan.org/tx/${explorerHash}`
+        : null;
+      
+      return {
+        transactionHash: tx.transactionHash,
+        settlementHash: tx.settlementHash,
+        blockNumber: tx.blockNumber,
+        service: {
+          id: tx.service.serviceId,
+          name: tx.service.name,
+          category: tx.service.category,
+        },
+        amount: formatUnits(BigInt(tx.amount), USDC_DECIMALS),
+        fee: formatUnits(BigInt(tx.feeAmount), USDC_DECIMALS),
+        status: tx.status,
+        timestamp: tx.timestamp,
+        blockExplorerUrl: explorerUrl,
+      };
+    });
 
     return NextResponse.json({
       transactions: publicTransactions,

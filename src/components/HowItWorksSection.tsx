@@ -7,20 +7,20 @@ import TextScramble from './TextScramble';
 const steps = [
   {
     number: '[01]',
-    title: 'Machines request',
-    description: 'An AI agent or robot needs a resource. The server responds with a price. No negotiation, no accounts. Just a quote ready for payment.',
+    title: 'Robots request',
+    description: 'A delivery bot needs intensive mapping for 30 seconds. A robot needs perception when uncertain. The server responds with a price. One request = One price. No negotiation. No accounts.',
     icon: <Send className="w-6 h-6" />,
   },
   {
     number: '[02]',
-    title: 'Machines pay',
-    description: 'Payment approved from wallet. Transaction settles on Base. Autonomous agents can pre-authorize budgets. Machines transact like humans never could.',
+    title: 'Robots pay',
+    description: 'Payment approved from wallet. Transaction settles on Base. One payment. Verifiable on-chain. Complete transparency. Robots buying from robots. Agents paying agents.',
     icon: <DollarSign className="w-6 h-6" />,
   },
   {
     number: '[03]',
-    title: 'Machines access',
-    description: 'Resource unlocked. Access granted. The machine economy is in motion. Agents buying from agents. Robots paying robots. The future is autonomous.',
+    title: 'Robots access',
+    description: 'Resource unlocked. Access granted. Pay per frame. Pay per minute. Pay per route. Robots compose capabilities like software. The machine economy is in motion. All happening one request at a time.',
     icon: <CheckCircle className="w-6 h-6" />,
   },
 ];

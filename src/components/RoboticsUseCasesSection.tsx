@@ -7,28 +7,28 @@ export default function RoboticsUseCasesSection() {
   const useCases = [
     {
       icon: <Camera className="w-12 h-12" />,
-      title: 'Per‑frame perception',
-      description: 'Call vision or OCR only when needed; pay cents per frame. No monthly subscriptions for capabilities you use sporadically.',
+      title: 'Buy perception when uncertain',
+      description: 'A delivery bot needs intensive mapping for 30 seconds, then navigates autonomously for hours. Pay per frame for vision APIs. Pay per image for OCR. No monthly lock-in. Just machines buying sight when they need it.',
     },
     {
       icon: <MapPin className="w-12 h-12" />,
-      title: 'Routes & maps',
-      description: 'Buy HD tiles and routing per segment; no monthly lock‑in. Purchase navigation data exactly when you need it.',
+      title: 'Purchase routes when lost',
+      description: 'Buy HD map tiles per route segment. Pay per minute for navigation. Access routing services per destination. Why pay monthly for what you use sporadically? Navigation becomes a commodity robots buy.',
     },
     {
       icon: <Users className="w-12 h-12" />,
-      title: 'Teleop fallback',
-      description: 'Escalate to human control by the minute during edge cases. Pay for teleoperation only when autonomy fails.',
+      title: 'Escalate to human control only when needed',
+      description: 'Pay for teleoperation by the minute when autonomy hits edge cases. Machines buying human expertise only when needed. One request at a time. Complete transparency on-chain.',
     },
     {
       icon: <Radio className="w-12 h-12" />,
-      title: 'Sensor streams',
-      description: 'Publish or consume LiDAR/IMU windows on demand. Access sensor data streams per time window, not per subscription.',
+      title: 'Robots compose capabilities like software',
+      description: 'Publish LiDAR sweeps. Consume sensor data from other robots. Build real-time sensor networks. Robots buying and selling perception data. A bazaar where autonomous services transact directly.',
     },
     {
       icon: <Battery className="w-12 h-12" />,
-      title: 'Charging & bays',
-      description: 'Reserve slots and settle once confirmed. Pay for infrastructure access per use, not per month.',
+      title: 'Infrastructure becomes machine-payable',
+      description: 'Reserve charging slots per use. Pay for docking bays when docking. Access warehouse space per operation. The physical world becomes machine-payable. No subscriptions. Just pay for what you use.',
     },
   ];
 
@@ -45,7 +45,7 @@ export default function RoboticsUseCasesSection() {
               marginBottom: '40px',
               marginTop: '0px'
             }}>
-              Robotics use cases: pay per request, not per month
+              Robotics workloads are spiky. Pay per request, not per month.
             </h2>
           </FadeInUp>
 

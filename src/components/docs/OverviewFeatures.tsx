@@ -6,27 +6,27 @@ import DocsSection from './DocsSection';
 const features = [
   {
     title: 'x402 Payment Protocol',
-    description: 'HTTP 402 Payment Required, revived. Quote a price, pay from wallet, retry with proof. No accounts, no API keys. Just pay and access. Built on Base network with USDC. Fully compliant with PayAI facilitator for payment verification and settlement.',
+    description: 'HTTP 402 Payment Required, reborn for machines. Quote a price, pay from wallet, retry with proof. No accounts. No API keys. No humans. Just machines transacting. Built on Base with USDC. Every payment is on-chain. Every transaction is verifiable. The protocol that makes HTTP machine-payable.',
   },
   {
     title: 'r1x Agent',
-    description: 'AI agent that understands x402, fetches paid resources, and guides you through wallet approval. Chat with Claude 3 Opus. Pay-per-message. Create and sell your own resources. Integrated with PayAI for seamless payment handling.',
+    description: 'An AI agent that thinks, pays, and accesses the world. Chat with Claude 3 Opus. It understands x402, purchases resources autonomously, and guides you through the machine economy. Pay-per-message. Create resources robots will buy. Build services agents will pay for. Intelligence that transacts.',
   },
   {
     title: 'Marketplace',
-    description: 'Browse and purchase x402 services. AI inference, compute resources, data streams, digital content. All services powered by PayAI facilitator on Base network. Real-time service discovery and automatic synchronization.',
+    description: 'The marketplace for the machine economy. Browse AI inference services robots can purchase. Discover compute resources agents can buy. Access data streams machines can consume. Real-time service discovery. Everything priced. Everything payable. The infrastructure for autonomous commerce.',
   },
   {
     title: 'User & Platform Panels',
-    description: 'Monitor everything from one place: quotes, payments, receipts, and explorer links. Create resources, set prices, track transactions in real time. Complete analytics with Prisma database integration.',
+    description: 'Watch the machine economy unfold. Monitor every transaction. Track every autonomous purchase. Create resources that robots will buy. Set prices that agents will pay. See the future of machine commerce in real-time. Complete analytics. Full transparency. The dashboard for the autonomous economy.',
   },
   {
-    title: 'PayAI Integration',
-    description: 'Seamless integration with PayAI facilitator for payment verification and settlement. CDP API authentication for Base mainnet. Automatic fee distribution. Express middleware support with x402-express.',
+    title: 'On-Chain Settlement',
+    description: 'Every payment settles on-chain. Every transaction is verifiable. No intermediaries. No trusted parties. Just machines transacting with machines. Built on Base network. Secured by blockchain. The infrastructure for trustless machine commerce.',
   },
   {
     title: 'SDK & APIs',
-    description: 'Developer tools for building on r1x. Express server with PayAI middleware. Public APIs for service discovery. Transaction tracking and verification. Wallet integration utilities for Base network.',
+    description: 'Build the future of machine commerce. Express middleware for x402. Public APIs for service discovery. Transaction tracking and verification. Wallet integration for Base network. Everything you need to make your services machine-payable. The tools for the autonomous economy.',
   },
 ];
 
@@ -90,14 +90,14 @@ export default function OverviewFeatures() {
             fontFamily: 'BaselGrotesk-Regular, sans-serif',
             lineHeight: '1.4',
           }}>
-            r1x enables autonomous machine-to-machine transactions. AI agents buy compute. Robots purchase data. Machines transact without human intervention. Built on Base, powered by x402, secured by PayAI.
+            r1x enables autonomous machine-to-machine transactions. AI agents buy compute. Robots purchase data. Machines transact without human intervention. Built on Base. Powered by x402. Secured by blockchain. The infrastructure for the autonomous economy.
           </p>
           <p className="text-white leading-relaxed text-base sm:text-lg" style={{
             fontWeight: 400,
             fontFamily: 'BaselGrotesk-Regular, sans-serif',
             lineHeight: '1.4',
           }}>
-            This is the payment layer for the autonomous economy. No accounts. No API keys. Just pay and access. Machines become economic agents.
+            This is the economic infrastructure for autonomous machines. No accounts. No API keys. No humans. Just machines transacting with machines. Every payment is on-chain. Every transaction is verifiable. Machines become economic agents. The future is here.
           </p>
         </div>
       </FadeInUp>

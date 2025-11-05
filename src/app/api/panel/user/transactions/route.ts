@@ -60,28 +60,37 @@ export async function GET(request: NextRequest) {
       prisma.transaction.count({ where }),
     ]);
 
-    const formattedTransactions = transactions.map(tx => ({
-      id: tx.id,
-      transactionHash: tx.transactionHash,
-      service: {
-        id: tx.service.serviceId,
-        name: tx.service.name,
-        description: tx.service.description,
-        category: tx.service.category,
-        price: tx.service.priceDisplay,
-      },
-      amount: formatUnits(BigInt(tx.amount), USDC_DECIMALS),
-      fee: formatUnits(BigInt(tx.feeAmount), USDC_DECIMALS),
-      merchantAmount: formatUnits(BigInt(tx.merchantAmount), USDC_DECIMALS),
-      status: tx.status,
-      verificationStatus: tx.verificationStatus,
-      blockNumber: tx.blockNumber,
-      timestamp: tx.timestamp,
-      verifiedAt: tx.verifiedAt,
-      settledAt: tx.settledAt,
-      blockExplorerUrl: `https://basescan.org/tx/${tx.transactionHash}`,
-      settlementHash: tx.settlementHash,
-    }));
+    const formattedTransactions = transactions.map(tx => {
+      // For x402 transactions, prefer settlement hash if available (final settlement transaction)
+      // Otherwise use transaction hash (original payment transaction)
+      const explorerHash = tx.settlementHash || tx.transactionHash;
+      const explorerUrl = explorerHash 
+        ? `https://basescan.org/tx/${explorerHash}`
+        : null;
+      
+      return {
+        id: tx.id,
+        transactionHash: tx.transactionHash,
+        service: {
+          id: tx.service.serviceId,
+          name: tx.service.name,
+          description: tx.service.description,
+          category: tx.service.category,
+          price: tx.service.priceDisplay,
+        },
+        amount: formatUnits(BigInt(tx.amount), USDC_DECIMALS),
+        fee: formatUnits(BigInt(tx.feeAmount), USDC_DECIMALS),
+        merchantAmount: formatUnits(BigInt(tx.merchantAmount), USDC_DECIMALS),
+        status: tx.status,
+        verificationStatus: tx.verificationStatus,
+        blockNumber: tx.blockNumber,
+        timestamp: tx.timestamp,
+        verifiedAt: tx.verifiedAt,
+        settledAt: tx.settledAt,
+        blockExplorerUrl: explorerUrl,
+        settlementHash: tx.settlementHash,
+      };
+    });
 
     return NextResponse.json({
       transactions: formattedTransactions,

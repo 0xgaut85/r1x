@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { connectWallet, transferUSDC, formatUSDC, WalletConnection } from '@/lib/wallet';
 import { PaymentQuote, PaymentProof } from '@/lib/types/x402';
+import CryptoLogo from '@/components/CryptoLogo';
 
 interface PaymentModalProps {
   quote: PaymentQuote;
@@ -137,8 +138,8 @@ export default function PaymentModal({ quote, serviceName, onSuccess, onCancel }
             <span className="text-sm text-[#8E8EA0]" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
               Amount:
             </span>
-            <span className="text-lg font-semibold text-white" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
-              {formatUSDC(quote.amount)} USDC
+            <span className="text-lg font-semibold text-white flex items-center gap-2" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
+              {formatUSDC(quote.amount)} <CryptoLogo symbol="USDC" size={20} /> USDC
             </span>
           </div>
         </div>

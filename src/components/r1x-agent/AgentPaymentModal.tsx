@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { PaymentQuote } from '@/lib/types/x402';
 import { useWallet } from '@/hooks/useWallet';
 import { base } from 'wagmi/chains';
+import CryptoLogo from '@/components/CryptoLogo';
 
 interface AgentPaymentModalProps {
   quote: PaymentQuote;
@@ -47,8 +48,8 @@ export default function AgentPaymentModal({
           <h2 className="text-xl font-semibold mb-2 text-white" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
             Payment Required
           </h2>
-          <p className="text-sm text-[#8E8EA0] mb-6" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
-            r1x Agent Chat - 0.25 USDC per message
+          <p className="text-sm text-[#8E8EA0] mb-6 flex items-center gap-1" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
+            r1x Agent Chat - 0.25 <CryptoLogo symbol="USDC" size={14} /> USDC per message
           </p>
 
           <div className="bg-[#212121] rounded-lg p-4 mb-6 border border-[#2a2a2a]">
@@ -56,8 +57,8 @@ export default function AgentPaymentModal({
               <span className="text-sm text-[#8E8EA0]" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
                 Amount:
               </span>
-              <span className="text-lg font-semibold text-white" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
-                {formatUSDC(quote.amount)} USDC
+              <span className="text-lg font-semibold text-white flex items-center gap-2" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
+                {formatUSDC(quote.amount)} <CryptoLogo symbol="USDC" size={20} /> USDC
               </span>
             </div>
           </div>
@@ -87,7 +88,7 @@ export default function AgentPaymentModal({
               className="w-full px-6 py-3 bg-gradient-to-r from-[#FF4D00] to-[#FF6B35] text-white rounded-xl disabled:opacity-30 disabled:cursor-not-allowed"
               style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
             >
-              Pay {formatUSDC(quote.amount)} USDC
+              Pay {formatUSDC(quote.amount)} <CryptoLogo symbol="USDC" size={14} /> USDC
             </motion.button>
           )}
 

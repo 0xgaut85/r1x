@@ -29,7 +29,7 @@ export default function OverviewHero() {
           fontFamily: 'TWKEverettMono-Regular, monospace',
           color: '#FFFFFF',
         }}>
-          Everything you need to know about r1x and the machine economy. Build on x402, powered by PayAI, secured by Base.
+          Everything you need to know about r1x and the machine economy. Build on x402, powered by Base, secured by blockchain. The infrastructure for autonomous machines.
         </p>
       </div>
     </section>

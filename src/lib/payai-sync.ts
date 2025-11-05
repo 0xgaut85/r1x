@@ -22,24 +22,27 @@ export interface PayAIService {
   tokenSymbol?: string;
   price: string;
   endpoint?: string;
+  websiteUrl?: string; // Website URL for screenshot preview
   metadata?: any;
 }
 
 /**
  * Fetch services from PayAI facilitator
- * Based on x402 spec and PayAI facilitator API
+ * Based on PayAI facilitator API: https://facilitator.payai.network/list
  */
 export async function fetchPayAIServices(): Promise<PayAIService[]> {
   try {
+    // PayAI facilitator list endpoint
     const facilitatorUrl = `${PAYAI_FACILITATOR_URL}/list`;
-    console.log(`Fetching services from PayAI facilitator: ${facilitatorUrl}`);
+    console.log(`[PayAI] Fetching services from facilitator: ${facilitatorUrl}`);
     
-    // Try multiple endpoints based on x402 spec and PayAI conventions
+    // Try endpoints in order of likelihood based on PayAI docs
     const endpoints = [
-      '/list',
-      '/services',
-      '/discover',
-      '/v1/services',
+      '/list',              // Primary endpoint per PayAI docs
+      '/services',          // Alternative
+      '/v1/list',           // Versioned
+      '/v1/services',       // Versioned alternative
+      '/discover',          // Discovery endpoint
     ];
 
     let lastError: any = null;
@@ -47,16 +50,17 @@ export async function fetchPayAIServices(): Promise<PayAIService[]> {
     for (const endpoint of endpoints) {
       try {
         const url = `${PAYAI_FACILITATOR_URL}${endpoint}`;
-        console.log(`Trying endpoint: ${url}`);
+        console.log(`[PayAI] Trying endpoint: ${url}`);
         
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
         
         const response = await fetch(url, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
+            'User-Agent': 'r1x-marketplace/1.0',
           },
           signal: controller.signal,
         });
@@ -64,18 +68,21 @@ export async function fetchPayAIServices(): Promise<PayAIService[]> {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          console.warn(`PayAI ${endpoint} endpoint returned ${response.status}: ${response.statusText}`);
+          console.warn(`[PayAI] ${endpoint} returned ${response.status}: ${response.statusText}`);
+          const errorText = await response.text().catch(() => '');
+          console.warn(`[PayAI] Error response:`, errorText.substring(0, 200));
           lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
           continue; // Try next endpoint
         }
 
         const data = await response.json();
-        console.log(`PayAI ${endpoint} response received:`, JSON.stringify(data).substring(0, 500));
+        console.log(`[PayAI] ${endpoint} response received (first 1000 chars):`, JSON.stringify(data).substring(0, 1000));
         
-        // Handle different response formats
+        // Handle different response formats from PayAI facilitator
         let services: any[] = [];
         
         if (Array.isArray(data)) {
+          // Direct array response
           services = data;
         } else if (data.services && Array.isArray(data.services)) {
           services = data.services;
@@ -85,23 +92,37 @@ export async function fetchPayAIServices(): Promise<PayAIService[]> {
           services = data.items;
         } else if (data.result && Array.isArray(data.result)) {
           services = data.result;
+        } else if (data.resources && Array.isArray(data.resources)) {
+          services = data.resources;
+        } else if (data.apis && Array.isArray(data.apis)) {
+          services = data.apis;
         } else if (typeof data === 'object' && data !== null) {
           // Try to extract services from object values
           const values = Object.values(data);
-          services = values.filter((v: any) => Array.isArray(v) && v.length > 0).flat();
+          const arrays = values.filter((v: any) => Array.isArray(v) && v.length > 0);
+          if (arrays.length > 0) {
+            services = arrays.flat();
+          } else {
+            // Single service object?
+            if (data.id || data.name || data.endpoint) {
+              services = [data];
+            }
+          }
         }
 
         if (services.length > 0) {
-          console.log(`Found ${services.length} services from ${endpoint}`);
-          return services.map((service: any) => normalizePayAIService(service));
+          console.log(`[PayAI] Found ${services.length} services from ${endpoint}`);
+          const normalized = services.map((service: any) => normalizePayAIService(service));
+          console.log(`[PayAI] Normalized services sample:`, normalized.slice(0, 3).map(s => ({ id: s.id, name: s.name, token: s.tokenSymbol })));
+          return normalized;
         }
         
-        console.warn(`No services found in ${endpoint} response`);
+        console.warn(`[PayAI] No services found in ${endpoint} response. Response structure:`, Object.keys(data));
       } catch (endpointError: any) {
         if (endpointError.name === 'AbortError') {
-          console.warn(`Request to ${endpoint} timed out`);
+          console.warn(`[PayAI] Request to ${endpoint} timed out`);
         } else {
-          console.warn(`Error fetching from ${endpoint}:`, endpointError.message);
+          console.warn(`[PayAI] Error fetching from ${endpoint}:`, endpointError.message);
         }
         lastError = endpointError;
         continue; // Try next endpoint
@@ -109,10 +130,11 @@ export async function fetchPayAIServices(): Promise<PayAIService[]> {
     }
 
     // If all endpoints failed, log and return empty
-    console.warn('All PayAI endpoints failed. Last error:', lastError?.message);
+    console.warn('[PayAI] All endpoints failed. Last error:', lastError?.message);
     return [];
   } catch (error: any) {
-    console.error('Error fetching PayAI services:', error.message);
+    console.error('[PayAI] Error fetching services:', error.message);
+    console.error('[PayAI] Error stack:', error.stack);
     // Don't throw - return empty array so sync can continue with seed data
     return [];
   }
@@ -120,8 +142,32 @@ export async function fetchPayAIServices(): Promise<PayAIService[]> {
 
 /**
  * Normalize PayAI service data to our format
+ * Based on PayAI facilitator API structure
  */
 function normalizePayAIService(service: any): PayAIService {
+  console.log('Normalizing PayAI service:', JSON.stringify(service).substring(0, 200));
+  
+  // Extract service name - try multiple fields
+  const name = service.name || 
+               service.title || 
+               service.serviceName ||
+               service.apiName ||
+               service.resourceName ||
+               (service.metadata && service.metadata.name) ||
+               (service.metadata && service.metadata.title) ||
+               service.path ||
+               service.route ||
+               'Unnamed Service';
+  
+  // Extract description - try multiple fields
+  const description = service.description || 
+                     service.desc || 
+                     service.summary ||
+                     service.details ||
+                     (service.metadata && service.metadata.description) ||
+                     service.doc ||
+                     '';
+  
   // Extract price - handle different formats
   let price = '0';
   if (service.price) {
@@ -132,52 +178,132 @@ function normalizePayAIService(service: any): PayAIService {
     price = service.priceWei.toString();
   } else if (service.cost) {
     price = service.cost.toString();
+  } else if (service.fee) {
+    price = service.fee.toString();
+  } else if (service.paymentAmount) {
+    price = service.paymentAmount.toString();
+  } else if (service.metadata && service.metadata.price) {
+    price = service.metadata.price.toString();
   }
   
   // Ensure price is in wei format (for USDC, 6 decimals)
   // If price is already in smallest unit, use as-is
   // If price looks like human-readable format, assume it needs conversion
-  if (price.includes('.') || parseFloat(price) < 1000000) {
+  if (price !== '0' && (price.includes('.') || parseFloat(price) < 1000000)) {
     // Likely human-readable format, convert to wei (6 decimals for USDC)
     const decimals = 6;
-    price = (BigInt(Math.floor(parseFloat(price) * Math.pow(10, decimals)))).toString();
+    const numericPrice = parseFloat(price);
+    if (!isNaN(numericPrice) && numericPrice > 0) {
+      price = (BigInt(Math.floor(numericPrice * Math.pow(10, decimals)))).toString();
+    }
   }
   
-  // Extract merchant address
+  // Extract merchant address - try multiple fields
   const merchant = service.merchant || 
                    service.merchantAddress || 
+                   service.merchant_address ||
                    service.provider ||
                    service.owner ||
+                   service.address ||
+                   (service.metadata && service.metadata.merchant) ||
                    '0x0000000000000000000000000000000000000000';
   
-  // Extract token address
+  // Extract token address - try multiple fields
   const token = service.token || 
                 service.tokenAddress || 
+                service.token_address ||
                 service.currency ||
+                service.paymentToken ||
+                service.payment_token ||
+                (service.metadata && service.metadata.token) ||
+                (service.metadata && service.metadata.currency) ||
                 USDC_BASE_ADDRESS;
   
-  // Determine token symbol
-  const tokenSymbol = service.tokenSymbol || 
-    (token.toLowerCase() === USDC_BASE_ADDRESS.toLowerCase() ? 'USDC' : 'UNKNOWN');
+  // Extract token symbol - try multiple fields
+  let tokenSymbol = service.tokenSymbol || 
+                    service.token_symbol ||
+                    service.currencySymbol ||
+                    service.currency_symbol ||
+                    (service.metadata && service.metadata.tokenSymbol) ||
+                    (service.metadata && service.metadata.token_symbol);
   
-  // Extract service ID
+  // If no token symbol, try to determine from token address
+  if (!tokenSymbol) {
+    if (token.toLowerCase() === USDC_BASE_ADDRESS.toLowerCase()) {
+      tokenSymbol = 'USDC';
+    } else {
+      // Try to get from known token addresses or mint
+      tokenSymbol = service.mint || service.mintAddress || 'UNKNOWN';
+    }
+  }
+  
+  // Extract endpoint/API URL - try multiple fields
+  const endpoint = service.endpoint || 
+                   service.apiEndpoint || 
+                   service.api_endpoint ||
+                   service.path ||
+                   service.route ||
+                   service.api ||
+                   (service.metadata && service.metadata.endpoint) ||
+                   '';
+  
+  // Extract website URL for screenshot - try multiple fields
+  const websiteUrl = service.website || 
+                     service.websiteUrl ||
+                     service.url ||
+                     service.homepage ||
+                     service.homepageUrl ||
+                     (service.metadata && service.metadata.website) ||
+                     (service.metadata && service.metadata.websiteUrl) ||
+                     (service.metadata && service.metadata.homepage) ||
+                     (service.metadata && service.metadata.url) ||
+                     // If endpoint is a full URL (not relative), use it as website
+                     (endpoint && (endpoint.startsWith('http://') || endpoint.startsWith('https://')) ? endpoint : '') ||
+                     '';
+  
+  // Extract service ID - try multiple fields
   const serviceId = service.id || 
                     service.serviceId || 
                     service.service_id ||
-                    service.name?.toLowerCase().replace(/\s+/g, '-') ||
+                    service.resourceId ||
+                    service.resource_id ||
+                    (name && name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')) ||
+                    (endpoint && endpoint.replace(/[^a-z0-9-]/gi, '-')) ||
                     `service-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+  
+  // Extract network and chainId
+  const network = service.network || 
+                  service.chain || 
+                  (service.metadata && service.metadata.network) ||
+                  'base';
+  
+  const chainId = service.chainId || 
+                  service.chain_id ||
+                  service.chainId ||
+                  (service.metadata && service.metadata.chainId) ||
+                  BASE_CHAIN_ID;
+  
+  // Log if we're creating an unnamed service
+  if (name === 'Unnamed Service') {
+    console.warn('Found service with no name:', {
+      id: serviceId,
+      keys: Object.keys(service),
+      service: JSON.stringify(service).substring(0, 300)
+    });
+  }
   
   return {
     id: serviceId,
-    name: service.name || service.title || 'Unnamed Service',
-    description: service.description || service.desc || service.summary,
+    name: name,
+    description: description,
     merchant: merchant,
-    network: service.network || 'base',
-    chainId: service.chainId || service.chain_id || BASE_CHAIN_ID,
+    network: network,
+    chainId: typeof chainId === 'string' ? parseInt(chainId) : chainId,
     token: token,
-    tokenSymbol: tokenSymbol,
+    tokenSymbol: tokenSymbol || 'USDC',
     price: price,
-    endpoint: service.endpoint || service.apiEndpoint || service.url,
+    endpoint: endpoint,
+    websiteUrl: websiteUrl,
     metadata: service,
   };
 }

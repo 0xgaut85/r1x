@@ -48,18 +48,28 @@ export async function GET(request: NextRequest) {
     const uniqueServices = new Set(verifiedTransactions.map(tx => tx.serviceId));
     
     // Get recent transactions (last 10)
-    const recentTransactions = transactions.slice(0, 10).map(tx => ({
-      id: tx.id,
-      transactionHash: tx.transactionHash,
-      serviceName: tx.service.name,
-      serviceId: tx.service.serviceId,
-      amount: formatUnits(BigInt(tx.amount), USDC_DECIMALS),
-      fee: formatUnits(BigInt(tx.feeAmount), USDC_DECIMALS),
-      status: tx.status,
-      timestamp: tx.timestamp,
-      blockNumber: tx.blockNumber,
-      blockExplorerUrl: `https://basescan.org/tx/${tx.transactionHash}`,
-    }));
+    const recentTransactions = transactions.slice(0, 10).map(tx => {
+      // For x402 transactions, prefer settlement hash if available (final settlement transaction)
+      // Otherwise use transaction hash (original payment transaction)
+      const explorerHash = tx.settlementHash || tx.transactionHash;
+      const explorerUrl = explorerHash 
+        ? `https://basescan.org/tx/${explorerHash}`
+        : null;
+      
+      return {
+        id: tx.id,
+        transactionHash: tx.transactionHash,
+        settlementHash: tx.settlementHash,
+        serviceName: tx.service.name,
+        serviceId: tx.service.serviceId,
+        amount: formatUnits(BigInt(tx.amount), USDC_DECIMALS),
+        fee: formatUnits(BigInt(tx.feeAmount), USDC_DECIMALS),
+        status: tx.status,
+        timestamp: tx.timestamp,
+        blockNumber: tx.blockNumber,
+        blockExplorerUrl: explorerUrl,
+      };
+    });
 
     // Get transactions by category (from verified and settled transactions)
     const transactionsByCategory = verifiedTransactions.reduce((acc, tx) => {

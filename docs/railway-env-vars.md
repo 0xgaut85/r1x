@@ -49,6 +49,10 @@ X402_SERVER_URL=https://ton-x402-url.up.railway.app # URL du service Express Rai
 # Optional
 SERVER_WALLET_PRIVATE_KEY=0x... # Pour transfer fees automatique
 SYNC_SECRET=... # Secret pour protéger /api/sync/payai
+
+# Third-party APIs (optional - fallback to hardcoded values if not set)
+NEXT_PUBLIC_LOGOKIT_API_KEY=pk_... # LogoKit API key for crypto logos (optional)
+NEXT_PUBLIC_APIFLASH_ACCESS_KEY=... # ApiFlash access key for service screenshots (optional)
 ```
 
 ---

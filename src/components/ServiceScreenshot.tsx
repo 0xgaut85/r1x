@@ -1,0 +1,118 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+
+interface ServiceScreenshotProps {
+  url: string; // Service endpoint URL or website URL
+  alt?: string;
+  className?: string;
+  width?: number;
+  height?: number;
+}
+
+// ApiFlash access key - can be set via NEXT_PUBLIC_APIFLASH_ACCESS_KEY env var
+// Defaults to provided key if not set
+const APIFLASH_ACCESS_KEY = process.env.NEXT_PUBLIC_APIFLASH_ACCESS_KEY || 'ce5f48b2fe794fadb9c837e7778cb844';
+const APIFLASH_BASE_URL = 'https://api.apiflash.com/v1/urltoimage';
+
+/**
+ * ServiceScreenshot component - displays website screenshots using ApiFlash
+ * For marketplace services, APIs, tokens, mints, etc.
+ */
+export default function ServiceScreenshot({ 
+  url, 
+  alt = 'Service preview',
+  className = '',
+  width = 400,
+  height = 250
+}: ServiceScreenshotProps) {
+  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!url) {
+      setLoading(false);
+      return;
+    }
+
+    // Normalize URL - ensure it has protocol
+    let normalizedUrl = url.trim();
+    
+    // If it's a relative path (starts with /), try to construct full URL
+    if (normalizedUrl.startsWith('/')) {
+      // For API endpoints, try to get the base domain
+      // In production, this could be extracted from service metadata
+      // For now, skip screenshots for relative API endpoints
+      setLoading(false);
+      setError(true);
+      return;
+    }
+    
+    // If it doesn't have protocol, add https://
+    if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+      normalizedUrl = `https://${normalizedUrl}`;
+    }
+
+    // Build ApiFlash URL
+    // Format: https://api.apiflash.com/v1/urltoimage?access_key={key}&url={url}&width={width}&height={height}
+    const apiUrl = `${APIFLASH_BASE_URL}?access_key=${APIFLASH_ACCESS_KEY}&url=${encodeURIComponent(normalizedUrl)}&width=${width}&height=${height}&format=png&response_type=image&wait_until=page_loaded&delay=2`;
+
+    // Preload image to check if it works
+    const img = new window.Image();
+    img.onload = () => {
+      setScreenshotUrl(apiUrl);
+      setLoading(false);
+      setError(false);
+    };
+    img.onerror = () => {
+      setError(true);
+      setLoading(false);
+      setScreenshotUrl(null);
+    };
+    img.src = apiUrl;
+  }, [url, width, height]);
+
+  if (!url) {
+    return null;
+  }
+
+  if (loading) {
+    return (
+      <div 
+        className={`bg-gray-100 flex items-center justify-center ${className}`}
+        style={{ width: `${width}px`, height: `${height}px` }}
+      >
+        <div className="w-8 h-8 border-2 border-gray-300 border-t-[#FF4D00] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error || !screenshotUrl) {
+    return (
+      <div 
+        className={`bg-gray-100 flex items-center justify-center text-gray-400 ${className}`}
+        style={{ width: `${width}px`, height: `${height}px` }}
+      >
+        <span className="text-xs" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
+          No preview
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`relative overflow-hidden ${className}`} style={{ width: `${width}px`, height: `${height}px` }}>
+      <img
+        src={screenshotUrl}
+        alt={alt}
+        width={width}
+        height={height}
+        className="w-full h-full object-cover"
+        loading="lazy"
+        onError={() => setError(true)}
+      />
+    </div>
+  );
+}
+
