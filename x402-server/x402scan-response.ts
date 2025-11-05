@@ -68,8 +68,10 @@ export function x402scanResponseTransformer(req: Request, res: Response, next: N
   res.json = function (body: any) {
     responseBody = body;
     if (statusCode === 402 || res.statusCode === 402) {
+      // CRITICAL: Log original PayAI response for debugging signature issues
+      console.log('[x402scan] Original PayAI response structure:', JSON.stringify(body, null, 2));
       const transformed = transformToX402scanFormat(body, req);
-      console.log('[x402scan] Transforming 402 response to x402scan format:', JSON.stringify(transformed, null, 2));
+      console.log('[x402scan] Transformed x402scan response:', JSON.stringify(transformed, null, 2));
       return originalJson(transformed);
     }
     return originalJson(body);
@@ -148,10 +150,12 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
   let facilitatorAddress: string | undefined = undefined;
   
   // Extract from PayAI response if it exists (preserve original structure)
+  // CRITICAL: We must preserve ALL original PayAI fields exactly as they were
+  // for signature verification to work. The resource URL especially must match exactly.
   if (payaiResponse.accepts && Array.isArray(payaiResponse.accepts) && payaiResponse.accepts[0]) {
     const originalAccept = payaiResponse.accepts[0];
     // Preserve original PayAI fields for signature verification
-    // CRITICAL: resource must match exactly what PayAI generated
+    // CRITICAL: resource must match EXACTLY what PayAI generated (including protocol, host, path)
     resource = originalAccept.resource || resource;
     maxAmountRequired = originalAccept.maxAmountRequired || maxAmountRequired;
     description = originalAccept.description || description;
@@ -160,6 +164,8 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
     scheme = originalAccept.scheme || scheme;
     network = originalAccept.network || network;
     facilitatorAddress = originalAccept.extra?.facilitator || originalAccept.facilitator || undefined;
+    
+    console.log('[x402scan] Preserved original PayAI resource URL:', resource);
   } else if (payaiResponse.payment) {
     // PayAI format with payment object
     if (payaiResponse.payment.amountRaw) {
@@ -172,10 +178,18 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
     payTo = payaiResponse.payment.payTo || payTo;
     asset = payaiResponse.payment.asset || asset;
     facilitatorAddress = payaiResponse.payment.facilitator || undefined;
+    // If payment object has resource, use it
+    if (payaiResponse.payment.resource) {
+      resource = payaiResponse.payment.resource;
+      console.log('[x402scan] Using resource from payment object:', resource);
+    }
   } else if (payaiResponse.error && payaiResponse.error.includes('0.25')) {
     // Try to extract from error message
     maxAmountRequired = '250000';
   }
+  
+  // CRITICAL: Log the resource URL being used for signature verification
+  console.log('[x402scan] Final resource URL for signature verification:', resource);
   
   // Build x402scan-compliant response, preserving PayAI structure
   const x402scanResponse: X402scanResponse = {
