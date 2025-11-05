@@ -6,12 +6,37 @@
     <title>r1x Logo Preview</title>
     <style>
         @font-face {
+            font-family: 'BaselGrotesk-Regular';
+            src: url('https://nillion.com/wp-content/themes/nillion/assets/fonts/BaselGrotesk-Regular.woff') format('woff'),
+                 url('https://nillion.com/wp-content/themes/nillion/assets/fonts/BaselGrotesk-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'TWKEverett-Regular';
+            src: url('https://nillion.com/wp-content/themes/nillion/assets/fonts/TWKEverett-Regular.woff') format('woff'),
+                 url('https://nillion.com/wp-content/themes/nillion/assets/fonts/TWKEverett-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
             font-family: 'TWKEverettMono-Regular';
             src: url('https://nillion.com/wp-content/themes/nillion/assets/fonts/TWKEverettMono-Regular.woff') format('woff'),
                  url('https://nillion.com/wp-content/themes/nillion/assets/fonts/TWKEverettMono-Regular.ttf') format('truetype');
             font-weight: 400;
             font-style: normal;
             font-display: swap;
+        }
+
+        :root {
+            --accent-orange: #FF4D00;
+            --white-15: rgba(255, 255, 255, 0.15);
+            --white-25: rgba(255, 255, 255, 0.25);
+            --white-40: rgba(255, 255, 255, 0.4);
         }
 
         * {
@@ -99,7 +124,7 @@
             background: #000000;
             overflow: hidden;
             flex-shrink: 0;
-            border: 2px solid #000000;
+            border: 1px solid var(--white-15);
         }
 
         /* Fine grain pattern mesh covering entire banner - particle based */
@@ -149,22 +174,81 @@
             pointer-events: none;
         }
 
+        /* Diagonal grid */
+        .banner-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 79px,
+                    var(--white-15) 79px,
+                    var(--white-15) 80px
+                ),
+                repeating-linear-gradient(
+                    -45deg,
+                    transparent,
+                    transparent 79px,
+                    var(--white-15) 79px,
+                    var(--white-15) 80px
+                );
+            pointer-events: none;
+            z-index: 2;
+            opacity: 0.3;
+        }
+
         /* r1x labs text */
-        .banner-text {
+        .banner-text-wrapper {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             z-index: 10;
+            text-align: center;
+        }
+
+        .banner-text {
             color: #ffffff;
-            font-size: 48px;
+            font-size: 64px;
             font-weight: 400;
-            letter-spacing: 2px;
+            letter-spacing: 4px;
+            font-family: 'TWKEverett-Regular', sans-serif;
+            padding: 16px 24px;
+            text-transform: uppercase;
+            position: relative;
+            border: 2px solid #FF4D00;
+        }
+
+        .banner-text-accent {
+            color: #FF4D00;
+        }
+
+        /* Binary code top left horizontal */
+        .banner-binary-line {
+            position: absolute;
+            left: 60px;
+            top: 40px;
+            z-index: 10;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 0;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 12px;
+            backdrop-filter: blur(4px);
+        }
+
+        .banner-binary-char {
             font-family: 'TWKEverettMono-Regular', monospace;
-            border: 1px solid #ffffff;
-            padding: 8px 16px;
-            box-shadow: 
-                0 0 0 1px #ffffff;
+            font-size: 12px;
+            color: var(--white-40);
+            line-height: 1;
+            letter-spacing: 0;
+            margin: 0;
         }
 
         /* Pattern squares bottom right */
@@ -176,23 +260,26 @@
             display: flex;
             flex-direction: column;
             align-items: flex-end;
+            gap: 4px;
         }
 
         .banner-square-row {
             display: flex;
+            gap: 4px;
         }
 
         .banner-square {
-            width: 40px;
-            height: 40px;
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--white-25);
         }
 
         .banner-square-white {
-            background: #ffffff;
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .banner-square-black {
-            background: #000000;
+            background: rgba(0, 0, 0, 0.3);
         }
 
         /* Vignette effect on banner corners */
@@ -204,14 +291,19 @@
             height: 100%;
             z-index: 8;
             pointer-events: none;
-            background-image: 
-                radial-gradient(ellipse at top left, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 30%, rgba(0,0,0,0.2) 50%, transparent 70%),
-                radial-gradient(ellipse at top right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 30%, rgba(0,0,0,0.2) 50%, transparent 70%),
-                radial-gradient(ellipse at bottom left, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 30%, rgba(0,0,0,0.2) 50%, transparent 70%),
-                radial-gradient(ellipse at bottom right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 30%, rgba(0,0,0,0.2) 50%, transparent 70%);
-            background-size: 50% 50%, 50% 50%, 50% 50%, 50% 50%;
-            background-position: top left, top right, bottom left, bottom right;
-            background-repeat: no-repeat;
+            background: radial-gradient(ellipse at center, transparent 0%, transparent 40%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0.7) 100%);
+        }
+
+        /* Surface reflection */
+        .banner-reflection {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 150px;
+            background: linear-gradient(to top, rgba(255, 255, 255, 0.03) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 3;
         }
     </style>
 </head>
@@ -226,8 +318,15 @@
 
     <div class="banner-container">
         <div class="banner-text-mesh"></div>
+        <div class="banner-grid"></div>
         <div class="banner-vignette"></div>
-        <div class="banner-text">r1x labs</div>
+        <div class="banner-reflection"></div>
+        <div class="banner-binary-line">
+            <div class="banner-binary-char">0</div><div class="banner-binary-char">1</div><div class="banner-binary-char">1</div><div class="banner-binary-char">1</div><div class="banner-binary-char">0</div><div class="banner-binary-char">0</div><div class="banner-binary-char">1</div><div class="banner-binary-char">0</div><div class="banner-binary-char">0</div><div class="banner-binary-char">1</div><div class="banner-binary-char">1</div><div class="banner-binary-char">0</div><div class="banner-binary-char">1</div><div class="banner-binary-char">1</div><div class="banner-binary-char">1</div><div class="banner-binary-char">1</div><div class="banner-binary-char">0</div><div class="banner-binary-char">1</div><div class="banner-binary-char">1</div><div class="banner-binary-char">0</div><div class="banner-binary-char">0</div><div class="banner-binary-char">0</div><div class="banner-binary-char">1</div><div class="banner-binary-char">0</div><div class="banner-binary-char">0</div><div class="banner-binary-char">1</div><div class="banner-binary-char">1</div><div class="banner-binary-char">0</div><div class="banner-binary-char">0</div><div class="banner-binary-char">0</div><div class="banner-binary-char">0</div><div class="banner-binary-char">1</div><div class="banner-binary-char">0</div><div class="banner-binary-char">1</div><div class="banner-binary-char">1</div><div class="banner-binary-char">0</div><div class="banner-binary-char">1</div><div class="banner-binary-char">1</div><div class="banner-binary-char">0</div><div class="banner-binary-char">0</div><div class="banner-binary-char">0</div><div class="banner-binary-char">0</div><div class="banner-binary-char">0</div><div class="banner-binary-char">1</div><div class="banner-binary-char">0</div><div class="banner-binary-char">1</div><div class="banner-binary-char">1</div><div class="banner-binary-char">0</div><div class="banner-binary-char">0</div><div class="banner-binary-char">0</div><div class="banner-binary-char">1</div><div class="banner-binary-char">0</div><div class="banner-binary-char">0</div><div class="banner-binary-char">1</div><div class="banner-binary-char">1</div><div class="banner-binary-char">1</div><div class="banner-binary-char">0</div><div class="banner-binary-char">0</div><div class="banner-binary-char">1</div><div class="banner-binary-char">1</div>
+        </div>
+        <div class="banner-text-wrapper">
+            <div class="banner-text">r1<span class="banner-text-accent">x</span> labs</div>
+        </div>
         <div class="banner-squares">
             <div class="banner-square-row">
                 <div class="banner-square banner-square-white"></div>
@@ -238,6 +337,26 @@
                 <div class="banner-square banner-square-black"></div>
             </div>
             <div class="banner-square-row">
+                <div class="banner-square banner-square-white"></div>
+                <div class="banner-square banner-square-black"></div>
+                <div class="banner-square banner-square-white"></div>
+                <div class="banner-square banner-square-black"></div>
+                <div class="banner-square banner-square-white"></div>
+            </div>
+            <div class="banner-square-row">
+                <div class="banner-square banner-square-black"></div>
+                <div class="banner-square banner-square-white"></div>
+                <div class="banner-square banner-square-black"></div>
+                <div class="banner-square banner-square-white"></div>
+                <div class="banner-square banner-square-black"></div>
+                <div class="banner-square banner-square-white"></div>
+                <div class="banner-square banner-square-black"></div>
+            </div>
+            <div class="banner-square-row">
+                <div class="banner-square banner-square-white"></div>
+                <div class="banner-square banner-square-black"></div>
+                <div class="banner-square banner-square-white"></div>
+                <div class="banner-square banner-square-black"></div>
                 <div class="banner-square banner-square-white"></div>
                 <div class="banner-square banner-square-black"></div>
                 <div class="banner-square banner-square-white"></div>
