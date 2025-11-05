@@ -5,6 +5,11 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['wagmi', '@reown/appkit', '@reown/appkit-adapter-wagmi'],
   output: 'standalone',
   
+  // Exclude x402-server from Next.js build (it's a separate Express server)
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+  
   // Build optimizations
   compress: true,
   
