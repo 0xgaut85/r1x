@@ -3,6 +3,7 @@
 import TextScramble from './TextScramble';
 import MagneticButton from './MagneticButton';
 import ScrollIndicator from './ScrollIndicator';
+import HeroBackground from './hero/HeroBackground';
 import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 
@@ -88,6 +89,7 @@ export default function HeroSection() {
       className="relative min-h-screen flex items-center justify-center overflow-hidden" 
       style={{ backgroundColor: '#000000', paddingTop: '138.641px', paddingBottom: '80px' }}
     >
+      <HeroBackground />
       {/* Animated background glow */}
       <motion.div
         ref={glowRef}

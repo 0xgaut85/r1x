@@ -104,9 +104,14 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
   const merchantAddress = process.env.MERCHANT_ADDRESS || '';
   const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
   
+  // Determine the route to set appropriate outputSchema
+  const isChatRoute = req.originalUrl.includes('/api/r1x-agent/chat');
+  
   // Determine amount - PayAI might return it in different formats
   let maxAmountRequired = '250000'; // Default: 0.25 USDC (6 decimals)
-  let description = 'r1x Agent Chat - AI Assistant';
+  let description = isChatRoute 
+    ? 'r1x Agent Chat - AI Assistant powered by Claude. From users to AI agents, from AI agents to robots.'
+    : 'r1x Payment Service - Enabling machines to operate in an autonomous economy.';
   
   // Parse amount from various possible PayAI response formats
   if (payaiResponse.accepts && Array.isArray(payaiResponse.accepts) && payaiResponse.accepts[0]) {
@@ -126,9 +131,6 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
     // Try to extract from error message
     maxAmountRequired = '250000';
   }
-
-  // Determine the route to set appropriate outputSchema
-  const isChatRoute = req.originalUrl.includes('/api/r1x-agent/chat');
   
   // Build x402scan-compliant response
   const x402scanResponse: X402scanResponse = {
@@ -184,6 +186,12 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
           serviceId: isChatRoute ? 'r1x-agent-chat' : 'r1x-x402-pay',
           serviceName: isChatRoute ? 'r1x Agent Chat' : 'r1x Payment',
           price: isChatRoute ? '$0.25' : '$0.01',
+          // r1x Labs metadata
+          name: 'r1x Labs',
+          description: 'From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.',
+          logo: 'https://www.r1xlabs.com/logo.png',
+          website: 'https://www.r1xlabs.com',
+          provider: 'r1x Labs',
         },
       },
     ],

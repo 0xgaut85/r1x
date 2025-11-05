@@ -13,17 +13,19 @@ class RendererManager {
     this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     // Create renderer with DPR cap
+    // Note: Three.js will handle context creation internally
     this.renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
       alpha: true,
       powerPreference: 'high-performance',
+      preserveDrawingBuffer: false,
     });
     
     const dpr = Math.min(window.devicePixelRatio, 1.5);
     this.renderer.setPixelRatio(dpr);
     this.renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-    this.renderer.setClearColor(0x000000, 0);
+    this.renderer.setClearColor(0x000000, 1); // Solid black background
 
     // Create scene
     this.scene = new THREE.Scene();
