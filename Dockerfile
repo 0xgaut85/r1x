@@ -29,10 +29,17 @@ COPY --from=deps /app/node_modules/.prisma ./node_modules/.prisma
 # Copy package files to ensure scripts are available
 COPY package.json package-lock.json* ./
 
-# Copy source files (exclude unnecessary files)
-COPY . .
+# Copy only necessary source files (explicitly list what's needed)
+COPY src ./src
+COPY public ./public
+COPY next.config.ts ./
+COPY tsconfig.json ./
+COPY postcss.config.mjs ./
+COPY eslint.config.mjs ./
+COPY prisma ./prisma
+COPY scripts ./scripts
 # Remove unnecessary files before build
-RUN rm -rf .next node_modules/.cache
+RUN rm -rf .next node_modules/.cache x402-server
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
