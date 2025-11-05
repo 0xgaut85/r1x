@@ -7,7 +7,7 @@
 - **Railway Domain**: (Check Railway dashboard for your service URL)
 
 ### Express x402 Server (Payment Processing)
-- **Custom Domain**: `https://www.server.r1xlabs.com`
+- **Custom Domain**: `https://server.r1xlabs.com`
 - **Railway Domain**: `https://daring-analysis-production.up.railway.app`
 
 ---
@@ -48,9 +48,9 @@
 ### Express x402 Server Endpoints
 
 #### Direct Express Server URLs
-- `POST https://www.server.r1xlabs.com/api/r1x-agent/chat` - AI Agent chat (with payment verification)
-- `POST https://www.server.r1xlabs.com/api/x402/pay` - Payment processing (with payment verification)
-- `GET https://www.server.r1xlabs.com/health` - Health check
+- `POST https://server.r1xlabs.com/api/r1x-agent/chat` - AI Agent chat (with payment verification)
+- `POST https://server.r1xlabs.com/api/x402/pay` - Payment processing (with payment verification)
+- `GET https://server.r1xlabs.com/health` - Health check
 
 #### Railway Domain (Alternative)
 - `POST https://daring-analysis-production.up.railway.app/api/r1x-agent/chat`
@@ -83,7 +83,7 @@
 
 ### Next.js Service (Railway)
 - `NEXT_PUBLIC_BASE_URL=https://www.r1xlabs.com`
-- `X402_SERVER_URL=https://www.server.r1xlabs.com` (server-side proxy only)
+- `X402_SERVER_URL=https://server.r1xlabs.com` (server-side proxy only)
 - `DATABASE_URL=postgresql://...` (from Railway PostgreSQL service)
 
 ### Express x402 Server (Railway)
@@ -113,7 +113,7 @@ curl https://www.r1xlabs.com/api/panel/public/transactions
 ### Test Express Server
 ```bash
 # Health check
-curl https://www.server.r1xlabs.com/health
+curl https://server.r1xlabs.com/health
 
 # Or Railway domain
 curl https://daring-analysis-production.up.railway.app/health
