@@ -196,8 +196,8 @@ export default function HeroBackground() {
           const py = yPositionsPx[yi];
           const hash = ((px * 131 + py * 137) % 1000) / 1000.0;
           const intensity = 0.75 + hash * 0.25;
-          const x = (px / width) * 2.0 - 1.0;
-          const y = -((py / height) * 2.0 - 1.0);
+          const x = ((px + overscanX) / (width + 2.0 * overscanX)) * 2.0 - 1.0;
+          const y = -(((py + overscanY) / (height + 2.0 * overscanY)) * 2.0 - 1.0);
           positions.push(x, y, 0);
           intensities.push(intensity);
         }

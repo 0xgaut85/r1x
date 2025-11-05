@@ -125,7 +125,8 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
   // Extract payment info from PayAI response
   // PayAI might return different formats, so we need to handle multiple cases
   
-  const resource = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+  // CRITICAL: Preserve original resource from PayAI response for signature verification
+  // The resource field is part of the signed payload, so it must match exactly
   const merchantAddress = process.env.MERCHANT_ADDRESS || '';
   const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
   
@@ -141,11 +142,14 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
   let asset = USDC_BASE;
   let scheme = 'exact';
   let network = 'base';
+  let resource = `${req.protocol}://${req.get('host')}${req.originalUrl}`; // Fallback
   
   // Extract from PayAI response if it exists (preserve original structure)
   if (payaiResponse.accepts && Array.isArray(payaiResponse.accepts) && payaiResponse.accepts[0]) {
     const originalAccept = payaiResponse.accepts[0];
     // Preserve original PayAI fields for signature verification
+    // CRITICAL: resource must match exactly what PayAI generated
+    resource = originalAccept.resource || resource;
     maxAmountRequired = originalAccept.maxAmountRequired || maxAmountRequired;
     description = originalAccept.description || description;
     payTo = originalAccept.payTo || payTo;
