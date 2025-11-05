@@ -163,24 +163,42 @@ export default function HeroBackground() {
 
       const columnSpacings = [8, 9, 10, 8, 9, 10, 8, 9, 10, 8, 9, 10, 8, 9, 10];
       const rowSpacing = 8;
+
+      // Build x positions ensuring coverage to the very edge
+      const xPositionsPx: number[] = [];
       let currentX = 0;
       let colIndex = 0;
-
       while (currentX < width) {
-        const colSpacing = columnSpacings[colIndex % columnSpacings.length];
-        let currentY = 0;
-        while (currentY < height) {
-          // brightness ~ 0.75..1.0 then alpha scaled in shader by u_baseAlpha
-          const hash = ((currentX * 131 + currentY * 137) % 1000) / 1000.0;
+        xPositionsPx.push(currentX);
+        currentX += columnSpacings[colIndex % columnSpacings.length];
+        colIndex++;
+      }
+      if (xPositionsPx.length === 0 || xPositionsPx[xPositionsPx.length - 1] < width) {
+        xPositionsPx.push(width);
+      }
+
+      // Build y positions ensuring coverage to the very edge
+      const yPositionsPx: number[] = [];
+      let currentY = 0;
+      while (currentY < height) {
+        yPositionsPx.push(currentY);
+        currentY += rowSpacing;
+      }
+      if (yPositionsPx.length === 0 || yPositionsPx[yPositionsPx.length - 1] < height) {
+        yPositionsPx.push(height);
+      }
+
+      for (let xi = 0; xi < xPositionsPx.length; xi++) {
+        const px = xPositionsPx[xi];
+        for (let yi = 0; yi < yPositionsPx.length; yi++) {
+          const py = yPositionsPx[yi];
+          const hash = ((px * 131 + py * 137) % 1000) / 1000.0;
           const intensity = 0.75 + hash * 0.25;
-          const x = (currentX / width) * 2.0 - 1.0;
-          const y = -((currentY / height) * 2.0 - 1.0);
+          const x = (px / width) * 2.0 - 1.0;
+          const y = -((py / height) * 2.0 - 1.0);
           positions.push(x, y, 0);
           intensities.push(intensity);
-          currentY += rowSpacing;
         }
-        currentX += colSpacing;
-        colIndex++;
       }
 
       const geometry = new THREE.BufferGeometry();
@@ -193,12 +211,12 @@ export default function HeroBackground() {
     const resize = () => {
       if (!container) return;
       const rect = container.getBoundingClientRect();
-      const w = Math.max(1, Math.floor(rect.width));
-      const h = Math.max(1, Math.floor(rect.height));
+      const w = Math.max(1, Math.ceil(rect.width));
+      const h = Math.max(1, Math.ceil(rect.height));
       canvas.width = w;
       canvas.height = h;
-      canvas.style.width = `${w}px`;
-      canvas.style.height = `${h}px`;
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
       renderer.setSize(w, h, false);
       camera.left = -1;
       camera.right = 1;
