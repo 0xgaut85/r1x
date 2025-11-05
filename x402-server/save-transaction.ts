@@ -49,16 +49,43 @@ interface SaveTransactionParams {
 
 /**
  * Parse payment proof from X-Payment header
+ * Handles both JSON string and base64-encoded JSON
  */
 export function parsePaymentProof(xPaymentHeader: string | undefined): PaymentProof | null {
   if (!xPaymentHeader) return null;
 
   try {
-    const proof = JSON.parse(xPaymentHeader);
+    let proof: any;
+    
+    // Try parsing as JSON first
+    try {
+      proof = JSON.parse(xPaymentHeader);
+    } catch (jsonError) {
+      // If JSON parse fails, try base64 decode
+      try {
+        // x402-fetch sends base64-encoded payment proof
+        const decoded = Buffer.from(xPaymentHeader, 'base64').toString('utf-8');
+        proof = JSON.parse(decoded);
+        console.log('[Save Transaction] Decoded base64 payment proof');
+      } catch (base64Error) {
+        console.error('[Save Transaction] Failed to parse payment proof (both JSON and base64 failed):', {
+          jsonError: jsonError instanceof Error ? jsonError.message : jsonError,
+          base64Error: base64Error instanceof Error ? base64Error.message : base64Error,
+          headerPreview: xPaymentHeader.substring(0, 50),
+        });
+        return null;
+      }
+    }
     
     // Validate required fields
     if (!proof.transactionHash || !proof.from || !proof.to || !proof.amount) {
-      console.error('[Save Transaction] Invalid payment proof:', proof);
+      console.error('[Save Transaction] Invalid payment proof structure:', {
+        hasTransactionHash: !!proof.transactionHash,
+        hasFrom: !!proof.from,
+        hasTo: !!proof.to,
+        hasAmount: !!proof.amount,
+        proofKeys: Object.keys(proof),
+      });
       return null;
     }
 
