@@ -1,14 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamicImport from 'next/dynamic';
 import Footer from '@/components/Footer';
-import PaymentModal from '@/components/PaymentModal';
 import CryptoLogo from '@/components/CryptoLogo';
 import ServiceScreenshot from '@/components/ServiceScreenshot';
-// No longer need x402-server-url - using Next.js API routes (same origin)
-import { MarketplaceService, PaymentQuote, PaymentProof } from '@/lib/types/x402';
+import { useWallet } from '@/hooks/useWallet';
+import { useAccount, useChainId } from 'wagmi';
+import { base } from 'wagmi/chains';
+import { modal } from '@/lib/wallet-provider';
+import { X402Client } from '@/lib/payments/x402Client';
+import { getX402ServerUrlAsync } from '@/lib/x402-server-url';
+import { MarketplaceService } from '@/lib/types/x402';
 
 // Dynamically import Header to prevent SSR issues with WalletProvider context
 const Header = dynamicImport(() => import('@/components/Header'), { ssr: false });
@@ -120,119 +124,148 @@ export default function MarketplacePage() {
 }
 
 function ServiceCard({ service, index }: { service: MarketplaceService; index: number }) {
+  const { walletClient, address, isConnected } = useWallet();
+  const { isConnected: wagmiConnected } = useAccount();
+  const chainId = useChainId();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentQuote, setPaymentQuote] = useState<PaymentQuote | null>(null);
+  const [x402ServerUrl, setX402ServerUrl] = useState<string | null>(null);
+
+  // Initialize X402Client
+  const x402Client = useMemo(() => {
+    if (!walletClient) return null;
+    try {
+      return new X402Client({
+        walletClient,
+        maxValue: BigInt(100 * 10 ** 6), // 100 USDC max
+      });
+    } catch (err) {
+      console.error('[Marketplace] Failed to initialize X402Client:', err);
+      return null;
+    }
+  }, [walletClient]);
+
+  // Fetch x402 server URL
+  useEffect(() => {
+    getX402ServerUrlAsync().then(url => {
+      setX402ServerUrl(url);
+    }).catch(err => {
+      console.error('[Marketplace] Failed to get x402 server URL:', err);
+    });
+  }, []);
 
   const handlePurchase = async () => {
+    // Check wallet connection
+    if (!wagmiConnected || !x402Client) {
+      modal.open();
+      alert('Please connect your wallet to purchase services');
+      return;
+    }
+
+    if (chainId !== base.id) {
+      alert('Please switch to Base network');
+      return;
+    }
+
+    if (!x402ServerUrl) {
+      alert('x402 server URL not configured. Please try again.');
+      return;
+    }
+
     setIsProcessing(true);
     try {
-      // Request payment quote via Next.js API route (proxies to Express server)
-      // Using same origin eliminates CORS issues
-      console.log('[Marketplace] Fetching payment quote from:', '/api/x402/pay');
-      
-      // Calculate total price (add 5% fee for external services)
       const basePrice = parseFloat(service.price);
-      const totalPrice = service.isExternal && service.priceWithFee 
-        ? service.priceWithFee 
-        : service.price; // Our services don't add fee on top
+      const feePercentage = parseFloat(process.env.NEXT_PUBLIC_PLATFORM_FEE_PERCENTAGE || '5');
       
-      const response = await fetch('/api/x402/pay', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          serviceId: service.id,
-          serviceName: service.name,
-          price: totalPrice, // Use total price (with fee if external)
-          basePrice: basePrice.toString(), // Original price before fee
-          isExternal: service.isExternal || false,
-          endpoint: service.endpoint,
-        }),
-      });
+      // Calculate fee (only for external services)
+      let feeAmount = '0';
+      if (service.isExternal) {
+        feeAmount = (basePrice * feePercentage / 100).toFixed(6);
+      }
 
-      console.log('[Marketplace] Payment quote response status:', response.status);
+      // For external services: pay fee then service
+      // For our services: just pay service (no separate fee)
+      if (service.isExternal && parseFloat(feeAmount) > 0) {
+        const feeEndpoint = `${x402ServerUrl}/api/fees/collect`;
+        
+        // Dual x402 payments: fee then service
+        const { feeResponse, serviceResponse } = await x402Client.payFeeThenPurchase({
+          feeEndpoint,
+          feeAmount,
+          service: {
+            id: service.id,
+            name: service.name,
+            endpoint: service.endpoint || '',
+            price: service.price,
+            priceWithFee: service.priceWithFee,
+            isExternal: service.isExternal,
+          },
+        });
 
-      if (response.status === 402) {
-        // Payment required - extract quote
-        const data = await response.json();
-        console.log('[Marketplace] Payment quote received:', data);
-        
-        // Handle x402scan format (accepts array) or PayAI format (payment/quote)
-        let quote: PaymentQuote | null = null;
-        
-        if (data.accepts && Array.isArray(data.accepts) && data.accepts[0]) {
-          // x402scan format - convert accepts[0] to PaymentQuote
-          const accept = data.accepts[0];
-          const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
-          
-          quote = {
-            amount: accept.maxAmountRequired || '0',
-            token: accept.asset || USDC_BASE,
-            merchant: accept.payTo || '',
-            facilitator: accept.extra?.facilitator || undefined,
-            deadline: Date.now() + (accept.maxTimeoutSeconds || 3600) * 1000,
-            nonce: accept.extra?.nonce || `${Date.now()}-${Math.random()}`,
-            chainId: accept.extra?.chainId || 8453,
-          };
-        } else if (data.payment) {
-          // PayAI format with payment object
-          const payment = data.payment;
-          quote = {
-            amount: payment.amountRaw || payment.amount || '0',
-            token: payment.token || '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-            merchant: payment.merchant || '',
-            facilitator: payment.facilitator || undefined,
-            deadline: payment.deadline || Date.now() + 3600000,
-            nonce: payment.nonce || `${Date.now()}-${Math.random()}`,
-            chainId: payment.chainId || 8453,
-          };
-        } else if (data.quote) {
-          // Direct quote format
-          quote = data.quote;
+        // Get payment receipts from headers (raw, will decode server-side)
+        const feePaymentResponse = feeResponse.headers.get('x-payment-response');
+        const servicePaymentResponse = serviceResponse.headers.get('x-payment-response');
+
+        // Log purchases to our API
+        try {
+          await fetch('/api/purchases/log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              serviceId: service.id,
+              serviceName: service.name,
+              payer: address,
+              feeReceipt: feePaymentResponse, // Raw header value
+              serviceReceipt: servicePaymentResponse, // Raw header value
+              feeAmount,
+              servicePrice: service.price,
+              type: 'external',
+            }),
+          });
+        } catch (logError) {
+          console.error('[Marketplace] Failed to log purchase:', logError);
+          // Don't fail the purchase if logging fails
         }
-        
-        if (quote) {
-          setPaymentQuote(quote);
-          setShowPaymentModal(true);
-        } else {
-          console.error('[Marketplace] Invalid payment quote format:', data);
-          throw new Error('Invalid payment quote format. Expected accepts array, payment object, or quote.');
-        }
-      } else if (response.ok) {
-        // Already paid or free
-        const data = await response.json();
-        alert('Access granted!');
+
+        const serviceData = await serviceResponse.json();
+        alert(`✅ Purchase successful! ${serviceData.message || 'Service accessed.'}`);
       } else {
-        const errorText = await response.text().catch(() => 'Unknown error');
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+        // Our services: single x402 payment (no fee)
+        const response = await x402Client.purchaseService({
+          id: service.id,
+          name: service.name,
+          endpoint: service.endpoint || '',
+          price: service.price,
+          isExternal: false,
+        });
+
+        const servicePaymentResponse = response.headers.get('x-payment-response');
+
+        // Log purchase
+        try {
+          await fetch('/api/purchases/log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              serviceId: service.id,
+              serviceName: service.name,
+              payer: address,
+              serviceReceipt: servicePaymentResponse, // Raw header value
+              servicePrice: service.price,
+              type: 'internal',
+            }),
+          });
+        } catch (logError) {
+          console.error('[Marketplace] Failed to log purchase:', logError);
+        }
+
+        const serviceData = await response.json();
+        alert(`✅ Purchase successful! ${serviceData.message || 'Service accessed.'}`);
       }
     } catch (error: any) {
       console.error('[Marketplace] Purchase error:', error);
-      let errorMessage = 'Failed to process purchase';
-      
-      if (error.message.includes('Failed to fetch') || error.name === 'TypeError' || error.message.includes('network')) {
-        errorMessage = `Cannot connect to x402 server. Please check:\n1. Next.js API route is accessible (/api/x402/pay)\n2. X402_SERVER_URL is set in Railway (for server-side proxy)\n3. Express server is running and accessible\n\nError: ${error.message}`;
-      } else {
-        errorMessage = error.message || errorMessage;
-      }
-      
-      alert(errorMessage);
+      alert(`Purchase failed: ${error.message || 'Unknown error'}`);
     } finally {
       setIsProcessing(false);
-    }
-  };
-
-  const handlePaymentSuccess = async (proof: PaymentProof) => {
-    // Payment verification is handled automatically by Express Railway middleware
-    // If we get here, payment was successful
-    try {
-      setShowPaymentModal(false);
-      alert('Payment successful! Access granted.');
-    } catch (error) {
-      console.error('Payment success handling error:', error);
-      alert('Payment successful, but error processing access');
     }
   };
 
@@ -385,19 +418,6 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
         </p>
       )}
 
-      <AnimatePresence>
-        {showPaymentModal && paymentQuote && (
-          <PaymentModal
-            quote={paymentQuote}
-            serviceName={service.name}
-            onSuccess={handlePaymentSuccess}
-            onCancel={() => {
-              setShowPaymentModal(false);
-              setPaymentQuote(null);
-            }}
-          />
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }

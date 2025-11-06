@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import dynamicImport from 'next/dynamic';
 import Footer from '@/components/Footer';
@@ -11,8 +11,12 @@ import WalletButton from '@/components/WalletButton';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ChartTooltip, currencyValueFormatter, numberValueFormatter, dateLabelFormatter } from '@/components/charts/ChartTooltip';
 import { useWallet } from '@/hooks/useWallet';
-import { useAccount } from 'wagmi';
+import { useAccount, useChainId } from 'wagmi';
+import { base } from 'wagmi/chains';
 import { modal } from '@/lib/wallet-provider';
+import { X402Client } from '@/lib/payments/x402Client';
+import { getX402ServerUrlAsync } from '@/lib/x402-server-url';
+import { formatUnits } from 'viem';
 
 interface UserStats {
   address: string;
@@ -62,14 +66,53 @@ interface UsageData {
 
 const COLORS = ['#FF4D00', '#FF6B35', '#FF8C5A', '#FFA87F', '#FFC4A5'];
 
+interface Purchase {
+  id: string;
+  transactionHash: string;
+  service: {
+    id: string;
+    name: string;
+    description: string | null;
+    category: string | null;
+    endpoint: string | null;
+    websiteUrl: string | null;
+  };
+  amount: string;
+  feeAmount: string;
+  merchantAmount: string;
+  token: string;
+  chainId: number;
+  status: string;
+  timestamp: Date;
+  verifiedAt: Date | null;
+  type: 'fee' | 'service';
+}
+
 export default function UserPanelContent() {
-  const { address, isConnected } = useWallet();
+  const { address, isConnected, walletClient } = useWallet();
   const { isConnected: wagmiConnected } = useAccount();
+  const chainId = useChainId();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [usage, setUsage] = useState<UsageData | null>(null);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('30d');
   const [lastRefresh, setLastRefresh] = useState(Date.now());
+  const [reRunningService, setReRunningService] = useState<string | null>(null);
+
+  // Initialize X402Client for re-running services
+  const x402Client = useMemo(() => {
+    if (!walletClient) return null;
+    try {
+      return new X402Client({
+        walletClient,
+        maxValue: BigInt(100 * 10 ** 6), // 100 USDC max
+      });
+    } catch (err) {
+      console.error('[User Panel] Failed to initialize X402Client:', err);
+      return null;
+    }
+  }, [walletClient]);
 
   useEffect(() => {
     if (isConnected && address) {
@@ -89,20 +132,58 @@ export default function UserPanelContent() {
   const fetchUserData = async (address: string) => {
     setLoading(true);
     try {
-      const [statsRes, usageRes] = await Promise.all([
+      const [statsRes, usageRes, purchasesRes] = await Promise.all([
         fetch(`/api/panel/user/stats?address=${address}`),
         fetch(`/api/panel/user/usage?address=${address}&period=${period}`),
+        fetch(`/api/panel/user/purchases?address=${address}`),
       ]);
 
       const statsData = await statsRes.json();
       const usageData = await usageRes.json();
+      const purchasesData = await purchasesRes.json();
 
       setStats(statsData);
       setUsage(usageData);
+      setPurchases(purchasesData.purchases || []);
     } catch (error) {
       console.error('Failed to fetch user data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleReRunService = async (purchase: Purchase) => {
+    if (!x402Client || !purchase.service.endpoint) {
+      alert('Service endpoint not available');
+      return;
+    }
+
+    if (chainId !== base.id) {
+      alert('Please switch to Base network');
+      return;
+    }
+
+    setReRunningService(purchase.id);
+    try {
+      const response = await x402Client.purchaseService({
+        id: purchase.service.id,
+        name: purchase.service.name,
+        endpoint: purchase.service.endpoint,
+        price: formatUnits(BigInt(purchase.amount), 6), // Convert from wei
+        isExternal: false,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`✅ Service accessed! ${data.message || ''}`);
+      } else {
+        throw new Error(`Service returned ${response.status}`);
+      }
+    } catch (error: any) {
+      console.error('[User Panel] Re-run error:', error);
+      alert(`Failed to access service: ${error.message || 'Unknown error'}`);
+    } finally {
+      setReRunningService(null);
     }
   };
 
@@ -305,6 +386,89 @@ export default function UserPanelContent() {
                   </ResponsiveContainer>
                 </motion.div>
               </div>
+            )}
+
+            {/* Purchases Section */}
+            {purchases.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white border border-gray-200 p-6 rounded-lg mb-8"
+              >
+                <h3 className="text-lg font-semibold mb-4" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
+                  My Purchases
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full" style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}>
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-2 px-4">Service</th>
+                        <th className="text-left py-2 px-4">Type</th>
+                        <th className="text-left py-2 px-4">Amount</th>
+                        <th className="text-left py-2 px-4">Date</th>
+                        <th className="text-left py-2 px-4">Transaction</th>
+                        <th className="text-left py-2 px-4">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {purchases.map((purchase) => (
+                        <tr key={purchase.id} className="border-b border-gray-100">
+                          <td className="py-2 px-4">
+                            <div>
+                              <div className="font-semibold">{purchase.service.name}</div>
+                              {purchase.service.description && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {purchase.service.description.substring(0, 50)}...
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-2 px-4">
+                            <span className={`px-2 py-1 rounded text-xs ${
+                              purchase.type === 'fee' ? 'bg-orange-100 text-orange-800' :
+                              'bg-blue-100 text-blue-800'
+                            }`}>
+                              {purchase.type}
+                            </span>
+                          </td>
+                          <td className="py-2 px-4">
+                            <span className="flex items-center gap-1">
+                              {formatUnits(BigInt(purchase.amount), 6)} <CryptoLogo symbol="USDC" size={14} /> USDC
+                            </span>
+                          </td>
+                          <td className="py-2 px-4">
+                            {new Date(purchase.timestamp).toLocaleDateString()}
+                          </td>
+                          <td className="py-2 px-4">
+                            <a
+                              href={`https://basescan.org/tx/${purchase.transactionHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[#FF4D00] hover:underline text-xs"
+                            >
+                              View on BaseScan
+                            </a>
+                          </td>
+                          <td className="py-2 px-4">
+                            {purchase.service.endpoint && purchase.type === 'service' ? (
+                              <button
+                                onClick={() => handleReRunService(purchase)}
+                                disabled={reRunningService === purchase.id || !wagmiConnected}
+                                className="px-3 py-1 bg-[#FF4D00] text-white rounded text-xs hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+                                style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                              >
+                                {reRunningService === purchase.id ? 'Processing...' : 'Use/Open'}
+                              </button>
+                            ) : (
+                              <span className="text-gray-400 text-xs">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </motion.div>
             )}
 
             {/* Recent Transactions */}

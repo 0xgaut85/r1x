@@ -157,6 +157,10 @@ app.use(paymentMiddleware(
       price: '$0.01',
       network: 'base',
     },
+    'POST /api/fees/collect': {
+      price: '$10.00', // Max fee (will validate actual amount in handler)
+      network: 'base',
+    },
   },
   facilitatorConfig,
 ));
@@ -700,6 +704,82 @@ app.post('/api/x402/pay', async (req, res) => {
     message: 'Payment verified, service access granted',
     data: req.body,
   });
+  }
+});
+
+// Fee collection endpoint - x402 payment to our platform address
+app.post('/api/fees/collect', async (req, res) => {
+  // Payment is already verified by PayAI middleware
+  if (res.headersSent) {
+    console.log('[x402-server] Response already sent by middleware, skipping fee handler');
+    return;
+  }
+
+  try {
+    const { feeAmount } = req.body; // Fee amount in USDC (decimal string, e.g., "0.05")
+    
+    if (!feeAmount || isNaN(parseFloat(feeAmount))) {
+      if (!res.headersSent) {
+        return res.status(400).json({ error: 'Invalid feeAmount. Must be a valid number.' });
+      }
+      return;
+    }
+
+    // Parse and save transaction to database (non-blocking)
+    const xPaymentHeader = typeof req.headers['x-payment'] === 'string' ? req.headers['x-payment'] as string : undefined;
+    if (xPaymentHeader) {
+      console.log('[x402-server] Fee payment verified, saving transaction...');
+      const paymentProof = parsePaymentProof(xPaymentHeader);
+      
+      if (paymentProof) {
+        // Validate that paid amount matches requested fee
+        const paidAmountUSDC = parseFloat((BigInt(paymentProof.amount) / BigInt(10 ** 6)).toString());
+        const requestedFee = parseFloat(feeAmount);
+        
+        // Allow small tolerance for rounding (0.1%)
+        const tolerance = requestedFee * 0.001;
+        if (Math.abs(paidAmountUSDC - requestedFee) > tolerance) {
+          console.warn('[x402-server] Fee amount mismatch:', {
+            requested: requestedFee,
+            paid: paidAmountUSDC,
+          });
+          // Still save transaction but log warning
+        }
+
+        // Save fee transaction (100% goes to platform)
+        Promise.race([
+          saveTransaction({
+            proof: paymentProof,
+            serviceId: 'platform-fee',
+            serviceName: 'Platform Fee',
+            price: feeAmount,
+            feePercentage: 100, // 100% fee (all goes to platform)
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Transaction save timeout (5s)')), 5000)
+          ),
+        ]).catch((error) => {
+          console.error('[x402-server] Failed to save fee transaction (non-blocking):', {
+            message: error?.message || String(error),
+          });
+        });
+      }
+    }
+
+    if (!res.headersSent) {
+      res.json({
+        success: true,
+        message: 'Fee payment verified',
+        feeAmount: feeAmount,
+      });
+    }
+  } catch (error: any) {
+    console.error('[x402-server] Fee collection error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: error.message || 'Internal server error',
+      });
+    }
   }
 });
 

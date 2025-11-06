@@ -68,14 +68,14 @@ export class X402Client {
 
   /**
    * Purchase a marketplace service
-   * Uses Next.js API proxy (/api/x402/pay) to avoid CORS issues
-   * The proxy forwards to Express server which handles the actual service call
+   * For external services: calls service endpoint directly via x402
+   * For internal services: uses Next.js API proxy (/api/x402/pay)
    */
   async purchaseService(
     service: {
       id: string; // Service ID
       name: string; // Service name
-      endpoint: string; // Service endpoint (for reference)
+      endpoint: string; // Service endpoint
       price: string; // Price in USDC (decimal string)
       priceWithFee?: string; // Total price with fee
       isExternal?: boolean; // Whether service is external
@@ -99,22 +99,30 @@ export class X402Client {
       );
     }
 
-    // Use Next.js API proxy (same origin, no CORS issues)
-    // This matches the marketplace purchase flow
-    const basePrice = parseFloat(service.price);
-    
-    return this.request('/api/x402/pay', {
-      method: 'POST',
-      body: JSON.stringify({
-        serviceId: service.id,
-        serviceName: service.name,
-        price: totalPrice, // Use total price (with fee if external)
-        basePrice: basePrice.toString(), // Original price before fee
-        isExternal: service.isExternal || false,
-        endpoint: service.endpoint, // Pass endpoint for Express server to call
-        ...(requestBody ? { requestBody } : {}), // Include any additional request body
-      }),
-    });
+    // For external services: call endpoint directly via x402
+    // For internal services: use our proxy
+    if (service.isExternal) {
+      return this.request(service.endpoint, {
+        method: 'POST',
+        body: requestBody ? JSON.stringify(requestBody) : undefined,
+      });
+    } else {
+      // Use Next.js API proxy for our services
+      const basePrice = parseFloat(service.price);
+      
+      return this.request('/api/x402/pay', {
+        method: 'POST',
+        body: JSON.stringify({
+          serviceId: service.id,
+          serviceName: service.name,
+          price: totalPrice,
+          basePrice: basePrice.toString(),
+          isExternal: false,
+          endpoint: service.endpoint,
+          ...(requestBody ? { requestBody } : {}),
+        }),
+      });
+    }
   }
 
   /**
@@ -122,6 +130,47 @@ export class X402Client {
    */
   getMaxValueUSDC(): number {
     return Number(this.maxValue) / 10 ** USDC_DECIMALS;
+  }
+
+  /**
+   * Pay fee then purchase service (dual x402 payments)
+   * Returns both responses with headers for receipt decoding
+   */
+  async payFeeThenPurchase(params: {
+    feeEndpoint: string; // Full URL to fee endpoint (e.g., https://server.r1xlabs.com/api/fees/collect)
+    feeAmount: string; // Fee amount in USDC (decimal string)
+    service: {
+      id: string;
+      name: string;
+      endpoint: string;
+      price: string;
+      priceWithFee?: string;
+      isExternal?: boolean;
+    };
+    requestBody?: any;
+  }): Promise<{
+    feeResponse: Response;
+    serviceResponse: Response;
+  }> {
+    // Step 1: Pay fee via x402
+    const feeResponse = await this.request(params.feeEndpoint, {
+      method: 'POST',
+      body: JSON.stringify({
+        feeAmount: params.feeAmount,
+      }),
+    });
+
+    if (!feeResponse.ok) {
+      throw new Error(`Fee payment failed: ${feeResponse.status} ${feeResponse.statusText}`);
+    }
+
+    // Step 2: Purchase service via x402
+    const serviceResponse = await this.purchaseService(params.service, params.requestBody);
+
+    return {
+      feeResponse,
+      serviceResponse,
+    };
   }
 }
 
