@@ -42,6 +42,18 @@ export default function R1xAgentContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [pendingPurchase, setPendingPurchase] = useState<null | {
+    service: MarketplaceService;
+    isExternal: boolean;
+    baseRequest: {
+      body?: any;
+      queryParams?: Record<string, string>;
+      headers?: Record<string, string>;
+    };
+    missing: string[];
+    fieldLocations?: Record<string, 'body' | 'query' | 'header'>;
+    hints?: Record<string, { description?: string; example?: string; options?: string[] }>;
+  }>(null);
 
   // Initialize marketplace catalog with 60s refresh
   useEffect(() => {
@@ -180,10 +192,11 @@ export default function R1xAgentContent() {
   const buildRequestFromSchema = (
     schema: any,
     userInput: string
-  ): { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string>; missing?: string[]; hints?: Record<string, { description?: string; example?: string; options?: string[] }> } => {
-    const result: { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string>; missing?: string[]; hints?: Record<string, { description?: string; example?: string; options?: string[] }> } = {};
+  ): { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string>; missing?: string[]; hints?: Record<string, { description?: string; example?: string; options?: string[] }>; fieldLocations?: Record<string, 'body' | 'query' | 'header'> } => {
+    const result: { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string>; missing?: string[]; hints?: Record<string, { description?: string; example?: string; options?: string[] }>; fieldLocations?: Record<string, 'body' | 'query' | 'header'> } = {};
     const missing: string[] = [];
     const hints: Record<string, { description?: string; example?: string; options?: string[] }> = {};
+    const fieldLocations: Record<string, 'body' | 'query' | 'header'> = {};
     
     if (!schema?.outputSchema?.input) {
       // No schema, use default
@@ -214,7 +227,7 @@ export default function R1xAgentContent() {
         hints[key] = hint;
       }
     };
-
+    
     // Build query params if specified
     if (input.queryParams && typeof input.queryParams === 'object') {
       result.queryParams = {};
@@ -222,9 +235,10 @@ export default function R1xAgentContent() {
         captureFieldHints(key, fieldDef);
         if (fieldDef.required && !fieldDef.default) {
           if (genericInputKeys.has(key)) {
-            result.queryParams![key] = userInput;
+          result.queryParams![key] = userInput;
           } else {
             missing.push(key);
+            fieldLocations[key] = 'query';
           }
         } else if (fieldDef.default !== undefined) {
           result.queryParams![key] = String(fieldDef.default);
@@ -239,9 +253,10 @@ export default function R1xAgentContent() {
         captureFieldHints(key, fieldDef);
         if (fieldDef.required && !fieldDef.default) {
           if (genericInputKeys.has(key)) {
-            result.headers![key] = userInput;
+          result.headers![key] = userInput;
           } else {
             missing.push(key);
+            fieldLocations[key] = 'header';
           }
         } else if (fieldDef.default !== undefined) {
           result.headers![key] = String(fieldDef.default);
@@ -257,9 +272,10 @@ export default function R1xAgentContent() {
           captureFieldHints(key, fieldDef);
           if (fieldDef.required && !fieldDef.default) {
             if (genericInputKeys.has(key)) {
-              result.body![key] = userInput;
+            result.body![key] = userInput;
             } else {
               missing.push(key);
+              fieldLocations[key] = 'body';
             }
           } else if (fieldDef.default !== undefined) {
             result.body![key] = fieldDef.default;
@@ -279,6 +295,9 @@ export default function R1xAgentContent() {
     }
     if (Object.keys(hints).length > 0) {
       result.hints = hints;
+    }
+    if (Object.keys(fieldLocations).length > 0) {
+      result.fieldLocations = fieldLocations;
     }
 
     return result;
@@ -341,6 +360,29 @@ export default function R1xAgentContent() {
           }
           return parts.join('\n');
         }).join('\n');
+        // Detect external before persisting pending
+        let isExternalService = service.isExternal ?? false;
+        if (!isExternalService && service.endpoint) {
+          try {
+            const endpointUrl = new URL(service.endpoint);
+            isExternalService = !endpointUrl.hostname.includes('r1xlabs.com');
+          } catch {
+            isExternalService = true;
+          }
+        }
+        // Persist pending purchase context to handle next user message with values
+        setPendingPurchase({
+          service,
+          isExternal: isExternalService,
+          baseRequest: {
+            body: requestData.body,
+            queryParams: requestData.queryParams,
+            headers: requestData.headers,
+          },
+          missing: requestData.missing,
+          fieldLocations: requestData.fieldLocations,
+          hints: requestData.hints,
+        });
         setMessages(prev => [...prev, {
           role: 'assistant',
           content: `This service requires additional fields:\n${missingList}\n\nPlease provide these values (e.g., "agent=Alice").`,
@@ -606,6 +648,228 @@ export default function R1xAgentContent() {
       return;
     }
 
+    // If we have a pending purchase awaiting required fields, interpret this message as field values
+    if (pendingPurchase && x402Client) {
+      try {
+        setIsLoading(true);
+        const raw = input.trim();
+        // Prepare working copies
+        const body = { ...(pendingPurchase.baseRequest.body || {}) };
+        const headers = { ...(pendingPurchase.baseRequest.headers || {}) };
+        const queryParams = { ...(pendingPurchase.baseRequest.queryParams || {}) };
+        let remaining = [...pendingPurchase.missing];
+
+        // Parse key=value pairs
+        const kv: Record<string, string> = {};
+        const pairRegex = /([A-Za-z0-9_\-]+)\s*=\s*([^\s,;]+)/g;
+        let m: RegExpExecArray | null;
+        while ((m = pairRegex.exec(raw)) !== null) {
+          kv[m[1]] = m[2];
+        }
+        // If no pairs and exactly one missing, treat whole input as the value
+        if (Object.keys(kv).length === 0 && remaining.length === 1) {
+          const onlyKey = remaining[0];
+          kv[onlyKey] = raw;
+        }
+
+        // Apply values to the correct locations
+        for (const [k, v] of Object.entries(kv)) {
+          const loc = pendingPurchase.fieldLocations?.[k] || 'body';
+          if (loc === 'query') {
+            queryParams[k] = v;
+          } else if (loc === 'header') {
+            headers[k] = v;
+          } else {
+            if (!body || typeof body !== 'object') {
+              // ensure object
+              (pendingPurchase.baseRequest as any).body = {};
+            }
+            (body as any)[k] = v;
+          }
+          remaining = remaining.filter(x => x !== k);
+        }
+
+        // If still missing, prompt again with remaining and hints
+        if (remaining.length > 0) {
+          const missingList = remaining.map(k => {
+            const hint = pendingPurchase.hints?.[k];
+            const parts: string[] = [`- ${k}`];
+            if (hint?.options && hint.options.length > 0) {
+              parts.push(`  options: ${hint.options.slice(0, 10).join(', ')}${hint.options.length > 10 ? ', ...' : ''}`);
+            }
+            if (hint?.example) {
+              parts.push(`  example: ${hint.example}`);
+            }
+            if (hint?.description) {
+              parts.push(`  desc: ${hint.description}`);
+            }
+            return parts.join('\n');
+          }).join('\n');
+
+          setPendingPurchase({
+            ...pendingPurchase,
+            baseRequest: { body, headers, queryParams },
+            missing: remaining,
+          });
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: `Still need:\n${missingList}\n\nPlease provide the remaining values.`,
+          }]);
+          setIsLoading(false);
+          setInput('');
+          return;
+        }
+
+        // All required fields collected → proceed with fee then purchase
+        // Show progress
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `Purchasing "${pendingPurchase.service.name}"...`,
+          status: 'sending',
+        }]);
+
+        console.log('[Autopurchase] Paying agent fee ($0.05 USDC)...');
+        const feeResponse = await x402Client.request('/api/fee', {
+          method: 'POST',
+          body: JSON.stringify({}),
+        });
+        if (!feeResponse.ok) {
+          const errTxt = await feeResponse.text();
+          setMessages(prev => {
+            const updated = [...prev];
+            const last = updated[updated.length - 1];
+            updated[updated.length - 1] = {
+              ...last,
+              status: 'error',
+              content: `Failed to pay agent fee: ${errTxt || 'Payment required'}`,
+            };
+            return updated;
+          });
+          setIsLoading(false);
+          setInput('');
+          return;
+        }
+
+        const response = await x402Client.purchaseService({
+          id: pendingPurchase.service.id,
+          name: pendingPurchase.service.name,
+          endpoint: pendingPurchase.service.endpoint!,
+          price: pendingPurchase.service.price!,
+          priceWithFee: pendingPurchase.service.priceWithFee,
+          isExternal: pendingPurchase.isExternal,
+        }, body, queryParams, headers);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorData: any;
+          try { errorData = JSON.parse(errorText); } catch { errorData = { error: errorText }; }
+
+          // Surface 400 required-field messages again
+          if (response.status === 400) {
+            const message: string = errorData.error || errorData.message || '';
+            if (typeof message === 'string' && /required/i.test(message)) {
+              setMessages(prev => {
+                const updated = [...prev];
+                const last = updated[updated.length - 1];
+                updated[updated.length - 1] = {
+                  ...last,
+                  status: 'error',
+                  content: `The selected service requires additional input:\n\n${message}\n\nPlease provide the required value and I'll retry.`,
+                };
+                return updated;
+              });
+              setIsLoading(false);
+              setInput('');
+              return;
+            }
+          }
+
+          // 402 edge
+          if (response.status === 402) {
+            throw new Error('Payment required but could not be processed.');
+          }
+
+          setMessages(prev => {
+            const updated = [...prev];
+            const last = updated[updated.length - 1];
+            updated[updated.length - 1] = {
+              ...last,
+              status: 'error',
+              content: `Purchase failed (HTTP ${response.status}): ${errorData.error || errorData.message || errorText}`,
+            };
+            return updated;
+          });
+          setIsLoading(false);
+          setInput('');
+          return;
+        }
+
+        // Decode result
+        const contentType = response.headers.get('content-type') || '';
+        let result: any;
+        if (contentType.includes('application/json')) {
+          result = await response.json();
+        } else if (contentType.includes('text/')) {
+          result = { text: await response.text() };
+        } else {
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          result = { blob: blobUrl, filename: response.headers.get('content-disposition')?.match(/filename="(.+)"/)?.[1] || 'download', contentType };
+        }
+
+        // Receipts and logging
+        const paymentResponseHeader = response.headers.get('x-payment-response') || response.headers.get('X-Payment-Response');
+        let paymentReceipt: any = null;
+        if (paymentResponseHeader) {
+          try { paymentReceipt = JSON.parse(paymentResponseHeader); } catch {}
+        }
+        try {
+          const feeReceiptHeader = feeResponse.headers.get('x-payment-response') || feeResponse.headers.get('X-Payment-Response');
+          await fetch('/api/purchases/log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              serviceId: pendingPurchase.service.id,
+              serviceName: pendingPurchase.service.name,
+              payer: address,
+              feeReceipt: feeReceiptHeader || null,
+              serviceReceipt: paymentResponseHeader || null,
+              feeAmount: '0.05',
+              servicePrice: pendingPurchase.service.price,
+              type: pendingPurchase.isExternal ? 'external' : 'internal',
+            }),
+          });
+        } catch (logErr) {
+          console.warn('[Autopurchase] Failed to log purchase (non-blocking):', logErr);
+        }
+
+        setMessages(prev => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          updated[updated.length - 1] = {
+            ...last,
+            content: `✅ Successfully purchased "${pendingPurchase.service.name}"!`,
+            status: 'sent',
+            serviceResult: {
+              service: pendingPurchase.service,
+              result,
+              paymentReceipt,
+              contentType,
+            },
+          };
+          return updated;
+        });
+
+        setPendingPurchase(null);
+        setIsLoading(false);
+        setInput('');
+        return;
+      } catch (e: any) {
+        console.error('[PendingPurchase] Error:', e?.message || e);
+        setIsLoading(false);
+        // Fall through to default handling if anything unexpected
+      }
+    }
     const userMessage: ChatMessage = {
       role: 'user',
       content: input.trim(),
