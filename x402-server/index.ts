@@ -649,6 +649,112 @@ app.get('/api/panel/public/services', async (req, res) => {
   }
 });
 
+app.get('/api/discovery/resources', async (req, res) => {
+  try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+    
+    const network = (req.query.network as string) || 'base';
+    const chainId = req.query.chainId ? parseInt(req.query.chainId as string) : 8453;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.r1xlabs.com';
+    const serverUrl = process.env.X402_SERVER_URL || 'https://server.r1xlabs.com';
+
+    // Fetch marketplace services
+    const dbServices = await prisma.service.findMany({
+      where: {
+        available: true,
+        network,
+        chainId,
+      },
+      include: {
+        _count: {
+          select: {
+            transactions: {
+              where: {
+                status: { in: ['verified', 'settled'] },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Format marketplace services
+    const marketplaceResources = dbServices.map(service => ({
+      id: service.serviceId,
+      name: service.name,
+      description: service.description,
+      category: service.category || 'Other',
+      resource: service.endpoint || `${serverUrl}/api/x402/pay`,
+      method: 'POST',
+      price: service.priceDisplay,
+      priceWei: service.price,
+      merchant: service.merchant,
+      network: service.network,
+      chainId: service.chainId,
+      token: service.token,
+      tokenSymbol: service.tokenSymbol,
+      totalPurchases: service._count.transactions,
+    }));
+
+    // Add r1x Agent endpoints
+    const agentResources = [
+      {
+        id: 'r1x-agent-chat',
+        name: 'r1x Agent Chat',
+        description: 'AI Agent chat service powered by Claude 3 Opus. Specialized in r1x infrastructure, x402 protocol, and machine economy.',
+        category: 'AI',
+        resource: `${serverUrl}/api/r1x-agent/chat`,
+        resourceAlt: `${baseUrl}/api/r1x-agent/chat`,
+        method: 'POST',
+        price: '0.25',
+        priceWei: '250000',
+        merchant: payTo,
+        network: 'base',
+        chainId: 8453,
+        token: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+        tokenSymbol: 'USDC',
+      },
+      {
+        id: 'r1x-agent-plan',
+        name: 'r1x Agent Plan',
+        description: 'AI agent service discovery and planning. Get ranked proposals for marketplace services based on query and category.',
+        category: 'Discovery',
+        resource: `${serverUrl}/api/r1x-agent/plan`,
+        resourceAlt: `${baseUrl}/api/r1x-agent/plan`,
+        method: 'POST',
+        price: '0.01',
+        priceWei: '10000',
+        merchant: payTo,
+        network: 'base',
+        chainId: 8453,
+        token: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+        tokenSymbol: 'USDC',
+      },
+    ];
+
+    const allResources = [...agentResources, ...marketplaceResources];
+
+    await prisma.$disconnect();
+    
+    res.json({
+      resources: allResources,
+      total: allResources.length,
+      agentResources: agentResources.length,
+      marketplaceResources: marketplaceResources.length,
+      network,
+      chainId,
+      version: '1.0',
+    });
+  } catch (error: any) {
+    console.error('[x402-server] Discovery API error:', error);
+    res.status(500).json({
+      error: error.message || 'An error occurred',
+    });
+  }
+});
+
 app.get('/api/panel/public/transactions', async (req, res) => {
   try {
     const { PrismaClient } = await import('@prisma/client');

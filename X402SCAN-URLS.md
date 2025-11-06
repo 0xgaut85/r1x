@@ -116,10 +116,52 @@ These endpoints proxy to the Express server above:
 
 ## Public Discovery Endpoints (for x402scan to fetch service list)
 
-### 3. Public Service Catalog
+### 1. x402 Resources Discovery (Recommended)
+**Endpoint**: `GET https://www.r1xlabs.com/api/discovery/resources`
+
+**Description**: Complete discovery endpoint for x402scan - includes all x402-protected resources (agent endpoints + marketplace services)
+
+**Query Parameters**:
+- `network` (optional): Network identifier (default: `base`)
+- `chainId` (optional): Chain ID (default: `8453`)
+
+**Response**:
+```json
+{
+  "resources": [
+    {
+      "id": "r1x-agent-chat",
+      "name": "r1x Agent Chat",
+      "description": "AI Agent chat service...",
+      "category": "AI",
+      "resource": "https://server.r1xlabs.com/api/r1x-agent/chat",
+      "resourceAlt": "https://www.r1xlabs.com/api/r1x-agent/chat",
+      "method": "POST",
+      "price": "0.25",
+      "merchant": "0x...",
+      "network": "base",
+      "chainId": 8453,
+      "token": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "tokenSymbol": "USDC",
+      "schema": { ... }
+    },
+    ...
+  ],
+  "total": 10,
+  "agentResources": 2,
+  "marketplaceResources": 8
+}
+```
+
+**Alternative** (Express server):
+- `GET https://server.r1xlabs.com/api/discovery/resources` (if implemented)
+
+---
+
+### 2. Public Service Catalog
 **Endpoint**: `GET https://server.r1xlabs.com/api/panel/public/services`
 
-**Description**: Public service catalog for x402scan to discover all available x402 services
+**Description**: Public service catalog for marketplace services (does not include agent endpoints)
 
 **Query Parameters**:
 - `category` (optional): Filter by category (e.g., "AI", "Compute", "Data")
@@ -177,13 +219,22 @@ These endpoints proxy to the Express server above:
 
 ### Discovery Endpoints (to fetch service catalog):
 
-3. **Public Service Catalog**
+1. **x402 Resources Discovery** (Recommended)
+   ```
+   GET https://www.r1xlabs.com/api/discovery/resources
+   ```
+   - Includes all x402 resources (agent endpoints + marketplace services)
+   - Complete schema information
+   - Best for x402scan integration
+
+2. **Public Service Catalog**
    ```
    GET https://server.r1xlabs.com/api/panel/public/services
    ```
    (Also available at: `https://www.r1xlabs.com/api/panel/public/services`)
+   - Marketplace services only (does not include agent endpoints)
 
-4. **Public Transactions**
+3. **Public Transactions**
    ```
    GET https://server.r1xlabs.com/api/panel/public/transactions
    ```

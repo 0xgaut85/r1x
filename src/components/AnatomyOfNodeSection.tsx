@@ -2,6 +2,7 @@
 
 import { FadeInUp, StaggerChildren, StaggerChild } from './motion';
 import { Shield, Zap, Globe } from 'lucide-react';
+import InfrastructureNodeVisual from './visuals/InfrastructureNodeVisual';
 
 const benefits = [
   {
@@ -72,7 +73,9 @@ export default function AnatomyOfNodeSection() {
           </div>
           <div className="order-first md:order-last">
             <FadeInUp delay={0.2}>
-              <div className="w-full h-64 sm:h-80 md:h-96 bg-gray-100" style={{ borderRadius: '0px' }}></div>
+              <div className="w-full h-64 sm:h-80 md:h-96 overflow-hidden" style={{ borderRadius: '0px' }}>
+                <InfrastructureNodeVisual />
+              </div>
             </FadeInUp>
           </div>
         </div>

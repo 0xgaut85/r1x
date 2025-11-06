@@ -348,6 +348,48 @@ Complete list of all API endpoints in the r1x platform.
 
 ## Public APIs (for x402scan/Partners)
 
+### `GET /api/discovery/resources`
+**Description**: Complete x402 resources discovery endpoint - includes all x402-protected resources (agent endpoints + marketplace services)
+
+**Query Parameters**:
+- `network` (optional): Network identifier (default: `base`)
+- `chainId` (optional): Chain ID (default: `8453`)
+
+**Response**:
+```json
+{
+  "resources": [
+    {
+      "id": "r1x-agent-chat",
+      "name": "r1x Agent Chat",
+      "description": "AI Agent chat service...",
+      "category": "AI",
+      "resource": "https://server.r1xlabs.com/api/r1x-agent/chat",
+      "resourceAlt": "https://www.r1xlabs.com/api/r1x-agent/chat",
+      "method": "POST",
+      "price": "0.25",
+      "merchant": "0x...",
+      "network": "base",
+      "chainId": 8453,
+      "token": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "tokenSymbol": "USDC"
+    }
+  ],
+  "total": 10,
+  "agentResources": 2,
+  "marketplaceResources": 8,
+  "network": "base",
+  "chainId": 8453,
+  "version": "1.0"
+}
+```
+
+**Status Codes**:
+- `200`: Success
+- `500`: Server error
+
+---
+
 ### `GET /api/panel/public/services`
 **Description**: Public service catalog endpoint for partners/x402scan
 

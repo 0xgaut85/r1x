@@ -2,6 +2,11 @@
 
 import { FadeInUp, StaggerChildren, StaggerChild, ScaleOnHover } from './motion';
 import { Camera, MapPin, Users, Radio, Battery } from 'lucide-react';
+import RobotPerceptionVisual from './visuals/RobotPerceptionVisual';
+import NavigationVisual from './visuals/NavigationVisual';
+import TeleopVisual from './visuals/TeleopVisual';
+import SensorVisual from './visuals/SensorVisual';
+import InfrastructureVisual from './visuals/InfrastructureVisual';
 
 export default function RoboticsUseCasesSection() {
   const useCases = [
@@ -9,26 +14,31 @@ export default function RoboticsUseCasesSection() {
       icon: <Camera className="w-12 h-12" />,
       title: 'Perception on demand',
       description: 'Call vision or OCR only when uncertain. Pay per frame or image in USDC. Zero subscriptions—just buy sight when you need it.',
+      visual: <RobotPerceptionVisual />
     },
     {
       icon: <MapPin className="w-12 h-12" />,
       title: 'Navigation per segment',
       description: 'Buy HD map tiles and routing per segment. Pay per minute for guidance. Navigation becomes a commodity robots purchase on demand.',
+      visual: <NavigationVisual />
     },
     {
       icon: <Users className="w-12 h-12" />,
       title: 'Human‑in‑the‑loop fallback',
       description: 'Escalate to teleop by the minute when autonomy hits edge cases. Pay only when you need human expertise. Transparent receipts on‑chain.',
+      visual: <TeleopVisual />
     },
     {
       icon: <Radio className="w-12 h-12" />,
       title: 'Sensor markets',
       description: 'Publish LiDAR/IMU windows. Consume peer sensor data. Compose real‑time perception networks that are priced per window.',
+      visual: <SensorVisual />
     },
     {
       icon: <Battery className="w-12 h-12" />,
       title: 'Machine‑payable infrastructure',
       description: 'Reserve charging slots or docks per use. Settle per operation. Physical infrastructure becomes pay‑per‑use for fleets.',
+      visual: <InfrastructureVisual />
     },
   ];
 
@@ -56,9 +66,12 @@ export default function RoboticsUseCasesSection() {
               <StaggerChild key={idx}>
                 <ScaleOnHover>
                   <li className="border border-gray-200 hover:border-[#FF4D00] transition-all duration-300 card-hover group" style={{ borderRadius: '0px', paddingTop: '24px', paddingBottom: '24px', paddingLeft: '20px', paddingRight: '20px' }}>
-                    <div className="w-full h-40 sm:h-48 bg-gray-100 group-hover:bg-gray-200 transition-colors duration-300 flex items-center justify-center mb-3 sm:mb-4" style={{ borderRadius: '0px' }}>
-                      <div className="text-[#FF4D00] opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        {useCase.icon}
+                    <div className="w-full h-40 sm:h-48 overflow-hidden mb-3 sm:mb-4 relative" style={{ borderRadius: '0px' }}>
+                      {useCase.visual}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/80">
+                        <div className="text-[#FF4D00]">
+                          {useCase.icon}
+                        </div>
                       </div>
                     </div>
                     <h3 className="text-black text-xl sm:text-2xl md:text-[24px] mt-3 sm:mt-4" style={{

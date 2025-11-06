@@ -3,6 +3,7 @@
 import { FadeInUp, StaggerChildren, StaggerChild } from './motion';
 import { Send, DollarSign, CheckCircle } from 'lucide-react';
 import TextScramble from './TextScramble';
+import MachineEconomyVisual from './visuals/MachineEconomyVisual';
 
 const steps = [
   {
@@ -51,8 +52,12 @@ export default function HowItWorksSection() {
 
         <StaggerChildren className="flex justify-center mt-8 sm:mt-10 mb-8 sm:mb-12">
           <div className="flex flex-col sm:flex-row gap-4 w-full max-w-4xl">
-            <StaggerChild className="w-full sm:flex-1 h-48 sm:h-64 bg-gray-100" style={{ borderRadius: '0px' }} />
-            <StaggerChild className="w-full sm:flex-1 h-48 sm:h-64 bg-gray-100" style={{ borderRadius: '0px' }} />
+            <StaggerChild className="w-full sm:flex-1 h-48 sm:h-64 overflow-hidden" style={{ borderRadius: '0px' }}>
+              <MachineEconomyVisual />
+            </StaggerChild>
+            <StaggerChild className="w-full sm:flex-1 h-48 sm:h-64 overflow-hidden" style={{ borderRadius: '0px' }}>
+              <MachineEconomyVisual />
+            </StaggerChild>
           </div>
         </StaggerChildren>
 

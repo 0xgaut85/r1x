@@ -40,7 +40,8 @@
 - `GET https://www.r1xlabs.com/api/panel/platform/services` - Service analytics
 
 #### Public APIs (for x402scan/Partners)
-- `GET https://www.r1xlabs.com/api/panel/public/services` - Public service catalog
+- `GET https://www.r1xlabs.com/api/discovery/resources` - Complete x402 resources discovery (agent + marketplace)
+- `GET https://www.r1xlabs.com/api/panel/public/services` - Public service catalog (marketplace only)
 - `GET https://www.r1xlabs.com/api/panel/public/transactions` - Public transactions
 
 ---

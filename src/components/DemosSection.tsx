@@ -3,6 +3,7 @@
 import { FadeInUp, StaggerChildren, StaggerChild, ScaleOnHover } from './motion';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import ApiServiceVisual from './visuals/ApiServiceVisual';
 
 const demos = [
   { title: "API access", desc: "Price any HTTP endpoint per request. Charge for data, compute, or premium routes in USDC on Base." },
@@ -110,7 +111,9 @@ export default function DemosSection() {
             <StaggerChild key={idx}>
               <ScaleOnHover>
                 <li className="p-4 sm:p-6 md:p-8 bg-white border border-gray-200 hover:border-[#FF4D00] transition-all duration-300 card-hover" style={{ borderRadius: '0px' }}>
-              <div className="w-full h-40 sm:h-48 bg-gray-100 mb-3 sm:mb-4" style={{ borderRadius: '0px' }}></div>
+              <div className="w-full h-40 sm:h-48 overflow-hidden mb-3 sm:mb-4" style={{ borderRadius: '0px' }}>
+                <ApiServiceVisual />
+              </div>
               <h4 className="text-black mb-2 sm:mb-3 text-base sm:text-lg" style={{
                 fontWeight: 400,
                 fontFamily: 'BaselGrotesk-Regular, sans-serif',
