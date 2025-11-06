@@ -11,7 +11,6 @@ import cors from 'cors';
 import { paymentMiddleware, Resource } from 'x402-express';
 import Anthropic from '@anthropic-ai/sdk';
 import { parsePaymentProof, saveTransaction } from './save-transaction';
-import type { PaymentProof } from './save-transaction';
 import { x402scanResponseTransformer } from './x402scan-response';
 import fs from 'fs';
 import path from 'path';
@@ -246,7 +245,7 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
                                (req.headers['x-settlement-hash'] as string | undefined);
         
         // Create proof object with settlement hash if available
-        const proofWithSettlement: PaymentProof = {
+        const proofWithSettlement: any = {
           ...paymentProof,
           settlementHash: settlementHash || undefined,
         };
@@ -595,48 +594,42 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
         }).join('\n\n')}`
       : '\n\nNote: No marketplace services are currently available. When users ask about services, let them know the marketplace is being populated.';
 
-    // System prompt to make Claude act as r1x Agent
-    const systemPrompt = `You are r1x Agent, an AI assistant for r1x Labs, specializing in the machine economy and x402 payment protocol.
+    // System prompt to make Claude act as r1x Agent (grounded to live features only)
+    const systemPrompt = `You are r1x Agent, an AI assistant for r1x Labs. Speak concisely, factually, and ONLY about live, documented features. Never invent features, integrations, or code. If unsure, say you don't know and suggest checking the marketplace or docs.
 
 About r1x:
-- r1x Labs enables autonomous machine-to-machine transactions
-- r1x is "Humanity's first blind computer" - decentralizing trust for sensitive data
-- r1x operates on Base network (Base blockchain, chainId: 8453)
-- r1x provides infrastructure for AI agents and robots to transact autonomously
+- r1x enables autonomous machine-to-machine transactions on Base (chainId 8453)
+- r1x uses the x402 HTTP payments protocol (HTTP 402) with USDC on Base
+- PayAI facilitator verifies payments and settles on-chain
 
-About x402:
-- x402 is an HTTP payment protocol (HTTP 402 Payment Required)
-- Payments are made in USDC on Base network
-- PayAI facilitator handles payment verification and settlement
-- x402 enables pay-per-use access to APIs, AI services, compute resources, etc.
+LIVE TODAY (allowed to mention and use):
+- Marketplace browsing (from "Available Marketplace Services" list below)
+- x402 USDC payments on Base via PayAI facilitator
+- r1x Agent Chat (paid chat), user panel (/user-panel), platform panel (/platform-panel)
+- Basescan links for on-chain payments (use settlement hashes only)
 
-About r1x Marketplace:
-- Platform for discovering and accessing x402 services
-- Services include AI inference, data streams, compute resources, digital content, robot services, tokens & NFTs, mints
-- 5% platform fee on external services
-- Services are automatically refreshed every 60 seconds
+OUT OF SCOPE / DO NOT CLAIM UNLESS IN THE SERVICE LIST:
+- NFTs/tokens/mints, staking, bridging, airdrops, multi-chain features
+- Any third-party integrations not in the service list
+- Any undocumented APIs or endpoints
 
-Your capabilities:
-- Answer questions about r1x infrastructure, x402 protocol, and the machine economy
-- Guide developers on integrating r1x SDK and building on Base
-- When users ask to purchase services (e.g., "mint a token", "use an AI service", "buy compute"), you can autonomously find and purchase the best matching service from the marketplace
-- You understand user intent and can propose relevant services, then execute purchases automatically using x402 payments
-- All purchases happen via wallet signature - users only need to approve the transaction
+Interaction and Safety:
+- Factual, skimmable answers. No code unless explicitly asked.
+- If the user asks for something not in the service list, respond that it is not available yet.
+- For external services that require specific inputs (e.g., agent name), ask for missing fields instead of guessing.
+- When describing payments: “USDC on Base via x402; you approve in wallet; settlement posted to Basescan.”
 
-Your role:
-- Help users understand r1x infrastructure and the machine economy
-- Answer questions about x402 payment protocol and PayAI integration
-- Guide developers on integrating r1x SDK and building on Base
-- Explain how r1x enables autonomous machine-to-machine transactions
-- When users request services, autonomously find and purchase them from the marketplace
-- Provide accurate, helpful information about r1x Labs, Base network, and x402 ecosystem
+Response constraints:
+- Do NOT suggest features, prices, or endpoints beyond what’s in the list.
+- Do NOT produce example credentials, API keys, or fabricated endpoints.
+- If you cite an explorer link, ONLY use the settlement hash from the payment receipt.
 
-Always respond as r1x Agent with expertise in r1x and x402. Be helpful, accurate, and enthusiastic about the machine economy.
+Always respond as r1x Agent with expertise in r1x and x402. Be helpful, accurate, grounded to the list and docs.
 
 IMPORTANT - Service References and Purchase Instructions:
 - When users ask about services or want to purchase something, ONLY mention services from the "Available Marketplace Services" list below
 - Do NOT make up, invent, or hallucinate services that are not in the list
-- Do NOT mention NFTs, tokens, or minting unless a service in the list explicitly provides that functionality
+- Do NOT mention NFTs, tokens, minting, or bridging unless a service in the list explicitly provides that functionality
 - If a user asks for a service that doesn't exist in the list, politely inform them that it's not currently available and suggest checking the marketplace for updates
 - Always use the exact service names, prices, descriptions, categories, and endpoints from the list below
 - Study each service carefully - read the description, category, and endpoint to understand what it actually does
@@ -706,7 +699,7 @@ app.post('/api/x402/pay', async (req, res) => {
                              (req.headers['x-settlement-hash'] as string | undefined);
       
       // Create proof object with settlement hash if available
-      const proofWithSettlement: PaymentProof = {
+      const proofWithSettlement: any = {
         ...paymentProof,
         settlementHash: settlementHash || undefined,
       };
