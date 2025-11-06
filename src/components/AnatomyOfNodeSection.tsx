@@ -1,6 +1,7 @@
 'use client';
 
 import { FadeInUp, StaggerChildren, StaggerChild } from './motion';
+import GrainImage from './GrainImage';
 import { Shield, Zap, Globe } from 'lucide-react';
 
 const benefits = [
@@ -73,11 +74,10 @@ export default function AnatomyOfNodeSection() {
           <div className="order-first md:order-last">
             <FadeInUp delay={0.2}>
               <div className="w-full h-64 sm:h-80 md:h-96 overflow-hidden" style={{ borderRadius: '0px' }}>
-                <img 
-                  src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&h=800&fit=crop&q=80&sat=-100&con=15&exp=-10"
+                <GrainImage 
+                  src="https://images.unsplash.com/photo-1478436127897-769e867f1b54?w=800&h=800&fit=crop&q=80&sat=-100&con=15&exp=-10"
                   alt="Infrastructure for autonomy"
-                  className="w-full h-full object-cover"
-                  style={{ filter: 'grayscale(100%) contrast(115%) brightness(95%)' }}
+                  className="w-full h-full"
                 />
               </div>
             </FadeInUp>

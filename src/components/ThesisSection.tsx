@@ -2,6 +2,7 @@
 
 import { FadeInUp, StaggerChildren, StaggerChild, ScaleOnHover } from './motion';
 import { MessageSquare, BarChart3, Zap } from 'lucide-react';
+import GrainImage from './GrainImage';
 
 export default function ThesisSection() {
   const features = [
@@ -9,19 +10,19 @@ export default function ThesisSection() {
       icon: <MessageSquare className="w-12 h-12" />,
       title: '[Agent]',
       description: 'The first AI agent that actually pays. Plans, quotes, and settles in USDC on Base. Understands x402, executes purchases, unlocks premium APIs. This is what autonomous spending looks like.',
-      image: 'https://images.unsplash.com/photo-1676911809746-7bd861606144?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
+      image: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
     },
     {
       icon: <BarChart3 className="w-12 h-12" />,
       title: '[Panel]',
       description: 'Turn your API into revenue in minutes. Set prices, deploy x402, watch agents pay. Real‑time analytics, on‑chain receipts, instant USDC settlement. The dashboard for the agent economy.',
-      image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
+      image: 'https://images.unsplash.com/photo-1556157382-97eda2d62296?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
     },
     {
       icon: <Zap className="w-12 h-12" />,
       title: '[x402]',
       description: 'HTTP 402 Payment Required, reimagined for Web3. Server quotes, agent pays in USDC, client retries with proof. The missing protocol that makes agents economically autonomous.',
-      image: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
+      image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
     },
   ];
 
@@ -77,12 +78,7 @@ export default function ThesisSection() {
                 <ScaleOnHover>
                   <li className="border border-gray-200 hover:border-[#FF4D00] transition-all duration-300 card-hover group" style={{ borderRadius: '0px', paddingTop: '24px', paddingBottom: '24px', paddingLeft: '20px', paddingRight: '20px' }}>
                     <div className="w-full h-40 sm:h-48 overflow-hidden mb-3 sm:mb-4 relative" style={{ borderRadius: '0px' }}>
-                      <img 
-                        src={feature.image} 
-                        alt={feature.title}
-                        className="w-full h-full object-cover"
-                        style={{ filter: 'grayscale(100%) contrast(115%) brightness(95%)' }}
-                      />
+                      <GrainImage src={feature.image} alt={feature.title} className="w-full h-full" />
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/80">
                         <div className="text-[#FF4D00]">
                           {feature.icon}

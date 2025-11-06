@@ -1,6 +1,7 @@
 'use client';
 
 import { FadeInUp, StaggerChildren, StaggerChild, ScaleOnHover } from './motion';
+import GrainImage from './GrainImage';
 import { Camera, MapPin, Users, Radio, Battery } from 'lucide-react';
 
 export default function RoboticsUseCasesSection() {
@@ -9,7 +10,7 @@ export default function RoboticsUseCasesSection() {
       icon: <Camera className="w-12 h-12" />,
       title: 'Vision APIs agents buy',
       description: 'Agents pay per inference for OCR, object detection, image analysis. No monthly fees. Just USDC per call. The AI vision market, now machine‑accessible.',
-      image: 'https://images.unsplash.com/photo-1535378917042-10a22c95931a?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
+      image: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
     },
     {
       icon: <MapPin className="w-12 h-12" />,
@@ -21,7 +22,7 @@ export default function RoboticsUseCasesSection() {
       icon: <Users className="w-12 h-12" />,
       title: 'Human expertise on tap',
       description: 'Agents escalate complex tasks to human specialists. Pay per consultation minute. On‑chain receipts, instant settlement. The gig economy meets AGI.',
-      image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
+      image: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
     },
     {
       icon: <Radio className="w-12 h-12" />,
@@ -33,7 +34,7 @@ export default function RoboticsUseCasesSection() {
       icon: <Battery className="w-12 h-12" />,
       title: 'Compute marketplaces',
       description: 'Rent GPU cycles, serverless functions, or specialized hardware. Agents pay per job. Idle compute becomes instant revenue. The Airbnb for AI infrastructure.',
-      image: 'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
+      image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
     },
   ];
 
@@ -62,12 +63,7 @@ export default function RoboticsUseCasesSection() {
                 <ScaleOnHover>
                   <li className="border border-gray-200 hover:border-[#FF4D00] transition-all duration-300 card-hover group" style={{ borderRadius: '0px', paddingTop: '24px', paddingBottom: '24px', paddingLeft: '20px', paddingRight: '20px' }}>
                     <div className="w-full h-40 sm:h-48 overflow-hidden mb-3 sm:mb-4 relative" style={{ borderRadius: '0px' }}>
-                      <img 
-                        src={useCase.image} 
-                        alt={useCase.title}
-                        className="w-full h-full object-cover"
-                        style={{ filter: 'grayscale(100%) contrast(115%) brightness(95%)' }}
-                      />
+                      <GrainImage src={useCase.image} alt={useCase.title} className="w-full h-full" />
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/80">
                         <div className="text-[#FF4D00]">
                           {useCase.icon}
