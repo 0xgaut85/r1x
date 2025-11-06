@@ -637,8 +637,20 @@ export default function R1xAgentContent() {
         console.log('[Agent] Purchase trigger detected for service:', serviceId);
         
         // Find the service in the catalog
-        const allServices = marketplaceCatalog.getAllServices();
-        const service = allServices.find(s => s.id === serviceId);
+        let allServices = marketplaceCatalog.getAllServices();
+        let service = allServices.find(s => s.id === serviceId);
+        
+        // If not found, refresh catalog once and retry (handles first-load race)
+        if (!service) {
+          console.log('[Agent] Service not found in cache, refreshing catalog...');
+          try {
+            await marketplaceCatalog.fetchServices();
+            allServices = marketplaceCatalog.getAllServices();
+            service = allServices.find(s => s.id === serviceId);
+          } catch (catalogError) {
+            console.warn('[Agent] Catalog refresh failed:', (catalogError as any)?.message || catalogError);
+          }
+        }
         
         if (service && service.endpoint) {
           // Remove the purchase marker from the message

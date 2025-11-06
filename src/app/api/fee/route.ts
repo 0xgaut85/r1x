@@ -151,6 +151,7 @@ export async function POST(request: NextRequest) {
     forwardHeader('x-payment-response', 'X-Payment-Response');
     forwardHeader('x-payment-required', 'X-Payment-Required');
     forwardHeader('x-payment-quote', 'X-Payment-Quote');
+    forwardHeader('www-authenticate', 'WWW-Authenticate');
     forwardHeader('content-type', 'Content-Type');
     
     // Forward status and response (including 402 Payment Required)
