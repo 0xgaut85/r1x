@@ -12,6 +12,8 @@ import { paymentMiddleware, Resource } from 'x402-express';
 import Anthropic from '@anthropic-ai/sdk';
 import { parsePaymentProof, saveTransaction } from './save-transaction';
 import { x402scanResponseTransformer } from './x402scan-response';
+import fs from 'fs';
+import path from 'path';
 
 config();
 
@@ -930,8 +932,36 @@ function extractCategory(name?: string, description?: string): string {
   return 'Other';
 }
 
-// Health check endpoint
+// Logo endpoint - serve logo from parent public folder
+app.get('/logo.png', (req, res) => {
+  try {
+    // Try to read from parent public folder (when running from x402-server directory)
+    const logoPath = path.join(__dirname, '..', 'public', 'tg2.png');
+    
+    if (!fs.existsSync(logoPath)) {
+      // Fallback: try current directory
+      const altPath = path.join(process.cwd(), 'public', 'tg2.png');
+      if (fs.existsSync(altPath)) {
+        const fileBuffer = fs.readFileSync(altPath);
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        return res.send(fileBuffer);
+      }
+      return res.status(404).json({ error: 'Logo not found' });
+    }
+    
+    const fileBuffer = fs.readFileSync(logoPath);
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.send(fileBuffer);
+  } catch (error: any) {
+    console.error('[x402-server] Error serving logo:', error);
+    res.status(500).json({ error: 'Failed to serve logo' });
+  }
+});
+
 // Friendly root with basic metadata so visiting the domain doesn't show "Cannot GET /"
+const serverUrl = process.env.X402_SERVER_URL || 'https://server.r1xlabs.com';
 app.get('/', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.status(200).send(`<!doctype html>
@@ -941,17 +971,17 @@ app.get('/', (req, res) => {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>r1x Labs — x402 Server</title>
     <meta name="description" content="From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy." />
-    <link rel="icon" href="https://www.r1xlabs.com/favicon.ico" />
+    <link rel="icon" href="${serverUrl}/logo.png" />
 
     <meta property="og:type" content="website" />
     <meta property="og:title" content="r1x Labs — x402 Server" />
     <meta property="og:description" content="From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy." />
-    <meta property="og:url" content="https://server.r1xlabs.com/" />
-    <meta property="og:image" content="https://www.r1xlabs.com/tg2.png" />
+    <meta property="og:url" content="${serverUrl}/" />
+    <meta property="og:image" content="${serverUrl}/logo.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="r1x Labs — x402 Server" />
     <meta name="twitter:description" content="From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy." />
-    <meta name="twitter:image" content="https://www.r1xlabs.com/tg2.png" />
+    <meta name="twitter:image" content="${serverUrl}/logo.png" />
     <style>
       body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; line-height: 1.5; padding: 2rem; color: #111827; }
       .card { max-width: 720px; margin: 0 auto; background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 24px; }
@@ -962,7 +992,7 @@ app.get('/', (req, res) => {
   </head>
   <body>
     <div class="card">
-      <img class="logo" src="https://www.r1xlabs.com/tg2.png" alt="r1x Labs" />
+      <img class="logo" src="${serverUrl}/logo.png" alt="r1x Labs" />
       <h1>r1x Labs — x402 Server</h1>
       <p>From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.</p>
       <div class="links">

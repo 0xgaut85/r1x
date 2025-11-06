@@ -194,6 +194,10 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
   // CRITICAL: Log the resource URL being used for signature verification
   console.log('[x402scan] Final resource URL for signature verification:', resource);
   
+  // Get server URL for logo (use environment variable or construct from request)
+  const serverUrl = process.env.X402_SERVER_URL || `${req.protocol}://${req.get('host')}`;
+  const logoUrl = `${serverUrl}/logo.png`;
+  
   // Build x402scan-compliant response, preserving PayAI structure
   const x402scanResponse: X402scanResponse = {
     x402Version: payaiResponse.x402Version || 1,
@@ -290,11 +294,11 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
           providerName: 'r1x Labs',
           description: 'From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.',
           
-          // Logo and branding (x402scan looks for these fields)
-          logo: 'https://www.r1xlabs.com/tg2.png',
-          logoUrl: 'https://www.r1xlabs.com/tg2.png',
-          image: 'https://www.r1xlabs.com/tg2.png',
-          icon: 'https://www.r1xlabs.com/tg2.png',
+          // Logo and branding (x402scan looks for these fields) - use server's own logo endpoint
+          logo: logoUrl,
+          logoUrl: logoUrl,
+          image: logoUrl,
+          icon: logoUrl,
           
           // Website and links
           website: 'https://www.r1xlabs.com',
