@@ -499,7 +499,7 @@ export default function R1xAgentContent() {
       });
       
       // Extract payment receipt from headers
-      const paymentResponseHeader = response.headers.get('x-payment-response');
+      const paymentResponseHeader = response.headers.get('x-payment-response') || response.headers.get('X-Payment-Response');
       let paymentReceipt: any = null;
       if (paymentResponseHeader) {
         try {
@@ -507,6 +507,27 @@ export default function R1xAgentContent() {
         } catch {
           // Ignore parse errors
         }
+      }
+
+      // Log purchases to our API so settlementHash is persisted for panels
+      try {
+        const feeReceiptHeader = feeResponse.headers.get('x-payment-response') || feeResponse.headers.get('X-Payment-Response');
+        await fetch('/api/purchases/log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            serviceId: service.id,
+            serviceName: service.name,
+            payer: address,
+            feeReceipt: feeReceiptHeader || null,
+            serviceReceipt: paymentResponseHeader || null,
+            feeAmount: '0.05',
+            servicePrice: service.price,
+            type: isExternalService ? 'external' : 'internal',
+          }),
+        });
+      } catch (logErr) {
+        console.warn('[Autopurchase] Failed to log purchase (non-blocking):', logErr);
       }
       
       // Update purchase message with result (will be enhanced by ServiceResultCard component later)
