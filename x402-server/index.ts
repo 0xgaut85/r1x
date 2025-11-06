@@ -293,12 +293,14 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
       // Fetch PayAI services in real-time (same as marketplace API)
       let payaiServices: any[] = [];
       try {
+        const { parseUnits } = await import('viem');
         const facilitatorUrl = process.env.FACILITATOR_URL || 'https://facilitator.payai.network';
         const url = `${facilitatorUrl}/list`;
         
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'User-Agent': 'r1x-agent/1.0',
         };
         
         const cdpApiKeyId = process.env.CDP_API_KEY_ID;
@@ -309,45 +311,176 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
           headers['Authorization'] = `Basic ${auth}`;
         }
         
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+        
         const response = await fetch(url, {
           method: 'GET',
           headers,
-          signal: AbortSignal.timeout(10000),
+          signal: controller.signal,
         });
+        
+        clearTimeout(timeoutId);
         
         if (response.ok) {
           const data = await response.json() as any;
           let services: any[] = [];
           
+          // Handle different response formats from PayAI facilitator
           if (Array.isArray(data)) {
             services = data;
           } else if (data?.resources && Array.isArray(data.resources)) {
             services = data.resources;
           } else if (data?.list && Array.isArray(data.list)) {
             services = data.list;
+          } else if (data?.data && Array.isArray(data.data)) {
+            services = data.data;
+          } else if (typeof data === 'object' && !Array.isArray(data)) {
+            // Try to find any array property
+            for (const key in data) {
+              if (Array.isArray(data[key])) {
+                services = data[key];
+                break;
+              }
+            }
+            // If still no array found, wrap single object
+            if (services.length === 0 && Object.keys(data).length > 0) {
+              services = [data];
+            }
           }
           
           if (services.length > 0) {
+            // Normalize PayAI services (same logic as marketplace)
             payaiServices = services.map((s: any) => {
-              const accept = s.accepts?.[0] || {};
-              const decimals = accept.extra?.tokenSymbol === 'USDC' || s.tokenSymbol === 'USDC' ? 6 : 18;
-              const priceWei = accept.maxAmountRequired || s.price || '0';
-              const price = formatUnits(BigInt(priceWei), decimals);
-              const priceWithFee = (parseFloat(price) * 1.05).toFixed(6); // 5% platform fee
+              const accepts = Array.isArray(s.accepts) ? s.accepts : [];
+              const firstAccept = accepts.length > 0 ? accepts[0] : {};
+              const metadata = s.metadata || {};
+              
+              // Extract name
+              const name = metadata.name || 
+                          metadata.title ||
+                          metadata.label ||
+                          firstAccept.description ||
+                          firstAccept.name ||
+                          s.name ||
+                          s.serviceName ||
+                          s.title ||
+                          (s.resource ? (() => {
+                            try {
+                              const url = new URL(s.resource);
+                              return url.pathname.split('/').filter(Boolean).pop() || 'Service';
+                            } catch {
+                              return s.resource.split('/').filter(Boolean).pop() || 'Service';
+                            }
+                          })() : 'Unnamed Service');
+              
+              // Extract description
+              const description = firstAccept.description ||
+                                 metadata.description ||
+                                 metadata.desc ||
+                                 s.description ||
+                                 s.desc ||
+                                 '';
+              
+              // Extract token symbol
+              let tokenSymbol = firstAccept.extra?.name ||
+                              metadata.tokenSymbol ||
+                              s.tokenSymbol ||
+                              s.token_symbol ||
+                              '';
+              
+              if (!tokenSymbol) {
+                const token = firstAccept.asset || s.token || '';
+                if (token.toLowerCase() === '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'.toLowerCase() ||
+                    token.toLowerCase() === '0x036CbD53842c5426634e7929541eC2318f3dCF7e'.toLowerCase()) {
+                  tokenSymbol = 'USDC';
+                } else {
+                  tokenSymbol = 'USDC'; // Default
+                }
+              }
+              
+              // Extract price
+              let priceValue = firstAccept.amount ||
+                              firstAccept.value ||
+                              firstAccept.price ||
+                              firstAccept.maxAmountRequired ||
+                              s.price ||
+                              metadata.price ||
+                              '0';
+              
+              // Ensure price is in wei format
+              let priceWei = priceValue;
+              if (typeof priceValue === 'string') {
+                if (priceValue.startsWith('$')) {
+                  const decimals = tokenSymbol === 'USDC' ? 6 : 18;
+                  try {
+                    const numericPrice = priceValue.replace('$', '').trim();
+                    priceWei = parseUnits(numericPrice, decimals).toString();
+                  } catch {
+                    priceWei = '0';
+                  }
+                } else if (priceValue.includes('.')) {
+                  const decimals = tokenSymbol === 'USDC' ? 6 : 18;
+                  try {
+                    priceWei = parseUnits(priceValue, decimals).toString();
+                  } catch {
+                    priceWei = '0';
+                  }
+                }
+              } else if (typeof priceValue === 'number') {
+                const decimals = tokenSymbol === 'USDC' ? 6 : 18;
+                priceWei = parseUnits(priceValue.toString(), decimals).toString();
+              }
+              
+              // Default to 0.001 USDC if no price
+              if (!priceWei || priceWei === '0') {
+                const decimals = tokenSymbol === 'USDC' ? 6 : 18;
+                priceWei = parseUnits('0.001', decimals).toString();
+              }
+              
+              // Format price display
+              const decimals = tokenSymbol === 'USDC' ? 6 : 18;
+              const basePrice = formatUnits(BigInt(priceWei), decimals);
+              const priceWithFee = (parseFloat(basePrice) * 1.05).toFixed(6); // 5% platform fee
+              
+              // Extract endpoint
+              const endpoint = s.resource ||
+                              firstAccept.resource ||
+                              s.endpoint ||
+                              s.apiEndpoint ||
+                              null;
+              
+              // Extract service ID
+              const serviceId = s.id ||
+                              s.resourceId ||
+                              (s.resource ? 
+                                s.resource.replace(/[^a-z0-9-]/gi, '-').substring(0, 100) :
+                                `payai-${Date.now()}-${Math.random().toString(36).substring(7)}`
+                              );
               
               return {
-                id: s.resource || s.id || `payai-${Math.random()}`,
-                name: accept.description || s.metadata?.name || s.name || 'PayAI Service',
-                description: accept.description || s.description || '',
-                category: extractCategory(accept.description || s.name, s.description) || 'Other',
+                id: serviceId,
+                name: name,
+                description: description,
+                category: extractCategory(name, description) || 'Other',
                 price: priceWithFee, // Price with fee
-                endpoint: s.resource || s.endpoint || null,
+                endpoint: endpoint,
               };
             });
+            
+            console.log(`[x402-server] Fetched ${payaiServices.length} services from PayAI facilitator`);
+          } else {
+            console.warn('[x402-server] No services found in PayAI facilitator response');
           }
+        } else {
+          console.warn(`[x402-server] PayAI facilitator returned ${response.status}: ${response.statusText}`);
         }
-      } catch (payaiError) {
-        console.error('[x402-server] Error fetching PayAI services for system prompt:', payaiError);
+      } catch (payaiError: any) {
+        if (payaiError.name === 'AbortError') {
+          console.warn('[x402-server] PayAI facilitator request timed out');
+        } else {
+          console.error('[x402-server] Error fetching PayAI services for system prompt:', payaiError?.message || payaiError);
+        }
         // Continue with database services only
       }
       
