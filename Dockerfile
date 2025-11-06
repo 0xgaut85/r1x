@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.6
 # Use Node.js 20 LTS
 FROM node:20-alpine AS base
 
@@ -12,11 +13,13 @@ COPY package.json package-lock.json* ./
 # Copy Prisma schema before installing (needed for postinstall script)
 COPY prisma ./prisma/
 
-# Install dependencies with optimizations
+# Install dependencies with optimizations and BuildKit cache mount
 # Use --prefer-offline and --no-audit for faster installs
 # npm ci installs devDependencies by default
 # postinstall script will run prisma generate automatically
-RUN npm ci --prefer-offline --no-audit
+# Cache mount speeds up repeated builds significantly
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline --no-audit --progress=false
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -59,16 +62,13 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copy necessary files
+# With transpilePackages, Next.js bundles everything into .next/standalone
+# No need to copy node_modules - reduces image size and build time
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/scripts ./scripts
-
-# Copy node_modules for external packages (required for standalone mode with serverExternalPackages)
-# Next.js standalone doesn't include dependencies of external packages, so we need to copy them
-# Copy entire node_modules to ensure all dependencies are available (standalone mode requirement)
-COPY --from=builder /app/node_modules ./node_modules
 
 RUN chown -R nextjs:nodejs /app
 RUN chmod +x scripts/start.sh

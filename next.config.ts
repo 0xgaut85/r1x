@@ -2,9 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  serverExternalPackages: [
-    'wagmi', 
-    '@reown/appkit', 
+  // Transpile packages so Next.js bundles them into standalone output
+  // This eliminates the need to copy node_modules in Dockerfile
+  transpilePackages: [
+    'wagmi',
+    'viem',
+    '@reown/appkit',
     '@reown/appkit-adapter-wagmi',
     '@reown/appkit-polyfills',
     '@reown/appkit-wallet',
@@ -13,6 +16,11 @@ const nextConfig: NextConfig = {
     '@reown/appkit-utils',
   ],
   output: 'standalone',
+  
+  // Skip ESLint during builds to speed up build time
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   
   // Exclude x402-server from Next.js build (it's a separate Express server)
   typescript: {
@@ -42,12 +50,6 @@ const nextConfig: NextConfig = {
   // Turbopack configuration (Next.js 16+ uses Turbopack by default)
   turbopack: {
     // Turbopack optimizations are handled automatically
-  },
-  
-  // Disable static generation for pages that use client-side context
-  // Pages with 'use client' and WalletProvider will be rendered dynamically
-  generateBuildId: async () => {
-    return 'build-' + Date.now();
   },
 };
 
