@@ -385,7 +385,7 @@ export default function R1xAgentContent() {
         });
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: `This service requires additional fields:\n${missingList}\n\nPlease provide these values (e.g., "agent=Alice").`,
+          content: `This service requires additional fields:\n${missingList}\n\nReply with key=value pairs for each field (e.g., field=value). If there's only one field, you can reply with just the value.`,
         }]);
         setError('Missing required fields for the external service.');
         return false;
