@@ -337,9 +337,45 @@ export default function R1xAgentContent() {
       const data = await response.json();
       console.log('[Agent] Response data:', data);
 
+      const responseText = data.message || data.data?.message || '';
+      
+      // Check if agent wants to trigger a purchase
+      const purchaseMatch = responseText.match(/\[PURCHASE:([^\]]+)\]/);
+      if (purchaseMatch && x402Client) {
+        const serviceId = purchaseMatch[1];
+        console.log('[Agent] Purchase trigger detected for service:', serviceId);
+        
+        // Find the service in the catalog
+        const allServices = marketplaceCatalog.getAllServices();
+        const service = allServices.find(s => s.id === serviceId);
+        
+        if (service && service.endpoint) {
+          // Remove the purchase marker from the message
+          const cleanMessage = responseText.replace(/\[PURCHASE:[^\]]+\]/, '').trim();
+          
+          const assistantMessage: ChatMessage = {
+            role: 'assistant',
+            content: cleanMessage || 'Purchasing service...',
+            status: 'sent',
+          };
+
+          setMessages(prev => {
+            const updated = [...prev];
+            updated[updated.length - 1] = { ...updated[updated.length - 1], status: 'sent' };
+            return [...updated, assistantMessage];
+          });
+
+          // Trigger the purchase
+          await handleAutopurchase(service);
+          return;
+        } else {
+          console.warn('[Agent] Service not found or has no endpoint:', serviceId);
+        }
+      }
+
       const assistantMessage: ChatMessage = {
         role: 'assistant',
-        content: data.message || data.data?.message,
+        content: responseText,
         status: 'sent',
       };
 

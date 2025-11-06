@@ -530,10 +530,11 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
       ? `\n\nAvailable Marketplace Services (use these when users ask about services):\n${availableServices.map((s, i) => {
           const parts = [
             `${i + 1}. **${s.name}**`,
+            `ID: ${s.id} (use this exact ID for [PURCHASE:${s.id}])`,
             `Category: ${s.category}`,
             `Price: ${s.price} USDC`,
             s.description ? `Description: ${s.description}` : '',
-            s.endpoint ? `Endpoint: ${s.endpoint}` : '⚠️ No direct purchase endpoint (check marketplace for details)',
+            s.endpoint ? `Endpoint: ${s.endpoint} (purchasable)` : '⚠️ No direct purchase endpoint (check marketplace for details)',
             s.merchant ? `Merchant: ${s.merchant.substring(0, 10)}...${s.merchant.substring(s.merchant.length - 8)}` : '',
             s.tokenSymbol ? `Token: ${s.tokenSymbol}` : '',
             s.websiteUrl ? `Website: ${s.websiteUrl}` : '',
