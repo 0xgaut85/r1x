@@ -5,7 +5,6 @@ import * as THREE from 'three';
 
 export default function HeroBackground() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const glowRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number | null>(null);
   const targetRef = useRef({ x: 0.5, y: 0.5 }); // normalized 0..1
   const currentRef = useRef({ x: 0.5, y: 0.5 }); // normalized 0..1
@@ -354,25 +353,6 @@ export default function HeroBackground() {
           background: 'linear-gradient(to bottom, #000000 0%, #000000 60%, transparent 100%)',
           zIndex: 10,
           pointerEvents: 'none',
-        }}
-      />
-      
-      <div
-        ref={glowRef}
-        className="absolute"
-        style={{
-          top: '50%',
-          left: '50%',
-          width: '480px',
-          height: '480px',
-          transform: 'translate(-50%, -50%)',
-          borderRadius: '9999px',
-          background: 'radial-gradient(circle, rgba(255, 77, 0, 0.18) 0%, rgba(255,77,0,0) 60%)',
-          opacity: 0.22,
-          willChange: 'transform, opacity',
-          mixBlendMode: 'screen',
-          filter: 'blur(60px)',
-          zIndex: 2,
         }}
       />
     </div>
