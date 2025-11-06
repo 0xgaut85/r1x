@@ -253,9 +253,56 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
       return;
     }
 
+    // Fetch real marketplace services to include in system prompt
+    let availableServices: any[] = [];
+    try {
+      const { PrismaClient } = await import('@prisma/client');
+      const prisma = new PrismaClient();
+      
+      const services = await prisma.service.findMany({
+        where: {
+          available: true,
+          network: 'base',
+          chainId: 8453,
+        },
+        select: {
+          serviceId: true,
+          name: true,
+          description: true,
+          category: true,
+          priceDisplay: true,
+          endpoint: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 50, // Limit to 50 most recent services
+      });
+      
+      availableServices = services.map(s => ({
+        id: s.serviceId,
+        name: s.name,
+        description: s.description || '',
+        category: s.category || 'Other',
+        price: s.priceDisplay,
+        endpoint: s.endpoint || null,
+      }));
+      
+      await prisma.$disconnect();
+      console.log(`[x402-server] Loaded ${availableServices.length} services for system prompt`);
+    } catch (error) {
+      console.error('[x402-server] Error fetching services for system prompt:', error);
+      // Continue without services - Claude will still work
+    }
+
     // Appel direct à Anthropic API
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
     
+    // Build services list for system prompt
+    const servicesList = availableServices.length > 0
+      ? `\n\nAvailable Marketplace Services (use these when users ask about services):\n${availableServices.map((s, i) => 
+          `${i + 1}. ${s.name} (${s.category}) - ${s.price} USDC${s.endpoint ? ` - Endpoint: ${s.endpoint}` : ' - No direct endpoint'}\n   ${s.description || 'No description'}`
+        ).join('\n')}`
+      : '\n\nNote: No marketplace services are currently available. When users ask about services, let them know the marketplace is being populated.';
+
     // System prompt to make Claude act as r1x Agent
     const systemPrompt = `You are r1x Agent, an AI assistant for r1x Labs, specializing in the machine economy and x402 payment protocol.
 
@@ -292,7 +339,13 @@ Your role:
 - When users request services, autonomously find and purchase them from the marketplace
 - Provide accurate, helpful information about r1x Labs, Base network, and x402 ecosystem
 
-Always respond as r1x Agent with expertise in r1x and x402. Be helpful, accurate, and enthusiastic about the machine economy.`;
+Always respond as r1x Agent with expertise in r1x and x402. Be helpful, accurate, and enthusiastic about the machine economy.
+
+IMPORTANT - Service References:
+- When users ask about services or want to purchase something, ONLY mention services from the "Available Marketplace Services" list below
+- Do NOT make up, invent, or hallucinate services that are not in the list
+- If a user asks for a service that doesn't exist in the list, politely inform them that it's not currently available and suggest checking the marketplace for updates
+- Always use the exact service names, prices, and descriptions from the list below${servicesList}`;
 
     const response = await anthropic.messages.create({
       model: 'claude-3-opus-20240229',

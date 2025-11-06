@@ -19,11 +19,15 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://server.r1xlabs.com'),
   title: "server.r1xlabs.com",
   description: "From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.",
+  alternates: {
+    canonical: 'https://server.r1xlabs.com/',
+  },
   openGraph: {
     title: "server.r1xlabs.com",
     description: "From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.",
     siteName: 'R1X Labs',
     type: 'website',
+    locale: 'en_US',
     url: 'https://server.r1xlabs.com/',
     images: [
       {
@@ -39,6 +43,9 @@ export const metadata: Metadata = {
     title: "server.r1xlabs.com",
     description: "From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.",
     images: ['https://server.r1xlabs.com/logo.png'],
+  },
+  other: {
+    'og:image:secure_url': 'https://server.r1xlabs.com/logo.png',
   },
   icons: {
     icon: '/favicon.ico',
