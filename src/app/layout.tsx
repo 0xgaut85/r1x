@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     url: 'https://server.r1xlabs.com/',
     images: [
       {
-        url: 'https://server.r1xlabs.com/logo.png',
+        url: 'https://server.r1xlabs.com/api/logo',
         width: 1200,
         height: 630,
         alt: 'R1X Labs',
@@ -42,10 +42,10 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: "server.r1xlabs.com",
     description: "From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.",
-    images: ['https://server.r1xlabs.com/logo.png'],
+    images: ['https://server.r1xlabs.com/api/logo'],
   },
   other: {
-    'og:image:secure_url': 'https://server.r1xlabs.com/logo.png',
+    'og:image:secure_url': 'https://server.r1xlabs.com/api/logo',
   },
   icons: {
     icon: '/favicon.ico',
