@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { formatUnits } from 'viem';
+import { Transaction } from '@prisma/client';
 
 const USDC_DECIMALS = 6;
 
@@ -97,12 +98,12 @@ export async function GET(request: NextRequest) {
     // Calculate stats for each service
     const serviceStats = services.map(service => {
       const transactions = service.transactions;
-      const totalVolume = transactions.reduce((sum: bigint, tx) => sum + BigInt(tx.amount), BigInt(0));
-      const totalFees = transactions.reduce((sum: bigint, tx) => sum + BigInt(tx.feeAmount), BigInt(0));
+      const totalVolume = transactions.reduce((sum: bigint, tx: Transaction) => sum + BigInt(tx.amount), BigInt(0));
+      const totalFees = transactions.reduce((sum: bigint, tx: Transaction) => sum + BigInt(tx.feeAmount), BigInt(0));
       const uniqueUsers = new Set(
         transactions
-          .filter(tx => tx.from && tx.from !== '')
-          .map(tx => tx.from.toLowerCase())
+          .filter((tx: Transaction) => tx.from && tx.from !== '')
+          .map((tx: Transaction) => tx.from.toLowerCase())
       );
 
       return {
