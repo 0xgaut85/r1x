@@ -194,9 +194,9 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
   // CRITICAL: Log the resource URL being used for signature verification
   console.log('[x402scan] Final resource URL for signature verification:', resource);
   
-  // Get server URL for logo (use environment variable or construct from request)
-  const serverUrl = process.env.X402_SERVER_URL || `${req.protocol}://${req.get('host')}`;
-  const logoUrl = `${serverUrl}/logo.png`;
+  // Use Next.js app logo URL directly (more reliable than server endpoint)
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.r1xlabs.com';
+  const logoUrl = `${baseUrl}/tg2.png`;
   
   // Build x402scan-compliant response, preserving PayAI structure
   const x402scanResponse: X402scanResponse = {
