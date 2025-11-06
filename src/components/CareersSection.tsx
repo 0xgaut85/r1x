@@ -52,7 +52,9 @@ export default function CareersSection() {
                 fontWeight: 400,
                 fontFamily: 'BaselGrotesk-Regular, sans-serif',
                 lineHeight: '1.4',
-                color: 'rgb(0, 0, 0)'
+                color: 'rgb(0, 0, 0)',
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word'
                 }}>{career.description}</p>
                 <motion.a
                   href={career.link}

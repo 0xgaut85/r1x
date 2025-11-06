@@ -33,7 +33,9 @@ export default function ThesisSection() {
               letterSpacing: '-1.858px',
               color: 'rgb(0, 0, 0)',
               marginBottom: '0px',
-              marginTop: '0px'
+              marginTop: '0px',
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word'
             }}>
             Autonomy needs pay‑per‑request, not subscriptions. We make HTTP machine‑payable with x402 and USDC on Base.
             </h2>
@@ -45,9 +47,11 @@ export default function ThesisSection() {
                 fontWeight: 400,
                 fontFamily: 'BaselGrotesk-Regular, sans-serif',
                 lineHeight: '1.4',
-                color: 'rgb(0, 0, 0)'
+                color: 'rgb(0, 0, 0)',
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word'
               }}>
-                <strong style={{ fontWeight: 600 }}>We’re building the payment rail for autonomous machines.</strong> One request → one price → one payment. Pay per frame, minute, or route. USDC on Base. Verifiable receipts. No accounts. No contracts. Just machines paying for what they use.
+                <strong style={{ fontWeight: 600 }}>We're building the payment rail for autonomous machines.</strong> One request → one price → one payment. Pay per frame, minute, or route. USDC on Base. Verifiable receipts. No accounts. No contracts. Just machines paying for what they use.
               </p>
             </StaggerChild>
             <StaggerChild>
@@ -55,7 +59,9 @@ export default function ThesisSection() {
                 fontWeight: 400,
                 fontFamily: 'BaselGrotesk-Regular, sans-serif',
                 lineHeight: '1.4',
-                color: 'rgb(0, 0, 0)'
+                color: 'rgb(0, 0, 0)',
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word'
               }}>
                 Turn any HTTP endpoint into a priced service. If you can return HTTP, you can sell it. If you can call HTTP, you can buy it. Build perception, routing, teleop, or data windows as x402 services—and let robots and agents compose them on demand.
               </p>

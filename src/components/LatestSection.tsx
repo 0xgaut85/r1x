@@ -58,7 +58,7 @@ export default function LatestSection() {
               </motion.a>
             </StaggerChild>
             <StaggerChild>
-            <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-4 list-none">
+            <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4 list-none">
               {[1, 2, 3, 4, 5].map((i) => (
                 <li key={i}>
                     <ScaleOnHover>

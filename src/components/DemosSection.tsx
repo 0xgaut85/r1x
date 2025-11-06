@@ -80,6 +80,8 @@ export default function DemosSection() {
           fontFamily: 'TWKEverett-Regular, sans-serif',
           letterSpacing: '-1.858px',
           color: 'rgb(0, 0, 0)',
+          wordBreak: 'break-word',
+          overflowWrap: 'break-word'
         }}>
             WHERE MACHINES BECOME ECONOMIC AGENTS.
         </h2>
@@ -119,7 +121,9 @@ export default function DemosSection() {
                 fontWeight: 400,
                 fontFamily: 'BaselGrotesk-Regular, sans-serif',
                 lineHeight: '1.4',
-                color: 'rgb(0, 0, 0)'
+                color: 'rgb(0, 0, 0)',
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word'
               }}>{demo.desc}</p>
             </li>
               </ScaleOnHover>

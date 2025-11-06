@@ -39,7 +39,9 @@ export default function HowItWorksSection() {
           color: 'rgb(255, 255, 255)',
           marginBottom: '0px',
           marginTop: '0px',
-          textAlign: 'start'
+          textAlign: 'start',
+          wordBreak: 'break-word',
+          overflowWrap: 'break-word'
         }}>
             [ The machine{'\u00A0'}
             <TextScramble texts={economyTexts} speed={40} />
@@ -54,7 +56,7 @@ export default function HowItWorksSection() {
           </div>
         </StaggerChildren>
 
-        <StaggerChildren className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-12 max-w-6xl mx-auto mt-10 sm:mt-14">
+        <StaggerChildren className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-12 max-w-6xl mx-auto mt-10 sm:mt-14">
           {steps.map((step, index) => (
             <StaggerChild key={index} className="space-y-4 sm:space-y-6">
               <div className="flex items-center gap-3">
@@ -80,7 +82,9 @@ export default function HowItWorksSection() {
               fontWeight: 400,
               fontFamily: 'BaselGrotesk-Regular, sans-serif',
               lineHeight: '1.4',
-              color: 'rgb(255, 255, 255)'
+              color: 'rgb(255, 255, 255)',
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word'
               }}>{step.description}</p>
             </StaggerChild>
           ))}
