@@ -261,61 +261,54 @@ export default function R1xAgentContent() {
         hasHeaders: !!requestData.headers,
       });
 
-      let response: Response;
-      
-      // For external services: collect fee first, then purchase
-      if (service.isExternal) {
-        // Calculate platform fee: 0.05 USDC for free services (price = 0), 5% for others (max $1.00)
-        const basePrice = parseFloat(service.price);
-        let feeAmount: string;
-        
-        if (basePrice === 0 || isNaN(basePrice)) {
-          // Fixed 5 cent fee for free services
-          feeAmount = '0.05';
-        } else {
-          // 5% fee for paid services (up to $1.00 max via middleware)
-          const calculatedFee = basePrice * 0.05;
-          feeAmount = Math.min(calculatedFee, 1.00).toFixed(6); // Cap at $1.00 (middleware max)
-          if (calculatedFee > 1.00) {
-            console.warn('[Autopurchase] Calculated fee exceeds $1.00 max, capping at $1.00:', {
-              calculated: calculatedFee,
-              basePrice: basePrice,
-            });
-          }
+      // Step 1: Pay fixed $0.05 agent fee first (for all services)
+      console.log('[Autopurchase] Paying agent fee ($0.05 USDC)...');
+      const feeResponse = await x402Client.request('/api/fee', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+
+      if (!feeResponse.ok) {
+        const errorText = await feeResponse.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
         }
         
-        // Always collect fee for external services (middleware allows up to $1.00)
-        console.log('[Autopurchase] External service - collecting fee:', feeAmount, 'USDC (base price:', basePrice, ')');
-        
-        // Use payFeeThenPurchase for external services
-        const { serviceResponse } = await x402Client.payFeeThenPurchase({
-          feeEndpoint: '/api/fees/collect',
-          feeAmount: feeAmount,
-          service: {
-            id: service.id,
-            name: service.name,
-            endpoint: service.endpoint,
-            price: service.price,
-            priceWithFee: service.priceWithFee,
-            isExternal: true,
-          },
-          requestBody: requestData.body,
-          queryParams: requestData.queryParams,
-          headers: requestData.headers,
+        console.error('[Autopurchase] Agent fee payment failed:', {
+          status: feeResponse.status,
+          error: errorData,
         });
         
-        response = serviceResponse;
-      } else {
-        // Internal service: use regular purchase flow
-        response = await x402Client.purchaseService({
-          id: service.id,
-          name: service.name,
-          endpoint: service.endpoint,
-          price: service.price,
-          priceWithFee: service.priceWithFee,
-          isExternal: false,
-        }, requestData.body, requestData.queryParams, requestData.headers);
+        setMessages(prev => {
+          const updated = [...prev];
+          const lastMsg = updated[updated.length - 1];
+          if (lastMsg && lastMsg.status === 'sending') {
+            updated[updated.length - 1] = {
+              ...lastMsg,
+              status: 'error',
+              content: `Failed to pay agent fee: ${errorData.error || 'Payment required'}`,
+            };
+          }
+          return updated;
+        });
+        
+        return false;
       }
+
+      console.log('[Autopurchase] Agent fee paid successfully, proceeding with service purchase...');
+
+      // Step 2: Purchase service via x402
+      const response = await x402Client.purchaseService({
+        id: service.id,
+        name: service.name,
+        endpoint: service.endpoint,
+        price: service.price,
+        priceWithFee: service.priceWithFee,
+        isExternal: service.isExternal || false,
+      }, requestData.body, requestData.queryParams, requestData.headers);
 
       console.log('[Autopurchase] Response status:', response.status);
 

@@ -126,6 +126,19 @@ app.options('/api/r1x-agent/plan', (req, res) => {
   res.status(200).end();
 });
 
+app.options('/api/fee', (req, res) => {
+  const origin = req.headers.origin;
+  if (origin && (origin.includes('r1xlabs.com') || origin.includes('railway.app') || origin.includes('vercel.app'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Payment, Authorization, Accept');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  console.log('[CORS] OPTIONS /api/fee from:', origin);
+  res.status(200).end();
+});
+
 const facilitatorConfig: Parameters<typeof paymentMiddleware>[2] = {
   url: facilitatorUrl,
 };
@@ -163,6 +176,10 @@ app.use(paymentMiddleware(
     },
     'POST /api/fees/collect': {
       price: '$1.00', // Max fee (validates actual amount in handler: 0.05 for free services, 5% for paid up to $20)
+      network: 'base',
+    },
+    'POST /api/fee': {
+      price: '$0.05', // Fixed $0.05 USDC fee for agent service calls
       network: 'base',
     },
   },
@@ -797,6 +814,75 @@ app.post('/api/fees/collect', async (req, res) => {
     }
   } catch (error: any) {
     console.error('[x402-server] Fee collection error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: error.message || 'Internal server error',
+      });
+    }
+  }
+});
+
+// Fixed $0.05 USDC agent fee endpoint - first transaction before service calls
+app.post('/api/fee', async (req, res) => {
+  // Payment is already verified by PayAI middleware
+  if (res.headersSent) {
+    console.log('[x402-server] Response already sent by middleware, skipping fee handler');
+    return;
+  }
+
+  try {
+    // Parse and save transaction to database (non-blocking)
+    const xPaymentHeader = typeof req.headers['x-payment'] === 'string' ? req.headers['x-payment'] as string : undefined;
+    if (xPaymentHeader) {
+      console.log('[x402-server] Agent fee payment verified, saving transaction...');
+      const paymentProof = parsePaymentProof(xPaymentHeader);
+      
+      if (paymentProof) {
+        // Validate that paid amount is exactly $0.05 USDC
+        const paidAmountUSDC = parseFloat((BigInt(paymentProof.amount) / BigInt(10 ** 6)).toString());
+        const expectedFee = 0.05;
+        const tolerance = 0.001; // Small tolerance for rounding
+        
+        if (Math.abs(paidAmountUSDC - expectedFee) > tolerance) {
+          console.warn('[x402-server] Agent fee amount mismatch:', {
+            expected: expectedFee,
+            paid: paidAmountUSDC,
+          });
+        } else {
+          console.log('[x402-server] Agent fee payment validated:', {
+            expected: expectedFee,
+            paid: paidAmountUSDC,
+          });
+        }
+
+        // Save transaction (non-blocking)
+        Promise.race([
+          saveTransaction({
+            proof: paymentProof,
+            serviceId: 'r1x-agent-fee',
+            serviceName: 'r1x Agent Service Fee',
+            price: '0.05',
+            feePercentage: 100, // 100% of payment is platform fee
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Transaction save timeout (5s)')), 5000)
+          ),
+        ]).catch((error) => {
+          console.error('[x402-server] Failed to save agent fee transaction (non-blocking):', error?.message);
+        });
+      }
+    }
+
+    // Return success - payment verified by middleware
+    if (!res.headersSent) {
+      res.json({
+        success: true,
+        message: 'Agent fee payment verified',
+        feeAmount: '0.05',
+      });
+    }
+  } catch (error: any) {
+    console.error('[x402-server] Agent fee error:', error);
     if (!res.headersSent) {
       res.status(500).json({
         error: error.message || 'Internal server error',
