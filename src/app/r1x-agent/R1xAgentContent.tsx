@@ -301,13 +301,24 @@ export default function R1xAgentContent() {
       console.log('[Autopurchase] Agent fee paid successfully, proceeding with service purchase...');
 
       // Step 2: Purchase service via x402
+      // External detection: isExternal flag OR endpoint host != r1xlabs.com
+      const endpointUrl = service.endpoint ? new URL(service.endpoint) : null;
+      const isExternalService = service.isExternal || 
+                                (endpointUrl && !endpointUrl.hostname.includes('r1xlabs.com'));
+      
+      console.log('[Autopurchase] Service external detection:', {
+        isExternalFlag: service.isExternal,
+        endpointHost: endpointUrl?.hostname,
+        isExternal: isExternalService,
+      });
+
       const response = await x402Client.purchaseService({
         id: service.id,
         name: service.name,
         endpoint: service.endpoint,
         price: service.price,
         priceWithFee: service.priceWithFee,
-        isExternal: service.isExternal || false,
+        isExternal: isExternalService,
       }, requestData.body, requestData.queryParams, requestData.headers);
 
       console.log('[Autopurchase] Response status:', response.status);

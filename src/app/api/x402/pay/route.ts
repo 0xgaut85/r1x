@@ -16,6 +16,35 @@ export async function POST(request: NextRequest) {
     // Get Express server URL (server-side only, not exposed to client)
     const expressServerUrl = getX402ServerUrl();
     
+    // Check if we're in development (localhost is OK) or production (localhost is not OK)
+    const isDevelopment = process.env.NODE_ENV === 'development' || 
+                         process.env.NEXT_PUBLIC_BASE_URL?.includes('localhost') ||
+                         !process.env.NEXT_PUBLIC_BASE_URL;
+    
+    if (!expressServerUrl) {
+      console.error('[x402 Pay Proxy] Express server URL not configured');
+      return NextResponse.json(
+        { 
+          error: 'Express server URL not configured',
+          message: 'X402_SERVER_URL environment variable is missing. Please set it in Railway or use default localhost:4021 for development.',
+        },
+        { status: 500 }
+      );
+    }
+    
+    // In production, reject localhost URLs (they won't work)
+    if (!isDevelopment && expressServerUrl.includes('localhost')) {
+      console.error('[x402 Pay Proxy] Invalid Express server URL for production:', expressServerUrl);
+      return NextResponse.json(
+        { 
+          error: 'Express server URL not configured',
+          message: 'X402_SERVER_URL is set to localhost in production. Please set it to your Railway Express service URL.',
+          expressServerUrl: expressServerUrl
+        },
+        { status: 500 }
+      );
+    }
+    
     // Forward request body
     const body = await request.json();
     
@@ -24,20 +53,79 @@ export async function POST(request: NextRequest) {
       'Content-Type': 'application/json',
     };
     
-    // Forward X-Payment header if present (payment proof)
+    // Forward X-Payment header if present (payment proof from x402-fetch)
     const xPaymentHeader = request.headers.get('x-payment');
     if (xPaymentHeader) {
       headers['X-Payment'] = xPaymentHeader;
+      console.log('[x402 Pay Proxy] X-Payment header present, forwarding to Express server');
+    } else {
+      console.log('[x402 Pay Proxy] No X-Payment header - first request (will get 402)');
     }
     
-    console.log('[Next.js Proxy] Forwarding payment request to Express server:', `${expressServerUrl}/api/x402/pay`);
+    const targetUrl = `${expressServerUrl}/api/x402/pay`;
     
-    // Forward request to Express server
-    const response = await fetch(`${expressServerUrl}/api/x402/pay`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-    });
+    console.log('[x402 Pay Proxy] Forwarding payment request to Express server:', targetUrl);
+    
+    // Forward request to Express server with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
+    let response: Response;
+    try {
+      response = await fetch(targetUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      console.log('[x402 Pay Proxy] Express server response:', {
+        status: response.status,
+        statusText: response.statusText,
+      });
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      
+      console.error('[x402 Pay Proxy] Fetch error:', {
+        name: fetchError.name,
+        message: fetchError.message,
+        targetUrl: targetUrl,
+      });
+      
+      if (fetchError.name === 'AbortError') {
+        return NextResponse.json(
+          { 
+            error: 'Express server timeout',
+            message: 'The Express server did not respond within 30 seconds.',
+            expressServerUrl: expressServerUrl,
+          },
+          { status: 504 }
+        );
+      }
+      
+      return NextResponse.json(
+        { 
+          error: 'Failed to connect to Express server',
+          message: fetchError.message || 'Network error',
+          expressServerUrl: expressServerUrl,
+        },
+        { status: 502 }
+      );
+    }
+    
+    // Handle Railway 502 errors
+    if (response.status === 502) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error('[x402 Pay Proxy] Railway 502 error from Express server:', errorText);
+      return NextResponse.json(
+        { 
+          error: 'Express server not responding',
+          message: 'The Express server returned a 502 error.',
+          expressServerUrl: expressServerUrl,
+        },
+        { status: 502 }
+      );
+    }
     
     // Get response data
     const data = await response.text();
@@ -63,8 +151,6 @@ export async function POST(request: NextRequest) {
     forwardHeader('x-payment-required', 'X-Payment-Required');
     forwardHeader('x-payment-quote', 'X-Payment-Quote');
     forwardHeader('www-authenticate', 'WWW-Authenticate');
-
-    // Content type
     forwardHeader('content-type', 'Content-Type');
     
     // Forward status and response (including 402 Payment Required)
@@ -73,9 +159,12 @@ export async function POST(request: NextRequest) {
       headers: responseHeaders,
     });
   } catch (error: any) {
-    console.error('[Next.js Proxy] Error forwarding payment request:', error);
+    console.error('[x402 Pay Proxy] Unexpected error:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to forward payment request to x402 server' },
+      { 
+        error: 'Proxy error',
+        message: error.message || 'Failed to forward request to x402 server',
+      },
       { status: 500 }
     );
   }

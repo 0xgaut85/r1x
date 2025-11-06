@@ -26,6 +26,17 @@ model Service {
   endpoint    String?  // Service API endpoint
   available   Boolean  @default(true)
   metadata    Json?    // Additional PayAI facilitator metadata
+  
+  // Extended fields for discovery
+  type        String?  // Service type: api, nft_mint, token, content, other
+  method      String?  // HTTP method: GET, POST, etc.
+  inputSchema Json?    // Input schema from 402 preflight
+  outputSchema Json?   // Output schema from 402 preflight
+  source      String?  // Source: payai, x402scan
+  isExternal  Boolean  @default(false) // true if from external merchant
+  websiteUrl  String?  // Website URL for APIFLASH screenshot
+  screenshotUrl String? // Cached APIFLASH screenshot URL
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
@@ -35,6 +46,9 @@ model Service {
   @@index([network, chainId])
   @@index([category])
   @@index([available])
+  @@index([type])
+  @@index([source])
+  @@index([isExternal])
 }
 
 model Transaction {
