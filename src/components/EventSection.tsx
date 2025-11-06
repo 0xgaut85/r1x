@@ -2,9 +2,12 @@
 
 import { StaggerChildren, StaggerChild } from './motion';
 import MagneticButton from './MagneticButton';
+import TextScramble from './TextScramble';
 import { Calendar } from 'lucide-react';
 
 export default function EventSection() {
+  const readTexts = ['READ'];
+
   return (
     <section className="bg-black text-white" style={{ paddingTop: '80px', paddingBottom: '80px' }}>
       <div className="px-4 sm:px-6 md:px-10 lg:px-[40px]" style={{ maxWidth: 'none' }}>
@@ -16,20 +19,27 @@ export default function EventSection() {
             lineHeight: '1.4',
             letterSpacing: '-0.96px',
             color: 'rgb(255, 255, 255)'
-          }}>[r1x]</h3>
+          }}>[NEWS]</h3>
           </StaggerChild>
           <StaggerChild>
           <p className="text-white text-2xl sm:text-3xl md:text-[40px] leading-tight md:leading-[56px]" style={{
             fontWeight: 400,
             fontFamily: 'TWKEverettMono-Regular, monospace',
             color: 'rgb(255, 255, 255)'
-          }}>[↳⌘⓪①Ü]</p>
+          }}>[<TextScramble texts={readTexts} speed={40} />]</p>
           </StaggerChild>
         </StaggerChildren>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 md:gap-16 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 md:gap-12 lg:gap-16 items-start md:items-center">
           <StaggerChild>
-            <div className="w-full h-64 sm:h-80 md:h-96 bg-gray-800" style={{ borderRadius: '0px' }}></div>
+            <div className="w-full max-w-xl mx-auto md:mx-0">
+              <img 
+                src="/tweetSF.png" 
+                alt="r1x Labs attending PayWithLocus hackathon" 
+                className="w-full h-auto"
+                style={{ borderRadius: '0px', border: '1px solid #808080', maxWidth: '100%', height: 'auto' }}
+              />
+            </div>
           </StaggerChild>
           <StaggerChildren>
             <StaggerChild>
@@ -39,7 +49,7 @@ export default function EventSection() {
               color: 'rgba(255, 255, 255, 0.6)'
               }}>
                 <Calendar className="w-4 h-4" />
-                <span>//February 24 - March 2nd • Denver</span>
+                <span>//November 15th • San Francisco</span>
               </div>
             </StaggerChild>
             <StaggerChild>
@@ -47,14 +57,18 @@ export default function EventSection() {
               fontWeight: 400,
               fontFamily: 'TWKEverett-Regular, sans-serif',
               letterSpacing: '-1.858px',
-              color: 'rgb(255, 255, 255)'
+              color: 'rgb(255, 255, 255)',
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word'
             }}>
-              EthDenver: Free rides, wild events, and sick swag.
+              r1x Labs will be attending @PayWithLocus hackathon in SF on November 15th
             </h2>
             </StaggerChild>
             <StaggerChild>
               <MagneticButton
-                href="#"
+                href="https://x.com/r1xlabs/status/1986385081988972865"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-sm md:text-[14px] font-normal hover:opacity-90 transition-all duration-300 button-hover inline-block text-center w-full sm:w-auto"
                 style={{
               fontFamily: 'TWKEverettMono-Regular, monospace',
@@ -71,7 +85,7 @@ export default function EventSection() {
                   boxShadow: '0 0 20px rgba(255, 77, 0, 0.3)',
                 }}
               >
-              TAKE A FREE RIDE!
+              LEARN MORE
               </MagneticButton>
             </StaggerChild>
           </StaggerChildren>

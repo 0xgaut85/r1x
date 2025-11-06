@@ -62,11 +62,11 @@ export default function ThesisSection() {
             </StaggerChild>
           </StaggerChildren>
 
-          <StaggerChildren className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 list-none" style={{ marginTop: '40px' }}>
+          <StaggerChildren className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 list-none" style={{ marginTop: '40px' }}>
             {features.map((feature, idx) => (
               <StaggerChild key={idx}>
                 <ScaleOnHover>
-                  <li className="border border-gray-200 hover:border-[#FF4D00] transition-all duration-300 card-hover group" style={{ borderRadius: '0px', paddingTop: '24px', paddingBottom: '24px', paddingLeft: '0px', paddingRight: '0px' }}>
+                  <li className="border border-gray-200 hover:border-[#FF4D00] transition-all duration-300 card-hover group" style={{ borderRadius: '0px', paddingTop: '24px', paddingBottom: '24px', paddingLeft: '20px', paddingRight: '20px' }}>
                     <div className="w-full h-40 sm:h-48 bg-gray-100 group-hover:bg-gray-200 transition-colors duration-300 flex items-center justify-center mb-3 sm:mb-4" style={{ borderRadius: '0px' }}>
                       <div className="text-[#FF4D00] opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         {feature.icon}
@@ -80,11 +80,13 @@ export default function ThesisSection() {
                       letterSpacing: '-0.96px',
                       color: 'rgb(0, 0, 0)'
                     }}>{feature.title}</h3>
-                    <p className="text-gray-700 leading-relaxed text-base sm:text-lg mt-2" style={{
+                    <p className="text-gray-700 leading-relaxed text-base sm:text-lg mt-2 px-4" style={{
                       fontWeight: 400,
                       fontFamily: 'BaselGrotesk-Regular, sans-serif',
                       lineHeight: '1.4',
-                      color: 'rgb(0, 0, 0)'
+                      color: 'rgb(0, 0, 0)',
+                      wordBreak: 'break-word',
+                      overflowWrap: 'break-word'
                     }}>
                       {feature.description}
                     </p>

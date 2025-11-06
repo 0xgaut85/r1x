@@ -8,6 +8,8 @@ interface MagneticButtonProps {
   className?: string;
   style?: React.CSSProperties;
   href?: string;
+  target?: string;
+  rel?: string;
   onClick?: () => void;
 }
 
@@ -16,6 +18,8 @@ export default function MagneticButton({
   className = '', 
   style = {},
   href,
+  target,
+  rel,
   onClick 
 }: MagneticButtonProps) {
   const buttonRef = useRef<HTMLAnchorElement | HTMLButtonElement>(null);
@@ -59,7 +63,7 @@ export default function MagneticButton({
 
   if (href) {
     return (
-      <motion.a href={href} {...motionProps}>
+      <motion.a href={href} target={target} rel={rel} {...motionProps}>
         {children}
       </motion.a>
     );

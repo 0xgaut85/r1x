@@ -15,15 +15,15 @@ export default function Footer() {
   return (
     <footer className="border-t border-gray-200 py-8 sm:py-12 md:py-16" style={{ backgroundColor: '#F7F7F7' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-8 sm:mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-8 sm:mb-12">
           <div className="sm:col-span-2">
             <p className="text-xs sm:text-sm font-medium text-black mb-3 sm:mb-4">STAY UP TO DATE WITH R1X</p>
-            <div className="flex flex-col sm:flex-row gap-2 mb-4 sm:mb-6">
-              <input type="email" placeholder="Enter your email" className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded text-sm transition-all duration-200 focus:outline-none focus:border-[#FF4D00] focus:ring-1 focus:ring-[#FF4D00]" />
+            <div className="flex flex-col gap-2 mb-4 sm:mb-6">
+              <input type="email" placeholder="Enter your email" className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded text-sm transition-all duration-200 focus:outline-none focus:border-[#FF4D00] focus:ring-1 focus:ring-[#FF4D00]" />
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="bg-[#FF4D00] text-white px-4 sm:px-6 py-2 rounded text-sm transition-all duration-200 hover:opacity-90 whitespace-nowrap"
+                className="w-full sm:w-auto bg-[#FF4D00] text-white px-4 sm:px-6 py-2 rounded text-sm transition-all duration-200 hover:opacity-90 whitespace-nowrap"
               >
                 Subscribe
               </motion.button>

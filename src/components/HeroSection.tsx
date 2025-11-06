@@ -169,7 +169,7 @@ export default function HeroSection() {
         }}
       />
 
-      <div className="w-full px-4 sm:px-6 md:px-10 lg:px-[40px] relative z-10" style={{ maxWidth: 'none', paddingTop: '138.641px', paddingBottom: '80px' }}>
+      <div className="w-full px-4 sm:px-6 md:px-10 lg:px-[40px] pb-20 sm:pb-16 relative z-10" style={{ maxWidth: 'none', paddingTop: '138.641px' }}>
         <div className="hero-content" ref={heroRef as React.RefObject<HTMLDivElement>} style={{ textAlign: 'start', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 1 }}>
           <p className="text-white text-lg sm:text-xl md:text-[22px] mb-4 sm:mb-6" style={{ 
             fontWeight: 400,
@@ -190,6 +190,8 @@ export default function HeroSection() {
             fontFamily: 'TWKEverett-Regular, sans-serif',
             letterSpacing: '-1.858px',
             color: 'rgb(255, 255, 255)',
+            wordBreak: 'break-word',
+            overflowWrap: 'break-word'
           }}>
             From users to AI agents, from AI agents to robots.<br />Autonomy buys capabilities per request.<br />The web for robots runs on x402.
           </h1>
@@ -240,7 +242,7 @@ export default function HeroSection() {
             fontFamily: 'TWKEverettMono-Regular, monospace',
             color: 'rgb(255, 255, 255)',
             marginTop: '12px',
-            marginBottom: '40px'
+            marginBottom: '60px'
           }}>
             [<TextScramble texts={enterText} speed={40} />]
           </p>

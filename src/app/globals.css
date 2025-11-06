@@ -53,6 +53,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: BaselGrotesk-Regular, sans-serif;
+  overflow-x: hidden;
 }
 
 /* Smooth scrolling */
@@ -494,4 +495,17 @@ textarea.r1x-agent-textarea::-webkit-scrollbar {
 
 .docs-nav .docs-nav-link:hover {
   color: rgba(255, 255, 255, 0.9);
+}
+
+/* Prevent text cropping */
+.prevent-text-crop {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Ensure all text containers have proper overflow handling */
+h1, h2, h3, h4, h5, h6, p {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 }
