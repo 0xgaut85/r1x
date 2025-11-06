@@ -68,12 +68,17 @@ export class X402Client {
 
   /**
    * Purchase a marketplace service
-   * Calls the service's x402 endpoint directly
+   * Uses Next.js API proxy (/api/x402/pay) to avoid CORS issues
+   * The proxy forwards to Express server which handles the actual service call
    */
   async purchaseService(
     service: {
-      endpoint: string;
+      id: string; // Service ID
+      name: string; // Service name
+      endpoint: string; // Service endpoint (for reference)
       price: string; // Price in USDC (decimal string)
+      priceWithFee?: string; // Total price with fee
+      isExternal?: boolean; // Whether service is external
     },
     requestBody?: any
   ): Promise<Response> {
@@ -81,17 +86,34 @@ export class X402Client {
       throw new Error('Service endpoint is required');
     }
 
+    if (!service.id || !service.name) {
+      throw new Error('Service ID and name are required');
+    }
+
     // Validate price doesn't exceed max
-    const priceWei = BigInt(Math.ceil(parseFloat(service.price) * 10 ** USDC_DECIMALS));
+    const totalPrice = service.priceWithFee || service.price;
+    const priceWei = BigInt(Math.ceil(parseFloat(totalPrice) * 10 ** USDC_DECIMALS));
     if (priceWei > this.maxValue) {
       throw new Error(
-        `Service price (${service.price} USDC) exceeds maximum allowed (${Number(this.maxValue) / 10 ** USDC_DECIMALS} USDC)`
+        `Service price (${totalPrice} USDC) exceeds maximum allowed (${Number(this.maxValue) / 10 ** USDC_DECIMALS} USDC)`
       );
     }
 
-    return this.request(service.endpoint, {
+    // Use Next.js API proxy (same origin, no CORS issues)
+    // This matches the marketplace purchase flow
+    const basePrice = parseFloat(service.price);
+    
+    return this.request('/api/x402/pay', {
       method: 'POST',
-      body: requestBody ? JSON.stringify(requestBody) : undefined,
+      body: JSON.stringify({
+        serviceId: service.id,
+        serviceName: service.name,
+        price: totalPrice, // Use total price (with fee if external)
+        basePrice: basePrice.toString(), // Original price before fee
+        isExternal: service.isExternal || false,
+        endpoint: service.endpoint, // Pass endpoint for Express server to call
+        ...(requestBody ? { requestBody } : {}), // Include any additional request body
+      }),
     });
   }
 

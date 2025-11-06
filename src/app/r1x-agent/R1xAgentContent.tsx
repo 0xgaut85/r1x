@@ -107,7 +107,15 @@ export default function R1xAgentContent() {
    * Handle autonomous purchase of a marketplace service
    */
   const handleAutopurchase = async (service: MarketplaceService): Promise<boolean> => {
-    if (!x402Client || !service.endpoint) {
+    if (!x402Client) {
+      console.error('[Autopurchase] x402Client not initialized');
+      setError('Payment client not available. Please ensure your wallet is connected.');
+      return false;
+    }
+
+    if (!service.endpoint) {
+      console.error('[Autopurchase] Service has no endpoint:', service.id);
+      setError(`Service "${service.name}" is not available for direct purchase. Please check the marketplace.`);
       return false;
     }
 
@@ -120,25 +128,65 @@ export default function R1xAgentContent() {
       };
       setMessages(prev => [...prev, purchaseMessage]);
 
-      // Call service endpoint with x402 payment
-      const response = await x402Client.purchaseService({
+      console.log('[Autopurchase] Purchasing service:', {
+        id: service.id,
+        name: service.name,
         endpoint: service.endpoint,
-        price: service.priceWithFee || service.price,
+        price: service.price,
+        priceWithFee: service.priceWithFee,
+        isExternal: service.isExternal,
       });
+
+      // Call service endpoint with x402 payment via Next.js proxy
+      const response = await x402Client.purchaseService({
+        id: service.id,
+        name: service.name,
+        endpoint: service.endpoint,
+        price: service.price,
+        priceWithFee: service.priceWithFee,
+        isExternal: service.isExternal,
+      });
+
+      console.log('[Autopurchase] Response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Purchase failed: ${errorText}`);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
+        
+        console.error('[Autopurchase] Purchase failed:', {
+          status: response.status,
+          error: errorData,
+        });
+
+        // Handle 402 Payment Required (shouldn't happen with x402-fetch, but handle gracefully)
+        if (response.status === 402) {
+          throw new Error(
+            `Payment required but could not be processed. Please check:\n` +
+            `1. Wallet is connected and on Base network\n` +
+            `2. You have sufficient USDC balance\n` +
+            `3. Transaction was approved in wallet`
+          );
+        }
+
+        throw new Error(
+          `Purchase failed (HTTP ${response.status}): ${errorData.error || errorData.message || errorText}`
+        );
       }
 
       const result = await response.json();
+      console.log('[Autopurchase] Purchase successful:', result);
       
       // Update purchase message
       setMessages(prev => {
         const updated = [...prev];
         updated[updated.length - 1] = {
           ...updated[updated.length - 1],
-          content: `✅ Successfully purchased "${service.name}"! ${result.message || 'Service accessed.'}`,
+          content: `✅ Successfully purchased "${service.name}"! ${result.message || result.data?.message || 'Service accessed.'}`,
           status: 'sent',
         };
         return updated;
@@ -147,18 +195,40 @@ export default function R1xAgentContent() {
       return true;
     } catch (error: any) {
       console.error('[Autopurchase] Error:', error);
+      console.error('[Autopurchase] Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      });
+      
+      // Provide helpful error message
+      let errorMessage = error.message || 'Unknown error';
+      
+      if (error.message?.includes('Failed to fetch') || error.name === 'TypeError') {
+        errorMessage = `Cannot connect to payment service. Please check:\n` +
+          `1. Network connection is stable\n` +
+          `2. Next.js API route is accessible (/api/x402/pay)\n` +
+          `3. Express server is running\n` +
+          `4. Wallet is properly connected\n\n` +
+          `Original error: ${error.message}`;
+      } else if (error.message?.includes('exceeds maximum')) {
+        errorMessage = error.message;
+      } else if (error.message?.includes('not initialized')) {
+        errorMessage = `Payment client error: ${error.message}\n\nPlease reconnect your wallet and try again.`;
+      }
       
       // Update purchase message with error
       setMessages(prev => {
         const updated = [...prev];
         updated[updated.length - 1] = {
           ...updated[updated.length - 1],
-          content: `❌ Failed to purchase "${service.name}": ${error.message || 'Unknown error'}`,
+          content: `❌ Failed to purchase "${service.name}": ${errorMessage}`,
           status: 'error',
         };
         return updated;
       });
 
+      setError(errorMessage);
       return false;
     }
   };
