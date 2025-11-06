@@ -66,8 +66,8 @@ ter
 next-env.d.ts
 
 # Prisma (will be copied explicitly)
-# Exclude generated files but keep schema
-prisma/migrations
+# Keep migrations - they're needed for deployment
+# Only exclude generated client (will be regenerated)
 
 # Public files that might be large (keep structure but optimize)
 # Note: PDFs might be large, but they're needed for the app
