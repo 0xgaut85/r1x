@@ -165,6 +165,9 @@ app.use(paymentMiddleware(
   facilitatorConfig,
 ));
 
+// Transform 402 responses to x402scan-compliant format (must be AFTER paymentMiddleware)
+app.use(x402scanResponseTransformer);
+
 // Error handler - only catches errors that middleware doesn't handle
 // Payment middleware handles settlement errors internally, but may throw if something goes wrong
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -928,6 +931,50 @@ function extractCategory(name?: string, description?: string): string {
 }
 
 // Health check endpoint
+// Friendly root with basic metadata so visiting the domain doesn't show "Cannot GET /"
+app.get('/', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.status(200).send(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>r1x Labs — x402 Server</title>
+    <meta name="description" content="From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy." />
+    <link rel="icon" href="https://www.r1xlabs.com/favicon.ico" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="r1x Labs — x402 Server" />
+    <meta property="og:description" content="From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy." />
+    <meta property="og:url" content="https://server.r1xlabs.com/" />
+    <meta property="og:image" content="https://www.r1xlabs.com/tg2.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="r1x Labs — x402 Server" />
+    <meta name="twitter:description" content="From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy." />
+    <meta name="twitter:image" content="https://www.r1xlabs.com/tg2.png" />
+    <style>
+      body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; line-height: 1.5; padding: 2rem; color: #111827; }
+      .card { max-width: 720px; margin: 0 auto; background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 24px; }
+      .logo { width: 64px; height: 64px; border-radius: 12px; }
+      .links a { display: inline-block; margin-right: 12px; color: #2563EB; text-decoration: none; }
+      .links a:hover { text-decoration: underline; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <img class="logo" src="https://www.r1xlabs.com/tg2.png" alt="r1x Labs" />
+      <h1>r1x Labs — x402 Server</h1>
+      <p>From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.</p>
+      <div class="links">
+        <a href="/health">Health</a>
+        <a href="/api/discovery/resources">Discovery</a>
+        <a href="/api/panel/public/services">Services</a>
+      </div>
+    </div>
+  </body>
+</html>`);
+});
+
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
