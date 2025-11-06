@@ -44,7 +44,8 @@ const nextConfig: NextConfig = {
   
   // Turbopack configuration (Next.js 16+ uses Turbopack by default)
   turbopack: {
-    // Turbopack optimizations are handled automatically
+    // Set root directory to silence workspace root warning
+    root: process.cwd(),
   },
 };
 

@@ -254,12 +254,15 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
     }
 
     // Fetch real marketplace services to include in system prompt
+    // Fetch from database AND PayAI facilitator (same as marketplace API)
     let availableServices: any[] = [];
     try {
       const { PrismaClient } = await import('@prisma/client');
       const prisma = new PrismaClient();
+      const { formatUnits } = await import('viem');
       
-      const services = await prisma.service.findMany({
+      // Fetch database services
+      const dbServices = await prisma.service.findMany({
         where: {
           available: true,
           network: 'base',
@@ -277,7 +280,8 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
         take: 50, // Limit to 50 most recent services
       });
       
-      availableServices = services.map(s => ({
+      // Format database services
+      const dbServicesFormatted = dbServices.map(s => ({
         id: s.serviceId,
         name: s.name,
         description: s.description || '',
@@ -286,8 +290,81 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
         endpoint: s.endpoint || null,
       }));
       
+      // Fetch PayAI services in real-time (same as marketplace API)
+      let payaiServices: any[] = [];
+      try {
+        const facilitatorUrl = process.env.FACILITATOR_URL || 'https://facilitator.payai.network';
+        const url = `${facilitatorUrl}/list`;
+        
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        };
+        
+        const cdpApiKeyId = process.env.CDP_API_KEY_ID;
+        const cdpApiKeySecret = process.env.CDP_API_KEY_SECRET;
+        
+        if (cdpApiKeyId && cdpApiKeySecret) {
+          const auth = Buffer.from(`${cdpApiKeyId}:${cdpApiKeySecret}`).toString('base64');
+          headers['Authorization'] = `Basic ${auth}`;
+        }
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers,
+          signal: AbortSignal.timeout(10000),
+        });
+        
+        if (response.ok) {
+          const data = await response.json() as any;
+          let services: any[] = [];
+          
+          if (Array.isArray(data)) {
+            services = data;
+          } else if (data?.resources && Array.isArray(data.resources)) {
+            services = data.resources;
+          } else if (data?.list && Array.isArray(data.list)) {
+            services = data.list;
+          }
+          
+          if (services.length > 0) {
+            payaiServices = services.map((s: any) => {
+              const accept = s.accepts?.[0] || {};
+              const decimals = accept.extra?.tokenSymbol === 'USDC' || s.tokenSymbol === 'USDC' ? 6 : 18;
+              const priceWei = accept.maxAmountRequired || s.price || '0';
+              const price = formatUnits(BigInt(priceWei), decimals);
+              const priceWithFee = (parseFloat(price) * 1.05).toFixed(6); // 5% platform fee
+              
+              return {
+                id: s.resource || s.id || `payai-${Math.random()}`,
+                name: accept.description || s.metadata?.name || s.name || 'PayAI Service',
+                description: accept.description || s.description || '',
+                category: extractCategory(accept.description || s.name, s.description) || 'Other',
+                price: priceWithFee, // Price with fee
+                endpoint: s.resource || s.endpoint || null,
+              };
+            });
+          }
+        }
+      } catch (payaiError) {
+        console.error('[x402-server] Error fetching PayAI services for system prompt:', payaiError);
+        // Continue with database services only
+      }
+      
+      // Combine services (database first, then PayAI)
+      // Remove duplicates by ID
+      const servicesMap = new Map<string, any>();
+      dbServicesFormatted.forEach(s => servicesMap.set(s.id, s));
+      payaiServices.forEach(s => {
+        if (!servicesMap.has(s.id)) {
+          servicesMap.set(s.id, s);
+        }
+      });
+      
+      availableServices = Array.from(servicesMap.values()).slice(0, 50);
+      
       await prisma.$disconnect();
-      console.log(`[x402-server] Loaded ${availableServices.length} services for system prompt`);
+      console.log(`[x402-server] Loaded ${availableServices.length} services for system prompt (${dbServicesFormatted.length} from DB, ${payaiServices.length} from PayAI)`);
     } catch (error) {
       console.error('[x402-server] Error fetching services for system prompt:', error);
       // Continue without services - Claude will still work

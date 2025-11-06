@@ -26,7 +26,15 @@ const wagmiAdapter = new WagmiAdapter({
   projectId,
 });
 
-const queryClient = new QueryClient();
+// Create QueryClient with SSR-safe defaults
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: false,
+    },
+  },
+});
 
 export const modal = createAppKit({
   adapters: [wagmiAdapter],

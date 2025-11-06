@@ -51,44 +51,44 @@ export default function R1xTokenDocsPage() {
           Tokenomics
         </h2>
 
-        <StaggerChildren className="space-y-6">
+        <StaggerChildren className="space-y-4 sm:space-y-6">
           <StaggerChild>
-            <div className="border border-white/20 p-6" style={{ borderRadius: '0px' }}>
-              <h3 className="text-white text-lg mb-3" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
+            <div className="border border-white/20 p-4 sm:p-6" style={{ borderRadius: '0px' }}>
+              <h3 className="text-white text-base sm:text-lg mb-2 sm:mb-3" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
                 Total Supply
               </h3>
-              <p className="text-white/80 text-2xl mb-2" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
+              <p className="text-white/80 text-xl sm:text-2xl mb-2" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
                 1,000,000,000 $R1X
               </p>
-              <p className="text-white/80" style={{ fontFamily: 'BaselGrotesk-Regular, sans-serif', lineHeight: '1.6' }}>
+              <p className="text-white/80 text-sm sm:text-base" style={{ fontFamily: 'BaselGrotesk-Regular, sans-serif', lineHeight: '1.6' }}>
                 1 billion tokens launched on Pump.fun. Fair launch with no pre-sale or private allocation.
               </p>
             </div>
           </StaggerChild>
 
           <StaggerChild>
-            <div className="border border-white/20 p-6" style={{ borderRadius: '0px' }}>
-              <h3 className="text-white text-lg mb-3" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
+            <div className="border border-white/20 p-4 sm:p-6" style={{ borderRadius: '0px' }}>
+              <h3 className="text-white text-base sm:text-lg mb-2 sm:mb-3" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
                 Fee Allocation
               </h3>
-              <p className="text-white/80 text-2xl mb-2" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
+              <p className="text-white/80 text-xl sm:text-2xl mb-2" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
                 75% Buybacks & Burn
               </p>
-              <p className="text-white/80" style={{ fontFamily: 'BaselGrotesk-Regular, sans-serif', lineHeight: '1.6' }}>
+              <p className="text-white/80 text-sm sm:text-base" style={{ fontFamily: 'BaselGrotesk-Regular, sans-serif', lineHeight: '1.6' }}>
                 Three-quarters of all platform fees are used to buy $R1X tokens from the market and permanently burn them. This creates a deflationary mechanism that reduces supply over time.
               </p>
             </div>
           </StaggerChild>
 
           <StaggerChild>
-            <div className="border border-white/20 p-6" style={{ borderRadius: '0px' }}>
-              <h3 className="text-white text-lg mb-3" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
+            <div className="border border-white/20 p-4 sm:p-6" style={{ borderRadius: '0px' }}>
+              <h3 className="text-white text-base sm:text-lg mb-2 sm:mb-3" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
                 Builder Incentives
               </h3>
-              <p className="text-white/80 text-2xl mb-2" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
+              <p className="text-white/80 text-xl sm:text-2xl mb-2" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
                 2% Locked Reserve
               </p>
-              <p className="text-white/80" style={{ fontFamily: 'BaselGrotesk-Regular, sans-serif', lineHeight: '1.6' }}>
+              <p className="text-white/80 text-sm sm:text-base" style={{ fontFamily: 'BaselGrotesk-Regular, sans-serif', lineHeight: '1.6' }}>
                 2% of the total supply (20 million tokens) will be market-bought and locked for future builder and developer incentives, grants, and ecosystem growth initiatives.
               </p>
             </div>
@@ -153,67 +153,82 @@ export default function R1xTokenDocsPage() {
           Token Details
         </h2>
 
-        <div className="bg-gradient-to-br from-[#FF4D00] to-[#FF6B35] text-white p-8 sm:p-12" style={{ borderRadius: '0px' }}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
-            <div>
-              <p className="text-white/80 text-sm mb-2" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
-                NETWORK
-              </p>
-              <p className="text-white text-lg font-medium flex items-center gap-2" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
-                <CryptoLogo symbol="SOL" size={20} />
-                Solana
-              </p>
+        <div className="bg-gradient-to-br from-[#FF4D00] to-[#FF6B35] text-white relative mx-auto w-full" style={{ borderRadius: '0px', minHeight: '200px', maxWidth: '900px' }}>
+          <div className="p-4 sm:p-6 md:p-8 lg:p-12 relative">
+            {/* Solana - Top Left */}
+            <div style={{ position: 'absolute', top: '24px', left: '24px', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '20px', zIndex: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+                <p className="text-white/70 uppercase tracking-wider" style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '10px', marginBottom: '4px' }}>NETWORK</p>
+                <p className="text-white font-medium" style={{ fontFamily: 'TWKEverett-Regular, sans-serif', fontSize: '18px', whiteSpace: 'nowrap' }}>Solana</p>
+              </div>
+              <img
+                src="https://assets.coingecko.com/coins/images/4128/large/solana.png"
+                alt="Solana"
+                style={{ 
+                  width: '80px',
+                  height: '80px',
+                  objectFit: 'contain',
+                  opacity: 0.6,
+                  filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2))',
+                  flexShrink: 0
+                }}
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
             </div>
-            <div>
-              <p className="text-white/80 text-sm mb-2" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
-                LAUNCH PLATFORM
-              </p>
-              <p className="text-white text-lg font-medium flex items-center gap-2" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
-                <img 
-                  src="https://pump.fun/favicon.ico" 
-                  alt="Pump.fun" 
-                  width={20} 
-                  height={20}
-                  style={{ borderRadius: '50%' }}
-                  onError={(e) => {
-                    // Fallback to text if image fails
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-                Pump.fun
-              </p>
+
+            {/* Pump.fun - Bottom Right */}
+            <div style={{ position: 'absolute', bottom: '24px', right: '24px', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '20px', zIndex: 10 }}>
+              <img
+                src="https://pump.fun/favicon.ico"
+                alt="Pump.fun"
+                style={{ 
+                  width: '80px',
+                  height: '80px',
+                  objectFit: 'contain', 
+                  filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2))',
+                  flexShrink: 0
+                }}
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+              <div style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+                <p className="text-white/70 uppercase tracking-wider" style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '10px', marginBottom: '4px' }}>PLATFORM</p>
+                <p className="text-white font-medium" style={{ fontFamily: 'TWKEverett-Regular, sans-serif', fontSize: '18px', whiteSpace: 'nowrap' }}>Pump.fun</p>
+              </div>
             </div>
-            <div>
-              <p className="text-white/80 text-sm mb-2" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
-                TOTAL SUPPLY
-              </p>
-              <p className="text-white text-lg font-medium" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
-                1,000,000,000 $R1X
-              </p>
-            </div>
-            <div>
-              <p className="text-white/80 text-sm mb-2" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
-                FEE ALLOCATION
-              </p>
-              <p className="text-white text-lg font-medium" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
-                75% Buybacks & Burn
-              </p>
-            </div>
-            <div>
-              <p className="text-white/80 text-sm mb-2" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
-                BUILDER RESERVE
-              </p>
-              <p className="text-white text-lg font-medium" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
-                2% (20M tokens)
-              </p>
-            </div>
-            <div>
-              <p className="text-white/80 text-sm mb-2" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
-                CONTRACT
-              </p>
-              <p className="text-white text-lg font-medium break-all" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
-                Coming Soon
-              </p>
+
+            {/* Centered Stats */}
+            <div className="flex flex-col items-center justify-center pt-12 pb-12 sm:pt-16 sm:pb-16 md:pt-20 md:pb-20 gap-4 sm:gap-6 md:gap-8 lg:gap-10">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8 text-center w-full px-4 sm:px-6">
+                {/* Total Supply */}
+                <div>
+                  <p className="text-white/70 text-[9px] sm:text-[10px] md:text-xs uppercase tracking-wider mb-1 sm:mb-2" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>SUPPLY</p>
+                  <p className="text-white text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>1B</p>
+                  <p className="text-white/80 text-xs sm:text-sm mt-1" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>$R1X</p>
+                </div>
+
+                {/* Buyback & Burn */}
+                <div>
+                  <p className="text-white/70 text-[9px] sm:text-[10px] md:text-xs uppercase tracking-wider mb-1 sm:mb-2" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>BUYBACK & BURN</p>
+                  <p className="text-white text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>75%</p>
+                  <p className="text-white/80 text-xs sm:text-sm mt-1" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>of fees</p>
+                </div>
+
+                {/* Builder Reserve */}
+                <div>
+                  <p className="text-white/70 text-[9px] sm:text-[10px] md:text-xs uppercase tracking-wider mb-1 sm:mb-2" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>BUILDER RESERVE</p>
+                  <p className="text-white text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>2%</p>
+                  <p className="text-white/80 text-xs sm:text-sm mt-1" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>20M</p>
+                </div>
+
+                {/* Contract */}
+                <div>
+                  <p className="text-white/70 text-[9px] sm:text-[10px] md:text-xs uppercase tracking-wider mb-1 sm:mb-2" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>CONTRACT</p>
+                  <p className="text-white text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>TBA</p>
+                  <p className="text-white/80 text-xs sm:text-sm mt-1" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>Q4 2025</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

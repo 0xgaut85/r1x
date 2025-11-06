@@ -19,11 +19,17 @@ export default function DocsSection({
 }: DocsSectionProps) {
   return (
     <section 
-      style={{ backgroundColor, paddingTop, paddingBottom, position: 'relative', zIndex: 1 }}
-      className={className}
+      style={{ 
+        backgroundColor, 
+        paddingTop: '60px',
+        paddingBottom: '60px',
+        position: 'relative', 
+        zIndex: 1 
+      }}
+      className={`${className} sm:pt-[80px] sm:pb-[70px] md:pt-[100px] md:pb-[80px]`}
     >
-      <div className="px-4 sm:px-6 md:px-10 lg:px-[40px]" style={{ maxWidth: 'none' }}>
-        <div className="docs-section-content">
+      <div className="px-4 sm:px-6 md:px-8 lg:px-10 xl:px-[40px] w-full" style={{ maxWidth: 'none' }}>
+        <div className="docs-section-content w-full">
           {children}
         </div>
       </div>

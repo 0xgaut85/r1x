@@ -22,18 +22,17 @@ export default function DocsNavigation() {
 
   return (
     <nav className="docs-subnav" style={{ backgroundColor: 'transparent', borderBottom: '1px solid #E5E7EB' }}>
-      <div className="px-4 sm:px-6 md:px-10 lg:px-[40px]">
-        <div className="flex items-center gap-8 overflow-x-auto py-5">
+      <div className="px-4 sm:px-6 md:px-8 lg:px-10 xl:px-[40px]">
+        <div className="flex items-center gap-4 sm:gap-6 md:gap-8 overflow-x-auto py-4 sm:py-5 scrollbar-hide">
           {navItems.map((item) => {
             const isActive = pathname === item.href || (item.href !== '/docs' && pathname?.startsWith(item.href));
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className="transition-all duration-200 whitespace-nowrap docs-subnav-link"
+                className="transition-all duration-200 whitespace-nowrap docs-subnav-link flex-shrink-0 text-[10px] sm:text-[11px] md:text-xs"
                 style={{
                   fontFamily: 'TWKEverettMono-Regular, monospace',
-                  fontSize: '12px',
                   letterSpacing: '1px',
                   textTransform: 'uppercase',
                   position: 'relative',
