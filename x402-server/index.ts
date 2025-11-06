@@ -428,8 +428,61 @@ app.post('/api/r1x-agent/plan', async (req, res) => {
     // Fetch marketplace services
     const { PrismaClient } = await import('@prisma/client');
     const prisma = new PrismaClient();
-    const { fetchPayAIServices } = await import('../src/lib/payai-sync');
     const { formatUnits } = await import('viem');
+    
+    // Fetch PayAI services (inline to avoid cross-directory imports)
+    const fetchPayAIServices = async (): Promise<any[]> => {
+      try {
+        const facilitatorUrl = process.env.FACILITATOR_URL || 'https://facilitator.payai.network';
+        const endpoints = ['/resources', '/api/resources', '/v1/resources', '/services', '/list'];
+        
+        for (const endpoint of endpoints) {
+          try {
+            const response = await fetch(`${facilitatorUrl}${endpoint}`, {
+              signal: AbortSignal.timeout(5000),
+            });
+            
+            if (!response.ok) continue;
+            
+            const data = await response.json() as any;
+            let services: any[] = [];
+            
+            if (Array.isArray(data)) {
+              services = data;
+            } else if (data?.resources && Array.isArray(data.resources)) {
+              services = data.resources;
+            } else if (data?.services && Array.isArray(data.services)) {
+              services = data.services;
+            }
+            
+            if (services.length > 0) {
+              return services.map((s: any) => {
+                const accept = s.accepts?.[0] || {};
+                return {
+                  id: s.resource || s.id || `payai-${Math.random()}`,
+                  name: accept.description || s.metadata?.name || s.name || 'PayAI Service',
+                  description: accept.description || s.description || '',
+                  merchant: accept.payTo || s.merchant || '',
+                  network: accept.network || s.network || 'base',
+                  chainId: accept.chainId || s.chainId || 8453,
+                  token: accept.asset || s.token || '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+                  tokenSymbol: accept.extra?.tokenSymbol || s.tokenSymbol || 'USDC',
+                  price: accept.maxAmountRequired || s.price || '0',
+                  endpoint: s.resource || s.endpoint,
+                  websiteUrl: s.metadata?.websiteUrl || s.websiteUrl,
+                };
+              });
+            }
+          } catch (e) {
+            continue;
+          }
+        }
+        return [];
+      } catch (error) {
+        console.error('[x402-server] Error fetching PayAI services:', error);
+        return [];
+      }
+    };
 
     const query = req.body.query || '';
     const category = req.body.category;

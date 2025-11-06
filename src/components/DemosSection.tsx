@@ -7,10 +7,10 @@ import { motion } from 'framer-motion';
 const demos = [
   { title: "API access", desc: "Price any HTTP endpoint per request. Charge for data, compute, or premium routes in USDC on Base.", image: "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=800&h=600&fit=crop&q=80" },
   { title: "Robot services", desc: "Robots and agents buy perception, routing, and teleop on demand. Quotes become receipts.", image: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&h=600&fit=crop&q=80" },
-  { title: "AI inference", desc: "Charge per inference, embedding, or tool call. No keys—just 402 quotes and verifiable payment.", image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=600&fit=crop&q=80" },
-  { title: "Data streams", desc: "Sell real‑time feeds per window. Clients pay per access and retry with proof to unlock.", image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=600&fit=crop&q=80" },
+  { title: "AI inference", desc: "Charge per inference, embedding, or tool call. No keys—just 402 quotes and verifiable payment.", image: "https://images.unsplash.com/photo-1655720828018-edd2daec9349?w=800&h=600&fit=crop&q=80" },
+  { title: "Data streams", desc: "Sell real‑time feeds per window. Clients pay per access and retry with proof to unlock.", image: "https://images.unsplash.com/photo-1639322537228-f710d846310a?w=800&h=600&fit=crop&q=80" },
   { title: "Compute resources", desc: "Expose bursty GPU/CPU as x402 services. Set prices by minute or job and settle instantly.", image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&h=600&fit=crop&q=80" },
-  { title: "Digital content", desc: "Unlock files, reports, or assets with one‑time payments. Machine‑readable receipts by design.", image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=600&fit=crop&q=80" },
+  { title: "Digital content", desc: "Unlock files, reports, or assets with one‑time payments. Machine‑readable receipts by design.", image: "https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=800&h=600&fit=crop&q=80" },
 ];
 
 export default function DemosSection() {

@@ -15,7 +15,7 @@ export default function ThesisSection() {
       icon: <BarChart3 className="w-12 h-12" />,
       title: '[Panel]',
       description: 'Create priced endpoints, set fees, and see quotes, receipts, and purchases in real time. Ship machine‑payable services and monitor adoption.',
-      image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=600&fit=crop&q=80'
+      image: '/panel-screenshot.png'
     },
     {
       icon: <Zap className="w-12 h-12" />,

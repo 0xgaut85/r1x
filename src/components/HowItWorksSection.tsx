@@ -49,24 +49,6 @@ export default function HowItWorksSection() {
         </h2>
         </FadeInUp>
 
-        <StaggerChildren className="flex justify-center mt-8 sm:mt-10 mb-8 sm:mb-12">
-          <div className="flex flex-col sm:flex-row gap-4 w-full max-w-4xl">
-            <StaggerChild className="w-full sm:flex-1 h-48 sm:h-64 overflow-hidden" style={{ borderRadius: '0px' }}>
-              <img 
-                src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&h=600&fit=crop&q=80"
-                alt="Machine economy network"
-                className="w-full h-full object-cover"
-              />
-            </StaggerChild>
-            <StaggerChild className="w-full sm:flex-1 h-48 sm:h-64 overflow-hidden" style={{ borderRadius: '0px' }}>
-              <img 
-                src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&h=600&fit=crop&q=80"
-                alt="Autonomous systems"
-                className="w-full h-full object-cover"
-              />
-            </StaggerChild>
-          </div>
-        </StaggerChildren>
 
         <StaggerChildren className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-12 max-w-6xl mx-auto mt-10 sm:mt-14">
           {steps.map((step, index) => (
