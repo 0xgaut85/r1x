@@ -18,7 +18,7 @@ COPY prisma ./prisma/
 # npm ci installs devDependencies by default
 # postinstall script will run prisma generate automatically
 # Cache mount speeds up repeated builds significantly
-RUN --mount=type=cache,target=/root/.npm \
+RUN --mount=type=cache,id=npm-cache,target=/root/.npm \
     npm ci --prefer-offline --no-audit --progress=false
 
 # Rebuild the source code only when needed
