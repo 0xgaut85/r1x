@@ -53,14 +53,14 @@ export default function HowItWorksSection() {
           <div className="flex flex-col sm:flex-row gap-4 w-full max-w-4xl">
             <StaggerChild className="w-full sm:flex-1 h-48 sm:h-64 overflow-hidden" style={{ borderRadius: '0px' }}>
               <img 
-                src="https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&h=600&fit=crop&q=80"
+                src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&h=600&fit=crop&q=80"
                 alt="Machine economy network"
                 className="w-full h-full object-cover"
               />
             </StaggerChild>
             <StaggerChild className="w-full sm:flex-1 h-48 sm:h-64 overflow-hidden" style={{ borderRadius: '0px' }}>
               <img 
-                src="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&h=600&fit=crop&q=80"
+                src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&h=600&fit=crop&q=80"
                 alt="Autonomous systems"
                 className="w-full h-full object-cover"
               />

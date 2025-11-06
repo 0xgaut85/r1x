@@ -9,13 +9,13 @@ export default function ThesisSection() {
       icon: <MessageSquare className="w-12 h-12" />,
       title: '[Agent]',
       description: 'An AI agent that plans, prices, and pays in USDC on Base. Chats with Claude 3 Opus, understands x402 flows, and executes end‑to‑end purchases to unlock resources.',
-      image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=600&fit=crop&q=80'
+      image: 'https://images.unsplash.com/photo-1531746790731-6c087fecd65a?w=800&h=600&fit=crop&q=80'
     },
     {
       icon: <BarChart3 className="w-12 h-12" />,
       title: '[Panel]',
       description: 'Create priced endpoints, set fees, and see quotes, receipts, and purchases in real time. Ship machine‑payable services and monitor adoption.',
-      image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=600&fit=crop&q=80'
+      image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=600&fit=crop&q=80'
     },
     {
       icon: <Zap className="w-12 h-12" />,
