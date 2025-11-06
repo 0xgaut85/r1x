@@ -135,6 +135,7 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
   // Determine the route to set appropriate outputSchema
   const isChatRoute = req.originalUrl.includes('/api/r1x-agent/chat');
   const isPlanRoute = req.originalUrl.includes('/api/r1x-agent/plan');
+  const isFeeRoute = req.originalUrl.includes('/api/fees/collect');
   
   // Start with original PayAI response structure if it exists
   let maxAmountRequired = isPlanRoute ? '10000' : '250000'; // Plan: 0.01 USDC, Chat: 0.25 USDC (6 decimals)
@@ -189,6 +190,21 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
   } else if (payaiResponse.error && payaiResponse.error.includes('0.25')) {
     // Try to extract from error message
     maxAmountRequired = '250000';
+  }
+  
+  // For fee collection endpoint: override with dynamic fee amount from request body (AFTER PayAI extraction)
+  if (isFeeRoute && req.body && typeof req.body === 'object' && req.body.feeAmount) {
+    const feeAmount = parseFloat(req.body.feeAmount);
+    if (!isNaN(feeAmount) && feeAmount > 0) {
+      // Convert fee amount to wei (6 decimals for USDC)
+      const feeAmountWei = Math.floor(feeAmount * 1000000).toString();
+      maxAmountRequired = feeAmountWei;
+      console.log('[x402scan] Overriding with dynamic fee amount from request:', {
+        feeAmount: feeAmount,
+        feeAmountWei: feeAmountWei,
+        originalMaxAmount: payaiResponse.accepts?.[0]?.maxAmountRequired || payaiResponse.payment?.amountRaw,
+      });
+    }
   }
   
   // CRITICAL: Log the resource URL being used for signature verification

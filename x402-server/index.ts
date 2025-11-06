@@ -162,7 +162,7 @@ app.use(paymentMiddleware(
       network: 'base',
     },
     'POST /api/fees/collect': {
-      price: '$10.00', // Max fee (will validate actual amount in handler)
+      price: '$1.00', // Max fee (validates actual amount in handler: 0.05 for free services, 5% for paid up to $20)
       network: 'base',
     },
   },
@@ -743,14 +743,29 @@ app.post('/api/fees/collect', async (req, res) => {
         const paidAmountUSDC = parseFloat((BigInt(paymentProof.amount) / BigInt(10 ** 6)).toString());
         const requestedFee = parseFloat(feeAmount);
         
-        // Allow small tolerance for rounding (0.1%)
-        const tolerance = requestedFee * 0.001;
-        if (Math.abs(paidAmountUSDC - requestedFee) > tolerance) {
-          console.warn('[x402-server] Fee amount mismatch:', {
+        // Validate fee payment: user pays up to $1.00 (middleware max), but we validate against requested fee
+        // For free services: requestedFee = 0.05, user should pay 0.05 (but middleware allows up to 1.00)
+        // For paid services: requestedFee = 5% of price (capped at 1.00), user should pay requestedFee
+        const maxAllowedFee = 1.00; // Middleware max
+        const tolerance = 0.001; // Small tolerance for rounding
+        
+        if (paidAmountUSDC > maxAllowedFee + tolerance) {
+          console.warn('[x402-server] Fee amount exceeds max allowed:', {
+            requested: requestedFee,
+            paid: paidAmountUSDC,
+            maxAllowed: maxAllowedFee,
+          });
+        } else if (paidAmountUSDC < requestedFee - tolerance) {
+          // User paid less than requested - this is an error
+          console.warn('[x402-server] Fee amount less than requested:', {
             requested: requestedFee,
             paid: paidAmountUSDC,
           });
-          // Still save transaction but log warning
+        } else {
+          console.log('[x402-server] Fee payment validated:', {
+            requested: requestedFee,
+            paid: paidAmountUSDC,
+          });
         }
 
         // Save fee transaction (100% goes to platform)
