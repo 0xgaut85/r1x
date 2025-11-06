@@ -35,7 +35,38 @@ These are the actual x402-protected service endpoints that x402scan should disco
 
 ---
 
-### 2. Generic x402 Payment Endpoint
+### 2. r1x Agent Plan Service
+**Endpoint**: `POST https://server.r1xlabs.com/api/r1x-agent/plan`
+
+**Description**: AI agent service discovery and planning - $0.01 USDC per request
+
+**Request**:
+```json
+{
+  "query": "mint meme token",
+  "category": "mint",
+  "budgetMax": "1.0"
+}
+```
+
+**Response**:
+- `402 Payment Required`: First request - payment quote included
+- `200 OK`: After payment - ranked service proposals returned
+
+**Headers** (after payment):
+- `X-Payment`: Payment proof (JSON-encoded)
+
+**Service Details**:
+- Service Name: `r1x Agent Plan`
+- Price: `0.01 USDC` per request
+- Network: `base`
+- Chain ID: `8453`
+- Token: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` (USDC)
+- Merchant: `0x0D644cFE30F0777CcCa6563618D9519D6b8979ac`
+
+---
+
+### 3. Generic x402 Payment Endpoint
 **Endpoint**: `POST https://server.r1xlabs.com/api/x402/pay`
 
 **Description**: Generic payment endpoint for marketplace services
@@ -62,14 +93,21 @@ These are the actual x402-protected service endpoints that x402scan should disco
 
 These endpoints proxy to the Express server above:
 
-### 3. r1x Agent Chat (via Next.js)
+### 4. r1x Agent Chat (via Next.js)
 **Endpoint**: `POST https://www.r1xlabs.com/api/r1x-agent/chat`
 
 **Description**: Same as #1, but proxied through Next.js (same origin, no CORS)
 
 ---
 
-### 4. Generic Payment (via Next.js)
+### 5. r1x Agent Plan (via Next.js)
+**Endpoint**: `POST https://www.r1xlabs.com/api/r1x-agent/plan`
+
+**Description**: Same as #2, but proxied through Next.js (same origin, no CORS)
+
+---
+
+### 6. Generic Payment (via Next.js)
 **Endpoint**: `POST https://www.r1xlabs.com/api/x402/pay`
 
 **Description**: Same as #2, but proxied through Next.js
@@ -121,7 +159,16 @@ These endpoints proxy to the Express server above:
    - Network: Base (8453)
    - Token: USDC
 
-2. **Generic Payment Endpoint**
+2. **r1x Agent Plan Service**
+   ```
+   POST https://server.r1xlabs.com/api/r1x-agent/plan
+   ```
+   - Price: 0.01 USDC per request
+   - Network: Base (8453)
+   - Token: USDC
+   - Returns ranked service proposals for autonomous purchasing
+
+3. **Generic Payment Endpoint**
    ```
    POST https://server.r1xlabs.com/api/x402/pay
    ```

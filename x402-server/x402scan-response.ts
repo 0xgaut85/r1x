@@ -134,11 +134,14 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
   
   // Determine the route to set appropriate outputSchema
   const isChatRoute = req.originalUrl.includes('/api/r1x-agent/chat');
+  const isPlanRoute = req.originalUrl.includes('/api/r1x-agent/plan');
   
   // Start with original PayAI response structure if it exists
-  let maxAmountRequired = '250000'; // Default: 0.25 USDC (6 decimals)
+  let maxAmountRequired = isPlanRoute ? '10000' : '250000'; // Plan: 0.01 USDC, Chat: 0.25 USDC (6 decimals)
   let description = isChatRoute 
     ? 'From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.'
+    : isPlanRoute
+    ? 'AI agent service discovery and planning. Get ranked proposals for marketplace services.'
     : 'From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.';
   let payTo = merchantAddress;
   let asset = USDC_BASE;
@@ -240,12 +243,43 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
               },
             },
           },
+        } : isPlanRoute ? {
+          outputSchema: {
+            input: {
+              type: 'http',
+              method: 'POST',
+              bodyType: 'json',
+              bodyFields: {
+                query: {
+                  type: 'string',
+                  required: false,
+                  description: 'Search query',
+                },
+                category: {
+                  type: 'string',
+                  required: false,
+                  description: 'Service category filter',
+                },
+                budgetMax: {
+                  type: 'string',
+                  required: false,
+                  description: 'Maximum budget in USDC',
+                },
+              },
+            },
+            output: {
+              proposals: {
+                type: 'array',
+                description: 'Ranked list of service proposals',
+              },
+            },
+          },
         } : {}),
         extra: {
           // Service identification
-          serviceId: isChatRoute ? 'r1x-agent-chat' : 'r1x-x402-pay',
-          serviceName: isChatRoute ? 'r1x Agent Chat' : 'r1x Payment',
-          price: isChatRoute ? '$0.25' : '$0.01',
+          serviceId: isChatRoute ? 'r1x-agent-chat' : isPlanRoute ? 'r1x-agent-plan' : 'r1x-x402-pay',
+          serviceName: isChatRoute ? 'r1x Agent Chat' : isPlanRoute ? 'r1x Agent Plan' : 'r1x Payment',
+          price: isChatRoute ? '$0.25' : isPlanRoute ? '$0.01' : '$0.01',
           
           // Facilitator address (for payment routing)
           facilitator: facilitatorAddress,
@@ -268,7 +302,7 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
           url: 'https://www.r1xlabs.com',
           
           // Service metadata
-          category: isChatRoute ? 'AI' : 'Payment',
+          category: isChatRoute ? 'AI' : isPlanRoute ? 'Discovery' : 'Payment',
           network: 'base',
           chainId: 8453,
           token: 'USDC',

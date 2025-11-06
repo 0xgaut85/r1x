@@ -7,6 +7,10 @@ import { useAccount, useChainId } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { modal } from '@/lib/wallet-provider';
 import { wrapFetchWithPayment } from 'x402-fetch';
+import { parseIntent, isPurchaseIntent, ServiceCategory } from '@/lib/intent/parseIntent';
+import { marketplaceCatalog } from '@/lib/marketplace/catalog';
+import { X402Client } from '@/lib/payments/x402Client';
+import { MarketplaceService } from '@/lib/types/x402';
 
 // No longer need x402-server-url - using Next.js API routes (same origin)
 import AgentBackground from '@/components/r1x-agent/AgentBackground';
@@ -39,6 +43,14 @@ export default function R1xAgentContent() {
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Initialize marketplace catalog with 60s refresh
+  useEffect(() => {
+    marketplaceCatalog.startAutoRefresh();
+    return () => {
+      marketplaceCatalog.stopAutoRefresh();
+    };
+  }, []);
+
   /**
    * Conforme aux docs PayAI officielles : https://docs.payai.network/x402/clients/typescript/fetch
    * 
@@ -69,6 +81,20 @@ export default function R1xAgentContent() {
     }
   }, [walletClient]);
 
+  // x402 client for autonomous purchases (higher max: 100 USDC)
+  const x402Client = useMemo(() => {
+    if (!walletClient) return null;
+    try {
+      return new X402Client({
+        walletClient,
+        maxValue: BigInt(100 * 10 ** 6), // 100 USDC max for service purchases
+      });
+    } catch (err) {
+      console.error('[X402Client] Failed to initialize:', err);
+      return null;
+    }
+  }, [walletClient]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -76,6 +102,66 @@ export default function R1xAgentContent() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  /**
+   * Handle autonomous purchase of a marketplace service
+   */
+  const handleAutopurchase = async (service: MarketplaceService): Promise<boolean> => {
+    if (!x402Client || !service.endpoint) {
+      return false;
+    }
+
+    try {
+      // Show in chat that we're purchasing
+      const purchaseMessage: ChatMessage = {
+        role: 'assistant',
+        content: `Purchasing "${service.name}" for ${service.priceWithFee || service.price} USDC...`,
+        status: 'sending',
+      };
+      setMessages(prev => [...prev, purchaseMessage]);
+
+      // Call service endpoint with x402 payment
+      const response = await x402Client.purchaseService({
+        endpoint: service.endpoint,
+        price: service.priceWithFee || service.price,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Purchase failed: ${errorText}`);
+      }
+
+      const result = await response.json();
+      
+      // Update purchase message
+      setMessages(prev => {
+        const updated = [...prev];
+        updated[updated.length - 1] = {
+          ...updated[updated.length - 1],
+          content: `✅ Successfully purchased "${service.name}"! ${result.message || 'Service accessed.'}`,
+          status: 'sent',
+        };
+        return updated;
+      });
+
+      return true;
+    } catch (error: any) {
+      console.error('[Autopurchase] Error:', error);
+      
+      // Update purchase message with error
+      setMessages(prev => {
+        const updated = [...prev];
+        updated[updated.length - 1] = {
+          ...updated[updated.length - 1],
+          content: `❌ Failed to purchase "${service.name}": ${error.message || 'Unknown error'}`,
+          status: 'error',
+        };
+        return updated;
+      });
+
+      return false;
+    }
+  };
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -105,6 +191,65 @@ export default function R1xAgentContent() {
     setInput('');
     setIsLoading(true);
     setError(null);
+
+    // Check if this is a purchase intent
+    const intent = parseIntent(input.trim());
+    const isPurchase = isPurchaseIntent(input.trim());
+    
+    // If purchase intent, find and propose services
+    if (isPurchase && intent.category !== 'other') {
+      const proposals = marketplaceCatalog.findServices(intent.category, 5);
+      
+      // Filter to only services with endpoints (purchasable)
+      const purchasableProposals = proposals.filter(s => s.endpoint);
+      
+      if (purchasableProposals.length > 0) {
+        // Propose services in chat (show top 3)
+        const topProposals = purchasableProposals.slice(0, 3);
+        const proposalText = topProposals
+          .map((s, i) => `${i + 1}. **${s.name}** - ${s.priceWithFee || s.price} USDC\n   ${s.description || ''}`)
+          .join('\n\n');
+        
+        const proposalMessage: ChatMessage = {
+          role: 'assistant',
+          content: `I found ${purchasableProposals.length} ${intent.category} service(s) for you:\n\n${proposalText}\n\nI'll proceed with the best option: **${topProposals[0].name}**.`,
+          status: 'sent',
+        };
+        
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { ...updated[updated.length - 1], status: 'sent' };
+          return [...updated, proposalMessage];
+        });
+
+        // Automatically purchase the top proposal
+        const purchased = await handleAutopurchase(topProposals[0]);
+        
+        if (!purchased && topProposals.length > 1) {
+          // Try next proposal if first failed
+          await handleAutopurchase(topProposals[1]);
+        }
+
+        setIsLoading(false);
+        return;
+      } else if (proposals.length > 0) {
+        // Services found but none have endpoints
+        const infoMessage: ChatMessage = {
+          role: 'assistant',
+          content: `I found ${proposals.length} ${intent.category} service(s), but they're not yet available for direct purchase. Please check the marketplace for more details.`,
+          status: 'sent',
+        };
+        
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { ...updated[updated.length - 1], status: 'sent' };
+          return [...updated, infoMessage];
+        });
+
+        setIsLoading(false);
+        return;
+      }
+    }
 
     // Add timeout to prevent infinite loading
     const controller = new AbortController();

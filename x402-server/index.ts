@@ -109,6 +109,19 @@ app.options('/api/x402/pay', (req, res) => {
   res.status(200).end();
 });
 
+app.options('/api/r1x-agent/plan', (req, res) => {
+  const origin = req.headers.origin;
+  if (origin && (origin.includes('r1xlabs.com') || origin.includes('railway.app') || origin.includes('vercel.app'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Payment, Authorization, Accept');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  console.log('[CORS] OPTIONS /api/r1x-agent/plan from:', origin);
+  res.status(200).end();
+});
+
 const facilitatorConfig: Parameters<typeof paymentMiddleware>[2] = {
   url: facilitatorUrl,
 };
@@ -137,6 +150,10 @@ app.use(paymentMiddleware(
       network: 'base',
     },
     'POST /api/x402/pay': {
+      price: '$0.01',
+      network: 'base',
+    },
+    'POST /api/r1x-agent/plan': {
       price: '$0.01',
       network: 'base',
     },
@@ -256,14 +273,23 @@ About x402:
 
 About r1x Marketplace:
 - Platform for discovering and accessing x402 services
-- Services include AI inference, data streams, compute resources, digital content, robot services, tokens & NFTs
+- Services include AI inference, data streams, compute resources, digital content, robot services, tokens & NFTs, mints
 - 5% platform fee on external services
+- Services are automatically refreshed every 60 seconds
+
+Your capabilities:
+- Answer questions about r1x infrastructure, x402 protocol, and the machine economy
+- Guide developers on integrating r1x SDK and building on Base
+- When users ask to purchase services (e.g., "mint a token", "use an AI service", "buy compute"), you can autonomously find and purchase the best matching service from the marketplace
+- You understand user intent and can propose relevant services, then execute purchases automatically using x402 payments
+- All purchases happen via wallet signature - users only need to approve the transaction
 
 Your role:
 - Help users understand r1x infrastructure and the machine economy
 - Answer questions about x402 payment protocol and PayAI integration
 - Guide developers on integrating r1x SDK and building on Base
 - Explain how r1x enables autonomous machine-to-machine transactions
+- When users request services, autonomously find and purchase them from the marketplace
 - Provide accurate, helpful information about r1x Labs, Base network, and x402 ecosystem
 
 Always respond as r1x Agent with expertise in r1x and x402. Be helpful, accurate, and enthusiastic about the machine economy.`;
@@ -362,6 +388,183 @@ app.post('/api/x402/pay', async (req, res) => {
   });
   }
 });
+
+app.post('/api/r1x-agent/plan', async (req, res) => {
+  // Le paiement est déjà vérifié par le middleware PayAI
+  if (res.headersSent) {
+    console.log('[x402-server] Response already sent by middleware, skipping route handler');
+    return;
+  }
+
+  try {
+    console.log('[x402-server] Plan request received:', {
+      query: req.body.query,
+      category: req.body.category,
+      budgetMax: req.body.budgetMax,
+    });
+
+    // Parse and save transaction to database (non-blocking)
+    const xPaymentHeader = typeof req.headers['x-payment'] === 'string' ? req.headers['x-payment'] as string : undefined;
+    if (xPaymentHeader) {
+      const paymentProof = parsePaymentProof(xPaymentHeader);
+      if (paymentProof) {
+        Promise.race([
+          saveTransaction({
+            proof: paymentProof,
+            serviceId: 'r1x-agent-plan',
+            serviceName: 'r1x Agent Plan',
+            price: '0.01',
+            feePercentage: parseFloat(process.env.PLATFORM_FEE_PERCENTAGE || '5'),
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Transaction save timeout (5s)')), 5000)
+          ),
+        ]).catch((error) => {
+          console.error('[x402-server] Failed to save transaction (non-blocking):', error?.message);
+        });
+      }
+    }
+
+    // Fetch marketplace services
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+    const { fetchPayAIServices } = await import('../src/lib/payai-sync');
+    const { formatUnits } = await import('viem');
+
+    const query = req.body.query || '';
+    const category = req.body.category;
+    const budgetMax = req.body.budgetMax ? parseFloat(req.body.budgetMax) : undefined;
+    const network = 'base';
+    const chainId = 8453;
+
+    // Build database query
+    const where: any = {
+      available: true,
+      network,
+      chainId,
+    };
+
+    if (category) {
+      where.category = { equals: category, mode: 'insensitive' };
+    }
+
+    // Fetch from database
+    let dbServices = await prisma.service.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Fetch from PayAI facilitator
+    let payaiServices: any[] = [];
+    try {
+      payaiServices = await fetchPayAIServices();
+    } catch (error) {
+      console.error('[x402-server] Error fetching PayAI services:', error);
+    }
+
+    // Combine and rank services
+    const allServices: any[] = [];
+
+    // Add database services
+    dbServices.forEach(service => {
+      const price = parseFloat(service.priceDisplay || '0');
+      if (!budgetMax || price <= budgetMax) {
+        allServices.push({
+          serviceId: service.serviceId,
+          name: service.name,
+          category: service.category || 'Other',
+          price: service.priceDisplay,
+          merchant: service.merchant,
+          network: service.network,
+          resource: service.endpoint,
+          schemaSummary: {
+            method: 'POST',
+            contentType: 'application/json',
+          },
+        });
+      }
+    });
+
+    // Add PayAI services
+    payaiServices.forEach(service => {
+      const decimals = service.tokenSymbol === 'USDC' ? 6 : 18;
+      const price = parseFloat(formatUnits(BigInt(service.price), decimals));
+      const priceWithFee = price * 1.05; // 5% fee
+      
+      if (!budgetMax || priceWithFee <= budgetMax) {
+        allServices.push({
+          serviceId: service.id,
+          name: service.name,
+          category: extractCategory(service.name, service.description) || 'Other',
+          price: price.toString(),
+          priceWithFee: priceWithFee.toString(),
+          merchant: service.merchant,
+          network: service.network,
+          resource: service.endpoint,
+          schemaSummary: {
+            method: 'POST',
+            contentType: 'application/json',
+          },
+        });
+      }
+    });
+
+    // Rank: Base network first, then by price
+    const ranked = allServices
+      .filter(s => s.network === 'base' && (!s.chainId || s.chainId === chainId))
+      .sort((a, b) => {
+        const priceA = parseFloat(a.priceWithFee || a.price || '999999');
+        const priceB = parseFloat(b.priceWithFee || b.price || '999999');
+        return priceA - priceB;
+      })
+      .slice(0, 10); // Top 10 proposals
+
+    await prisma.$disconnect();
+
+    if (!res.headersSent) {
+      res.json({
+        proposals: ranked,
+        total: ranked.length,
+        query,
+        category,
+      });
+    }
+  } catch (error: any) {
+    console.error('[x402-server] Plan error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: error.message || 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      });
+    }
+  }
+});
+
+// Helper function to extract category
+function extractCategory(name?: string, description?: string): string {
+  const text = `${name || ''} ${description || ''}`.toLowerCase();
+  
+  if (text.includes('api') || text.includes('claude') || text.includes('gpt') || text.includes('ai inference') || text.includes('llm') || text.includes('chat')) {
+    return 'AI';
+  }
+  if (text.includes('data') || text.includes('feed') || text.includes('stream')) {
+    return 'Data';
+  }
+  if (text.includes('compute') || text.includes('gpu') || text.includes('processing')) {
+    return 'Compute';
+  }
+  if (text.includes('content') || text.includes('digital') || text.includes('asset')) {
+    return 'Content';
+  }
+  if (text.includes('robot') || text.includes('agent') || text.includes('autonomous')) {
+    return 'Robot Services';
+  }
+  if (text.includes('token') || text.includes('mint') || text.includes('nft')) {
+    return 'Mint';
+  }
+  
+  return 'Other';
+}
 
 // Health check endpoint
 app.get('/health', (req, res) => {
