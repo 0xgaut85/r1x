@@ -8,7 +8,6 @@ import HowItWorksSection from '@/components/HowItWorksSection';
 import AnatomyOfNodeSection from '@/components/AnatomyOfNodeSection';
 import DemosSection from '@/components/DemosSection';
 import EventSection from '@/components/EventSection';
-import LatestSection from '@/components/LatestSection';
 import CareersSection from '@/components/CareersSection';
 import Footer from '@/components/Footer';
 
@@ -28,7 +27,6 @@ export default function Home() {
         <AnatomyOfNodeSection />
         <DemosSection />
         <EventSection />
-        <LatestSection />
         <CareersSection />
       </main>
       <Footer />
