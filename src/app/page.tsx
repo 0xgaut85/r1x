@@ -1,5 +1,4 @@
-'use client';
-
+import type { Metadata } from 'next';
 import dynamicImport from 'next/dynamic';
 import HeroSection from '@/components/HeroSection';
 import ThesisSection from '@/components/ThesisSection';
@@ -13,7 +12,26 @@ import Footer from '@/components/Footer';
 
 const Header = dynamicImport(() => import('@/components/Header'), { ssr: false });
 
-export const dynamic = 'force-dynamic';
+// Explicit metadata for this page to ensure x402scan can scrape it
+export const metadata: Metadata = {
+  title: "server.r1xlabs.com",
+  description: "From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.",
+  openGraph: {
+    title: "server.r1xlabs.com",
+    description: "From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.",
+    siteName: 'R1X Labs',
+    type: 'website',
+    url: 'https://server.r1xlabs.com/',
+    images: [
+      {
+        url: 'https://server.r1xlabs.com/api/logo',
+        width: 1200,
+        height: 630,
+        alt: 'R1X Labs',
+      },
+    ],
+  },
+};
 
 export default function Home() {
   return (
