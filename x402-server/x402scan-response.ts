@@ -257,10 +257,10 @@ function transformToX402scanFormat(payaiResponse: any, req: Request): X402scanRe
           description: 'From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.',
           
           // Logo and branding (x402scan looks for these fields)
-          logo: 'https://www.r1xlabs.com/logosvg.svg',
-          logoUrl: 'https://www.r1xlabs.com/logosvg.svg',
-          image: 'https://www.r1xlabs.com/logosvg.svg',
-          icon: 'https://www.r1xlabs.com/logosvg.svg',
+          logo: 'https://www.r1xlabs.com/tg2.png',
+          logoUrl: 'https://www.r1xlabs.com/tg2.png',
+          image: 'https://www.r1xlabs.com/tg2.png',
+          icon: 'https://www.r1xlabs.com/tg2.png',
           
           // Website and links
           website: 'https://www.r1xlabs.com',

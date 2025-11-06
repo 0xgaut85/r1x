@@ -17,10 +17,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "r1x - Humanity's first blind computer",
-  description: "r1x decentralizes trust for sensitive data in the same way that blockchains decentralized transactions.",
+  description: "From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.",
   openGraph: {
     title: "r1x - Humanity's first blind computer",
-    description: "r1x decentralizes trust for sensitive data in the same way that blockchains decentralized transactions.",
+    description: "From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.",
     type: 'website',
     url: 'https://www.r1xlabs.com',
     images: [
@@ -35,12 +35,12 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: "r1x - Humanity's first blind computer",
-    description: "r1x decentralizes trust for sensitive data in the same way that blockchains decentralized transactions.",
+    description: "From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.",
     images: ['https://www.r1xlabs.com/logo.png'],
   },
   icons: {
-    icon: '/favicon.ico',
-    apple: '/favicon.ico',
+    icon: '/tg2.png',
+    apple: '/tg2.png',
   },
 };
 

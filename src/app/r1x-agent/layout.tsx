@@ -2,10 +2,10 @@ import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'r1x Agent Chat - AI Assistant | r1x Labs',
-  description: 'From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy. Chat with r1x AI Agent powered by Claude. $0.25 USDC per message on Base network.',
+  description: 'From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.',
   openGraph: {
     title: 'r1x Agent Chat - AI Assistant | r1x Labs',
-    description: 'From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy. Chat with r1x AI Agent powered by Claude. $0.25 USDC per message on Base network.',
+    description: 'From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.',
     type: 'website',
     url: 'https://www.r1xlabs.com/r1x-agent',
     siteName: 'r1x Labs',
@@ -25,8 +25,8 @@ export const metadata: Metadata = {
     images: ['https://www.r1xlabs.com/logosvg.svg'],
   },
   icons: {
-    icon: '/favicon.ico',
-    apple: '/favicon.ico',
+    icon: '/tg2.png',
+    apple: '/tg2.png',
   },
   other: {
     'x402:service': 'r1x-agent-chat',
