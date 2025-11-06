@@ -34,7 +34,6 @@ h1, h2, h3, h4, h5, h6 {
 .docs-section-content div {
   opacity: 1 !important;
   visibility: visible !important;
-  display: block !important;
 }
 
 /* Ensure proper z-index */
@@ -46,5 +45,29 @@ h1, h2, h3, h4, h5, h6 {
 .docs-section-content {
   z-index: 1;
   position: relative;
+}
+
+/* Make horizontal nav scrollbars hidden but scrollable */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
+/* Basic responsive media defaults inside docs content */
+.docs-section-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Prevent long tokens/URLs from breaking layout */
+.docs-section-content p,
+.docs-section-content li,
+.docs-section-content code,
+.docs-section-content pre {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 

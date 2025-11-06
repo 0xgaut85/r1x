@@ -8,7 +8,8 @@ import CryptoLogo from '@/components/CryptoLogo';
 
 const Header = dynamicImport(() => import('@/components/Header'), { ssr: false });
 import WalletButton from '@/components/WalletButton';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ChartTooltip, currencyValueFormatter, numberValueFormatter, dateLabelFormatter } from '@/components/charts/ChartTooltip';
 import { useWallet } from '@/hooks/useWallet';
 import { useAccount } from 'wagmi';
 import { modal } from '@/lib/wallet-provider';
@@ -248,12 +249,24 @@ export default function UserPanelContent() {
                     Daily Usage
                   </h3>
                   <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={usage.dailyUsage}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }} />
-                      <YAxis style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }} />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="transactions" stroke="#FF4D00" strokeWidth={2} />
+                    <LineChart data={usage.dailyUsage} margin={{ top: 8, right: 16, left: 0, bottom: 24 }}>
+                      <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="date"
+                        tickFormatter={dateLabelFormatter}
+                        tickLine={false}
+                        axisLine={{ stroke: '#E5E7EB' }}
+                        minTickGap={24}
+                        style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
+                      />
+                      <YAxis
+                        tickFormatter={numberValueFormatter}
+                        tickLine={false}
+                        axisLine={{ stroke: '#E5E7EB' }}
+                        style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
+                      />
+                      <Tooltip content={<ChartTooltip valueFormatter={(v) => numberValueFormatter(v)} labelFormatter={dateLabelFormatter} />} />
+                      <Line type="monotone" dataKey="transactions" stroke="#FF4D00" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </motion.div>
@@ -269,12 +282,25 @@ export default function UserPanelContent() {
                     Usage by Service
                   </h3>
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={usage.usageByService.slice(0, 10)}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="serviceName" style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }} angle={-45} textAnchor="end" height={100} />
-                      <YAxis style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }} />
-                      <Tooltip />
-                      <Bar dataKey="count" fill="#FF4D00" />
+                    <BarChart data={usage.usageByService.slice(0, 10)} margin={{ top: 8, right: 16, left: 0, bottom: 24 }}>
+                      <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="serviceName"
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                        tickLine={false}
+                        axisLine={{ stroke: '#E5E7EB' }}
+                        style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
+                      />
+                      <YAxis
+                        tickFormatter={numberValueFormatter}
+                        tickLine={false}
+                        axisLine={{ stroke: '#E5E7EB' }}
+                        style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
+                      />
+                      <Tooltip content={<ChartTooltip valueFormatter={(v) => numberValueFormatter(v)} />} />
+                      <Bar dataKey="count" fill="#FF4D00" radius={[6, 6, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </motion.div>

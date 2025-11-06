@@ -7,6 +7,7 @@ import Footer from '@/components/Footer';
 
 const Header = dynamicImport(() => import('@/components/Header'), { ssr: false });
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { ChartTooltip, currencyValueFormatter, numberValueFormatter, dateLabelFormatter } from '@/components/charts/ChartTooltip';
 
 interface AnalyticsData {
   period: string;
@@ -288,14 +289,26 @@ export default function PlatformPanelPage() {
                       Daily Volume & Fees
                     </h3>
                     <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={analytics.dailyStats}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }} />
-                        <YAxis style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }} />
-                        <Tooltip />
-                        <Legend />
-                        <Line type="monotone" dataKey="volume" stroke="#FF4D00" strokeWidth={2} name="Volume (USDC)" />
-                        <Line type="monotone" dataKey="fees" stroke="#FF6B35" strokeWidth={2} name="Fees (USDC)" />
+                      <LineChart data={analytics.dailyStats} margin={{ top: 8, right: 16, left: 0, bottom: 24 }}>
+                        <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="date"
+                          tickFormatter={dateLabelFormatter}
+                          tickLine={false}
+                          axisLine={{ stroke: '#E5E7EB' }}
+                          minTickGap={24}
+                          style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
+                        />
+                        <YAxis
+                          tickFormatter={numberValueFormatter}
+                          tickLine={false}
+                          axisLine={{ stroke: '#E5E7EB' }}
+                          style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
+                        />
+                        <Tooltip content={<ChartTooltip valueFormatter={(v) => currencyValueFormatter(v, 'USDC')} labelFormatter={dateLabelFormatter} />} />
+                        <Legend verticalAlign="bottom" height={24} />
+                        <Line type="monotone" dataKey="volume" stroke="#FF4D00" strokeWidth={2} name="Volume (USDC)" dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                        <Line type="monotone" dataKey="fees" stroke="#FF6B35" strokeWidth={2} name="Fees (USDC)" dot={{ r: 2 }} activeDot={{ r: 4 }} />
                       </LineChart>
                     </ResponsiveContainer>
                   </motion.div>
@@ -311,12 +324,25 @@ export default function PlatformPanelPage() {
                       Top Services by Transactions
                     </h3>
                     <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={analytics.topServices}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="serviceName" style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }} angle={-45} textAnchor="end" height={100} />
-                        <YAxis style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }} />
-                        <Tooltip />
-                        <Bar dataKey="transactions" fill="#FF4D00" />
+                      <BarChart data={analytics.topServices} margin={{ top: 8, right: 16, left: 0, bottom: 24 }}>
+                        <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="serviceName"
+                          angle={-45}
+                          textAnchor="end"
+                          height={100}
+                          tickLine={false}
+                          axisLine={{ stroke: '#E5E7EB' }}
+                          style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
+                        />
+                        <YAxis
+                          tickFormatter={numberValueFormatter}
+                          tickLine={false}
+                          axisLine={{ stroke: '#E5E7EB' }}
+                          style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
+                        />
+                        <Tooltip content={<ChartTooltip valueFormatter={(v) => numberValueFormatter(v)} />} />
+                        <Bar dataKey="transactions" fill="#FF4D00" radius={[6, 6, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </motion.div>
@@ -332,14 +358,26 @@ export default function PlatformPanelPage() {
                       User Growth
                     </h3>
                     <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={analytics.userGrowth}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }} />
-                        <YAxis style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }} />
-                        <Tooltip />
-                        <Legend />
-                        <Line type="monotone" dataKey="newUsers" stroke="#FF4D00" strokeWidth={2} name="New Users" />
-                        <Line type="monotone" dataKey="totalUsers" stroke="#FF6B35" strokeWidth={2} name="Total Users" />
+                      <LineChart data={analytics.userGrowth} margin={{ top: 8, right: 16, left: 0, bottom: 24 }}>
+                        <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="date"
+                          tickFormatter={dateLabelFormatter}
+                          tickLine={false}
+                          axisLine={{ stroke: '#E5E7EB' }}
+                          minTickGap={24}
+                          style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
+                        />
+                        <YAxis
+                          tickFormatter={numberValueFormatter}
+                          tickLine={false}
+                          axisLine={{ stroke: '#E5E7EB' }}
+                          style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
+                        />
+                        <Tooltip content={<ChartTooltip valueFormatter={(v) => numberValueFormatter(v)} labelFormatter={dateLabelFormatter} />} />
+                        <Legend verticalAlign="bottom" height={24} />
+                        <Line type="monotone" dataKey="newUsers" stroke="#FF4D00" strokeWidth={2} name="New Users" dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                        <Line type="monotone" dataKey="totalUsers" stroke="#FF6B35" strokeWidth={2} name="Total Users" dot={{ r: 2 }} activeDot={{ r: 4 }} />
                       </LineChart>
                     </ResponsiveContainer>
                   </motion.div>
@@ -371,6 +409,7 @@ export default function PlatformPanelPage() {
                           ))}
                         </Pie>
                         <Tooltip />
+                        <Legend verticalAlign="bottom" height={24} />
                       </PieChart>
                     </ResponsiveContainer>
                   </motion.div>
@@ -415,15 +454,27 @@ export default function PlatformPanelPage() {
                       Daily Fees Collected
                     </h3>
                     <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={fees.dailyFees}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }} />
-                        <YAxis style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }} />
-                        <Tooltip />
-                        <Legend />
-                        <Line type="monotone" dataKey="total" stroke="#FF4D00" strokeWidth={2} name="Total" />
-                        <Line type="monotone" dataKey="transferred" stroke="#22c55e" strokeWidth={2} name="Transferred" />
-                        <Line type="monotone" dataKey="pending" stroke="#f59e0b" strokeWidth={2} name="Pending" />
+                      <LineChart data={fees.dailyFees} margin={{ top: 8, right: 16, left: 0, bottom: 24 }}>
+                        <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="date"
+                          tickFormatter={dateLabelFormatter}
+                          tickLine={false}
+                          axisLine={{ stroke: '#E5E7EB' }}
+                          minTickGap={24}
+                          style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
+                        />
+                        <YAxis
+                          tickFormatter={numberValueFormatter}
+                          tickLine={false}
+                          axisLine={{ stroke: '#E5E7EB' }}
+                          style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
+                        />
+                        <Tooltip content={<ChartTooltip valueFormatter={(v) => currencyValueFormatter(v, 'USDC')} labelFormatter={dateLabelFormatter} />} />
+                        <Legend verticalAlign="bottom" height={24} />
+                        <Line type="monotone" dataKey="total" stroke="#FF4D00" strokeWidth={2} name="Total" dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                        <Line type="monotone" dataKey="transferred" stroke="#22c55e" strokeWidth={2} name="Transferred" dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                        <Line type="monotone" dataKey="pending" stroke="#f59e0b" strokeWidth={2} name="Pending" dot={{ r: 2 }} activeDot={{ r: 4 }} />
                       </LineChart>
                     </ResponsiveContainer>
                   </motion.div>
@@ -438,12 +489,25 @@ export default function PlatformPanelPage() {
                       Fees by Recipient
                     </h3>
                     <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={fees.feesByRecipient}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="recipient" style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }} angle={-45} textAnchor="end" height={100} />
-                        <YAxis style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }} />
-                        <Tooltip />
-                        <Bar dataKey="total" fill="#FF4D00" />
+                      <BarChart data={fees.feesByRecipient} margin={{ top: 8, right: 16, left: 0, bottom: 24 }}>
+                        <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="recipient"
+                          angle={-45}
+                          textAnchor="end"
+                          height={100}
+                          tickLine={false}
+                          axisLine={{ stroke: '#E5E7EB' }}
+                          style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
+                        />
+                        <YAxis
+                          tickFormatter={numberValueFormatter}
+                          tickLine={false}
+                          axisLine={{ stroke: '#E5E7EB' }}
+                          style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
+                        />
+                        <Tooltip content={<ChartTooltip valueFormatter={(v) => currencyValueFormatter(v, 'USDC')} />} />
+                        <Bar dataKey="total" fill="#FF4D00" radius={[6, 6, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </motion.div>
