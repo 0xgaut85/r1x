@@ -33,7 +33,7 @@ export default function RoboticsUseCasesSection() {
       icon: <Battery className="w-12 h-12" />,
       title: 'Machine‑payable infrastructure',
       description: 'Reserve charging slots or docks per use. Settle per operation. Physical infrastructure becomes pay‑per‑use for fleets.',
-      image: 'https://images.unsplash.com/photo-1617886903355-9354bb57751f?w=800&h=600&fit=crop&q=80'
+      image: 'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&h=600&fit=crop&q=80&sat=-20'
     },
   ];
 
