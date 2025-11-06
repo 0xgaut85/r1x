@@ -42,7 +42,7 @@ export default function TokenSection() {
             fontFamily: 'TWKEverettMono-Regular, monospace',
             color: '#374151',
           }}>
-            Native token on Base network. Powering the machine economy.
+            Native token on Solana. Powering the machine economy with a deflationary flywheel.
           </p>
         </FadeInUp>
 
@@ -95,8 +95,8 @@ export default function TokenSection() {
                   NETWORK
                 </p>
                 <p className="text-white text-lg font-medium flex items-center gap-2" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
-                  <CryptoLogo symbol="BASE" size={20} />
-                  Base
+                  <CryptoLogo symbol="SOL" size={20} />
+                  Solana
                 </p>
               </div>
               <div>
@@ -120,7 +120,7 @@ export default function TokenSection() {
                   SUPPLY
                 </p>
                 <p className="text-white text-lg font-medium" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
-                  TBA
+                  1B $R1X
                 </p>
               </div>
             </div>
@@ -129,7 +129,7 @@ export default function TokenSection() {
               fontFamily: 'BaselGrotesk-Regular, sans-serif',
               lineHeight: '1.4',
             }}>
-              $R1X is the native token of the r1x ecosystem. It powers governance, enables staking, provides fee discounts, and unlocks premium features. As the machine economy grows, so does the value of $R1X.
+              $R1X is the native token of the r1x ecosystem, launched on Solana. It powers governance, enables staking, provides fee discounts, and unlocks premium features. 75% of platform fees are used for buybacks and burns, creating a deflationary flywheel that benefits all holders as the machine economy grows.
             </p>
           </div>
         </FadeInUp>

@@ -252,7 +252,7 @@ features:
 
       <DocsSection backgroundColor="#000000">
         <DocsCallout variant="warning" title="Coming Soon">
-          R1X x402 Creator is currently in development. Expected launch: Q2 2025. Join our waitlist to get early access and preferential pricing.
+          R1X x402 Creator is currently in development. Join our waitlist to get early access and preferential pricing.
         </DocsCallout>
       </DocsSection>
 

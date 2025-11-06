@@ -84,7 +84,7 @@ export default function FacilitatorDocsPage() {
 
       <DocsSection backgroundColor="#000000">
         <DocsCallout variant="warning" title="Coming Soon">
-          r1x Facilitator roadmap: Q1 2025 testnet, Q2 2025 mainnet. Early adopters get preferential fee rates.
+          r1x Facilitator is currently in development. Early adopters will get preferential fee rates. Stay tuned for updates.
         </DocsCallout>
       </DocsSection>
     </>

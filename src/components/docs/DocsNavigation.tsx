@@ -8,6 +8,7 @@ const navItems = [
   { href: '/docs/getting-started', label: 'Getting Started' },
   { href: '/docs/r1x-agent', label: 'r1x Agent' },
   { href: '/docs/marketplace', label: 'Marketplace' },
+  { href: '/docs/r1x-token', label: '$R1X Token' },
   { href: '/docs/agent-builder', label: 'Agent Builder' },
   { href: '/docs/sdk', label: 'SDK' },
   { href: '/docs/facilitator', label: 'Facilitator' },

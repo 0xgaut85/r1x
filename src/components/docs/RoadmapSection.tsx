@@ -5,19 +5,19 @@ import { Rocket } from 'lucide-react';
 
 const roadmapItems = [
   {
-    phase: 'Q1 2025',
-    title: 'Core Infrastructure',
+    phase: 'Q4 2025',
+    title: 'Current Focus',
     items: [
-      'Express x402 server deployment on Railway',
-      'PayAI facilitator integration complete',
-      'r1x Agent with Claude 3 Opus',
-      'Marketplace with PayAI services',
-      'User & Platform panels',
-      'Base network support',
+      'Enterprise features & SSO‑less wallet flows',
+      'White‑label marketplace & payouts',
+      'Governance & fee configuration',
+      '$R1X token launch on Solana',
+      'Cross‑chain settlement research',
+      'Strategic ecosystem partnerships',
     ],
   },
   {
-    phase: 'Q2 2025',
+    phase: 'Q1 2026',
     title: 'Expansion & Scale',
     items: [
       'r1x SDK public release',
@@ -29,7 +29,7 @@ const roadmapItems = [
     ],
   },
   {
-    phase: 'Q3 2025',
+    phase: 'Q2 2026',
     title: 'Machine Economy',
     items: [
       'Pre‑authorized spend windows & allowances',
@@ -41,15 +41,15 @@ const roadmapItems = [
     ],
   },
   {
-    phase: 'Q4 2025',
+    phase: 'Q3 2026',
     title: 'Global Adoption',
     items: [
-      'Enterprise features & SSO‑less wallet flows',
-      'White‑label marketplace & payouts',
-      'Governance & fee configuration',
-      'Cross‑chain settlement research',
-      'DeFi treasury & yield routing (research)',
-      'Strategic ecosystem partnerships',
+      'DeFi treasury & yield routing',
+      'Cross‑chain settlement implementation',
+      'Enterprise partnerships',
+      'Global market expansion',
+      'Advanced governance features',
+      'Ecosystem growth initiatives',
     ],
   },
 ];
