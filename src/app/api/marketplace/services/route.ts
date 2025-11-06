@@ -95,6 +95,7 @@ export async function GET(request: NextRequest) {
         category: service.category || 'Other',
         endpoint: service.endpoint || undefined,
         websiteUrl: websiteUrl || service.websiteUrl || undefined,
+        screenshotUrl: service.screenshotUrl || undefined,
         available: service.available,
         isExternal: service.isExternal ?? false,
         token: service.token,
@@ -131,6 +132,7 @@ export async function GET(request: NextRequest) {
           category: extractCategory(service.name, service.description) || 'Other',
           endpoint: service.endpoint || undefined,
           websiteUrl: service.websiteUrl || undefined,
+          screenshotUrl: undefined, // PayAI services don't have cached screenshots yet
           available: true,
           isExternal: true, // Services from PayAI facilitator
           token: service.token,

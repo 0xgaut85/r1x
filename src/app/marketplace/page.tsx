@@ -276,11 +276,11 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
       transition={{ delay: index * 0.1 }}
       className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200"
     >
-      {/* Service Screenshot */}
-      {service.websiteUrl && (
+      {/* Service Screenshot - Use cached screenshotUrl if available, fallback to websiteUrl */}
+      {(service.screenshotUrl || service.websiteUrl) && (
         <div className="mb-4 rounded-lg overflow-hidden border border-gray-200">
           <ServiceScreenshot 
-            url={service.websiteUrl} 
+            url={service.screenshotUrl || service.websiteUrl || ''} 
             alt={service.name}
             width={400}
             height={250}

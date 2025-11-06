@@ -302,13 +302,21 @@ export default function R1xAgentContent() {
 
       // Step 2: Purchase service via x402
       // External detection: isExternal flag OR endpoint host != r1xlabs.com
-      const endpointUrl = service.endpoint ? new URL(service.endpoint) : null;
-      const isExternalService = service.isExternal || 
-                                (endpointUrl && !endpointUrl.hostname.includes('r1xlabs.com'));
+      let isExternalService = service.isExternal ?? false;
+      
+      if (!isExternalService && service.endpoint) {
+        try {
+          const endpointUrl = new URL(service.endpoint);
+          isExternalService = !endpointUrl.hostname.includes('r1xlabs.com');
+        } catch {
+          // Invalid URL, assume external
+          isExternalService = true;
+        }
+      }
       
       console.log('[Autopurchase] Service external detection:', {
         isExternalFlag: service.isExternal,
-        endpointHost: endpointUrl?.hostname,
+        endpoint: service.endpoint,
         isExternal: isExternalService,
       });
 

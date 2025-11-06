@@ -90,6 +90,7 @@ export interface MarketplaceService {
   category: string;
   endpoint?: string; // API endpoint if applicable
   websiteUrl?: string; // Website URL for screenshot preview
+  screenshotUrl?: string; // Cached APIFLASH screenshot URL
   available: boolean;
   isExternal?: boolean; // true if from PayAI facilitator (external merchant)
   token?: string; // Token contract address
