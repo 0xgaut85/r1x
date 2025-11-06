@@ -287,10 +287,15 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
       // Format database services with full details
       const dbServicesFormatted = dbServices.map(s => {
         // Extract website URL from metadata if available
-        const websiteUrl = s.metadata?.website || 
-                          s.metadata?.websiteUrl ||
-                          s.metadata?.homepage ||
-                          s.metadata?.url ||
+        // Type-check metadata as object before accessing properties
+        const metadata = s.metadata && typeof s.metadata === 'object' && !Array.isArray(s.metadata) 
+          ? s.metadata as Record<string, any>
+          : null;
+        
+        const websiteUrl = metadata?.website || 
+                          metadata?.websiteUrl ||
+                          metadata?.homepage ||
+                          metadata?.url ||
                           undefined;
         
         return {
