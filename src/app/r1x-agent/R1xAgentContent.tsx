@@ -142,8 +142,9 @@ export default function R1xAgentContent() {
 
       console.warn('[Preflight] No accepts array found in 402 response');
       return null;
-    } catch (error: any) {
-      console.error('[Preflight] Error fetching schema:', error);
+    } catch (error) {
+      const err = error as any;
+      console.error('[Preflight] Error fetching schema:', err);
       return null;
     }
   };
@@ -284,27 +285,26 @@ export default function R1xAgentContent() {
         }
         
         // Always collect fee for external services (middleware allows up to $1.00)
-        if (shouldCollectFee) {
-          console.log('[Autopurchase] External service - collecting fee:', feeAmount, 'USDC (base price:', basePrice, ')');
-          
-          // Use payFeeThenPurchase for external services
-          const { serviceResponse } = await x402Client.payFeeThenPurchase({
-            feeEndpoint: '/api/fees/collect',
-            feeAmount: feeAmount,
-            service: {
-              id: service.id,
-              name: service.name,
-              endpoint: service.endpoint,
-              price: service.price,
-              priceWithFee: service.priceWithFee,
-              isExternal: true,
-            },
-            requestBody: requestData.body,
-            queryParams: requestData.queryParams,
-            headers: requestData.headers,
-          });
-          
-          response = serviceResponse;
+        console.log('[Autopurchase] External service - collecting fee:', feeAmount, 'USDC (base price:', basePrice, ')');
+        
+        // Use payFeeThenPurchase for external services
+        const { serviceResponse } = await x402Client.payFeeThenPurchase({
+          feeEndpoint: '/api/fees/collect',
+          feeAmount: feeAmount,
+          service: {
+            id: service.id,
+            name: service.name,
+            endpoint: service.endpoint,
+            price: service.price,
+            priceWithFee: service.priceWithFee,
+            isExternal: true,
+          },
+          requestBody: requestData.body,
+          queryParams: requestData.queryParams,
+          headers: requestData.headers,
+        });
+        
+        response = serviceResponse;
       } else {
         // Internal service: use regular purchase flow
         response = await x402Client.purchaseService({
@@ -401,28 +401,29 @@ export default function R1xAgentContent() {
       });
 
       return true;
-    } catch (error: any) {
-      console.error('[Autopurchase] Error:', error);
+    } catch (error) {
+      const err = error as any;
+      console.error('[Autopurchase] Error:', err);
       console.error('[Autopurchase] Error details:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
+        name: err.name,
+        message: err.message,
+        stack: err.stack,
       });
       
       // Provide helpful error message
-      let errorMessage = error.message || 'Unknown error';
+      let errorMessage = err.message || 'Unknown error';
       
-      if (error.message?.includes('Failed to fetch') || error.name === 'TypeError') {
+      if (err.message?.includes('Failed to fetch') || err.name === 'TypeError') {
         errorMessage = `Cannot connect to payment service. Please check:\n` +
           `1. Network connection is stable\n` +
           `2. Next.js API route is accessible (/api/x402/pay)\n` +
           `3. Express server is running\n` +
           `4. Wallet is properly connected\n\n` +
-          `Original error: ${error.message}`;
-      } else if (error.message?.includes('exceeds maximum')) {
-        errorMessage = error.message;
-      } else if (error.message?.includes('not initialized')) {
-        errorMessage = `Payment client error: ${error.message}\n\nPlease reconnect your wallet and try again.`;
+          `Original error: ${err.message}`;
+      } else if (err.message?.includes('exceeds maximum')) {
+        errorMessage = err.message;
+      } else if (err.message?.includes('not initialized')) {
+        errorMessage = `Payment client error: ${err.message}\n\nPlease reconnect your wallet and try again.`;
       }
       
       // Update purchase message with error
@@ -662,10 +663,11 @@ export default function R1xAgentContent() {
         updated[updated.length - 1] = { ...updated[updated.length - 1], status: 'sent' };
         return [...updated, assistantMessage];
       });
-    } catch (err: any) {
+    } catch (error) {
       // Clear timeout on error
       if (timeoutId) clearTimeout(timeoutId);
       
+      const err = error as any;
       console.error('[Agent] Error:', err);
       console.error('[Agent] Error details:', {
         name: err.name,

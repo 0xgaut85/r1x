@@ -3,12 +3,14 @@
 import { Twitter, Github, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 import TelegramIcon from './icons/TelegramIcon';
+import X402ScanIcon from './icons/X402ScanIcon';
 
 export default function Footer() {
   const socialLinks = [
     { icon: <Twitter className="w-4 h-4 sm:w-5 sm:h-5" />, href: '#' },
     { icon: <Github className="w-4 h-4 sm:w-5 sm:h-5" />, href: '#' },
     { icon: <TelegramIcon className="w-4 h-4 sm:w-5 sm:h-5" />, href: 'https://t.me/r1xbuilders' },
+    { icon: <X402ScanIcon className="w-4 h-4 sm:w-5 sm:h-5" />, href: 'https://www.x402scan.com/server/35ea106a-e068-4e6e-9b8d-763459a84b2e' },
     { icon: <Mail className="w-4 h-4 sm:w-5 sm:h-5" />, href: '#' },
   ];
 
@@ -33,6 +35,8 @@ export default function Footer() {
                 <motion.a
                   key={index}
                   href={social.href}
+                  target={social.href.startsWith('http') ? '_blank' : undefined}
+                  rel={social.href.startsWith('http') ? 'noopener noreferrer' : undefined}
                   whileHover={{ scale: 1.1, color: '#FF4D00' }}
                   whileTap={{ scale: 0.95 }}
                   className="text-black hover:text-[#FF4D00] transition-all duration-200"

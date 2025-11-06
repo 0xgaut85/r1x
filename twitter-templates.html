@@ -1178,6 +1178,237 @@
             right: -150px;
             background: radial-gradient(circle at center, rgba(255, 77, 0, 0.08) 0%, transparent 70%);
         }
+
+        /* Template G - Payment Facilitators Showcase */
+        .template-g {
+            background: 
+                radial-gradient(ellipse at 30% 40%, rgba(255, 77, 0, 0.06) 0%, transparent 50%),
+                var(--black-000);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .template-g-gradient-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, transparent 0%, rgba(255, 77, 0, 0.03) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .template-g-content {
+            position: relative;
+            padding: 60px 80px 100px;
+            z-index: 10;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .template-g-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 32px;
+            margin-bottom: 50px;
+        }
+
+        .template-g-logo {
+            flex-shrink: 0;
+        }
+
+        .template-g-logo img {
+            width: 56px;
+            height: 56px;
+        }
+
+        .template-g-title-section {
+            flex: 1;
+        }
+
+        .template-g-eyebrow {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 10px;
+            color: var(--accent-orange);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            font-weight: 400;
+        }
+
+        .template-g-headline {
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 52px;
+            line-height: 1.1;
+            color: #ffffff;
+            margin-bottom: 16px;
+            letter-spacing: -2px;
+            font-weight: 400;
+        }
+
+        .template-g-body {
+            font-family: 'BaselGrotesk-Regular', sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--white-85);
+            max-width: 700px;
+            font-weight: 400;
+        }
+
+        .template-g-facilitators {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        .template-g-section {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .template-g-section-label {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .template-g-status-badge {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 9px;
+            color: #ffffff;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 5px 10px;
+            border-radius: 2px;
+            font-weight: 400;
+        }
+
+        .template-g-status-badge.active {
+            background: var(--accent-orange);
+            border: 1px solid var(--accent-orange);
+        }
+
+        .template-g-status-badge.upcoming {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--white-25);
+            color: var(--white-60);
+        }
+
+        .template-g-section-title {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 11px;
+            color: var(--white-60);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: 400;
+        }
+
+        .template-g-logo-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 32px;
+            max-width: 800px;
+        }
+
+        .template-g-logo-grid-three {
+            grid-template-columns: repeat(3, 1fr);
+            max-width: 1200px;
+        }
+
+        .template-g-facilitator-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--white-15);
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .template-g-facilitator-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(255, 77, 0, 0.05) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .template-g-facilitator-card:hover::before {
+            opacity: 1;
+        }
+
+        .template-g-facilitator-card.upcoming {
+            opacity: 0.6;
+            border-style: dashed;
+        }
+
+        .template-g-facilitator-logo-wrapper {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--white-08);
+            padding: 16px;
+        }
+
+        .template-g-facilitator-logo {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .template-g-facilitator-name {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 12px;
+            color: var(--white-85);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 400;
+        }
+
+        .template-g-divider {
+            width: 100%;
+            height: 1px;
+            background: repeating-linear-gradient(
+                to right,
+                transparent 0px,
+                transparent 8px,
+                var(--white-15) 8px,
+                var(--white-15) 16px
+            );
+        }
+
+        .template-g-bottom-strip {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: rgba(255, 77, 0, 0.08);
+            border-top: 1px solid var(--white-15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .template-g-strip-text {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 11px;
+            color: var(--white-60);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
     </style>
 </head>
 <body>
@@ -1420,6 +1651,85 @@
             <div class="template-f-subtitle">THE FUTURE OF AUTONOMOUS PAYMENTS</div>
         </div>
         <div class="template-f-countdown-label">TOKEN LAUNCH</div>
+    </div>
+
+    <!-- Template G - Payment Facilitators Showcase -->
+    <div class="artboard template-g">
+        <div class="grain-overlay"></div>
+        <div class="template-g-gradient-overlay"></div>
+        <div class="corner-marks">
+            <div class="corner-mark top-left"></div>
+            <div class="corner-mark top-right"></div>
+            <div class="corner-mark bottom-left"></div>
+            <div class="corner-mark bottom-right"></div>
+        </div>
+        <div class="template-g-content">
+            <div class="template-g-header">
+                <div class="template-g-logo">
+                    <img src="./public/logosvg.svg" alt="r1x Logo" class="logo-white" />
+                </div>
+                <div class="template-g-title-section">
+                    <div class="template-g-eyebrow">PAYMENT INFRASTRUCTURE</div>
+                    <div class="template-g-headline">Powering Autonomous Transactions</div>
+                    <div class="template-g-body">Building with industry-leading payment facilitators to enable seamless agent-to-agent value transfer</div>
+                </div>
+            </div>
+
+            <div class="template-g-facilitators">
+                <div class="template-g-section">
+                    <div class="template-g-section-label">
+                        <div class="template-g-status-badge active">ACTIVE</div>
+                        <div class="template-g-section-title">Current Facilitators</div>
+                    </div>
+                    <div class="template-g-logo-grid">
+                        <div class="template-g-facilitator-card">
+                            <div class="template-g-facilitator-logo-wrapper">
+                                <img src="./public/payai.jpg" alt="PayAI" class="template-g-facilitator-logo" />
+                            </div>
+                            <div class="template-g-facilitator-name">PayAI</div>
+                        </div>
+                        <div class="template-g-facilitator-card">
+                            <div class="template-g-facilitator-logo-wrapper">
+                                <img src="./public/logos/coinbase.png" alt="Coinbase" class="template-g-facilitator-logo" />
+                            </div>
+                            <div class="template-g-facilitator-name">Coinbase</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="template-g-divider"></div>
+
+                <div class="template-g-section">
+                    <div class="template-g-section-label">
+                        <div class="template-g-status-badge upcoming">COMING SOON</div>
+                        <div class="template-g-section-title">Expanding Capacity</div>
+                    </div>
+                    <div class="template-g-logo-grid template-g-logo-grid-three">
+                        <div class="template-g-facilitator-card upcoming">
+                            <div class="template-g-facilitator-logo-wrapper">
+                                <img src="./public/daydreams.png" alt="DayDreams" class="template-g-facilitator-logo" />
+                            </div>
+                            <div class="template-g-facilitator-name">DayDreams</div>
+                        </div>
+                        <div class="template-g-facilitator-card upcoming">
+                            <div class="template-g-facilitator-logo-wrapper">
+                                <img src="./public/thirdweb.jpg" alt="Thirdweb" class="template-g-facilitator-logo" />
+                            </div>
+                            <div class="template-g-facilitator-name">Thirdweb</div>
+                        </div>
+                        <div class="template-g-facilitator-card upcoming">
+                            <div class="template-g-facilitator-logo-wrapper">
+                                <img src="./public/stakefy.jpg" alt="Stakefy" class="template-g-facilitator-logo" />
+                            </div>
+                            <div class="template-g-facilitator-name">Stakefy</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="template-g-bottom-strip">
+            <div class="template-g-strip-text">Expanding agent payment capacity</div>
+        </div>
     </div>
 </body>
 </html>
