@@ -97,8 +97,8 @@ export async function GET(request: NextRequest) {
     // Calculate stats for each service
     const serviceStats = services.map(service => {
       const transactions = service.transactions;
-      const totalVolume = transactions.reduce((sum, tx) => sum + BigInt(tx.amount), BigInt(0));
-      const totalFees = transactions.reduce((sum, tx) => sum + BigInt(tx.feeAmount), BigInt(0));
+      const totalVolume = transactions.reduce((sum: bigint, tx) => sum + BigInt(tx.amount), BigInt(0));
+      const totalFees = transactions.reduce((sum: bigint, tx) => sum + BigInt(tx.feeAmount), BigInt(0));
       const uniqueUsers = new Set(
         transactions
           .filter(tx => tx.from && tx.from !== '')
