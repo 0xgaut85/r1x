@@ -485,15 +485,43 @@ export default function R1xAgentContent() {
         if (response.status === 400) {
           const message: string = errorData.error || errorData.message || '';
           if (typeof message === 'string' && /required/i.test(message)) {
-            // Inform the user exactly what is missing and stop the flow
-            const missingHint = message;
+            // Try to infer missing keys from the error message (best-effort, generic)
+            const inferredKeys: string[] = [];
+            // Look for quoted keys or words before "is required"/"are required"
+            const quoted = message.match(/"([^"]+)"/g)?.map(s => s.replace(/"/g, '')) || [];
+            inferredKeys.push(...quoted);
+            const reqMatch = message.match(/([A-Za-z0-9_\- ]+)\s+(is|are)\s+required/i);
+            if (reqMatch && reqMatch[1]) {
+              const tokens = reqMatch[1].split(/[\s,]+/).map(t => t.trim()).filter(Boolean);
+              // Prefer last non-generic token as a key candidate
+              const candidate = tokens.reverse().find(t => !['field', 'value', 'input', 'parameter', 'agent', 'name'].includes(t.toLowerCase()));
+              if (candidate) inferredKeys.push(candidate);
+            }
+            // Deduplicate and sanitize candidates
+            const missingKeys = Array.from(new Set(inferredKeys.filter(Boolean))).slice(0, 3);
+
+            // Persist pending purchase so user's next message can supply key=value
+            setPendingPurchase({
+              service,
+              isExternal: isExternalService,
+              baseRequest: {
+                body: requestData.body,
+                queryParams: requestData.queryParams,
+                headers: requestData.headers,
+              },
+              missing: missingKeys.length > 0 ? missingKeys : ['value'],
+              fieldLocations: requestData.fieldLocations,
+              hints: requestData.hints,
+            });
+
+            const fieldList = (missingKeys.length > 0 ? missingKeys : ['<field>']).map(k => `- ${k}`).join('\n');
             setMessages(prev => {
               const updated = [...prev];
               const last = updated[updated.length - 1];
               updated[updated.length - 1] = {
                 ...last,
                 status: 'error',
-                content: `The selected service requires additional input from you:\n\n${missingHint}\n\nPlease provide the required value (e.g., the agent name), and I'll retry the purchase.`,
+                content: `The selected service requires additional input:\n${fieldList}\n\nReply with key=value for each field. If there's only one field, you can reply with just the value.`,
               };
               return updated;
             });
