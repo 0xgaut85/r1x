@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import dynamicImport from 'next/dynamic';
 import Footer from '@/components/Footer';
+import CryptoLogo from '@/components/CryptoLogo';
 
 const Header = dynamicImport(() => import('@/components/Header'), { ssr: false });
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
@@ -269,11 +270,11 @@ export default function PlatformPanelPage() {
                 {/* Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
                   {[
-                    { label: 'Total Volume', value: `${parseFloat(analytics.summary.totalVolume || '0').toFixed(2)} USDC` },
-                    { label: 'Total Fees', value: `${parseFloat(analytics.summary.totalFees || '0').toFixed(2)} USDC` },
-                    { label: 'Transactions', value: (analytics.summary.totalTransactions || 0).toString() },
-                    { label: 'Unique Users', value: (analytics.summary.uniqueUsers || 0).toString() },
-                    { label: 'Active Services', value: (analytics.summary.activeServices || 0).toString() },
+                    { label: 'Total Volume', value: `${parseFloat(analytics.summary.totalVolume || '0').toFixed(2)}`, showLogo: true },
+                    { label: 'Total Fees', value: `${parseFloat(analytics.summary.totalFees || '0').toFixed(2)}`, showLogo: true },
+                    { label: 'Transactions', value: (analytics.summary.totalTransactions || 0).toString(), showLogo: false },
+                    { label: 'Unique Users', value: (analytics.summary.uniqueUsers || 0).toString(), showLogo: false },
+                    { label: 'Active Services', value: (analytics.summary.activeServices || 0).toString(), showLogo: false },
                   ].map((card, idx) => (
                     <motion.div
                       key={card.label}
@@ -286,7 +287,15 @@ export default function PlatformPanelPage() {
                         {card.label}
                       </p>
                       <p className="text-2xl font-bold" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
-                        {card.value}
+                        <span className="flex items-center gap-1">
+                          {card.value}
+                          {card.showLogo && (
+                            <>
+                              <CryptoLogo symbol="USDC" size={16} />
+                              USDC
+                            </>
+                          )}
+                        </span>
                       </p>
                     </motion.div>
                   ))}
