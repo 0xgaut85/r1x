@@ -17,11 +17,6 @@ const nextConfig: NextConfig = {
   ],
   output: 'standalone',
   
-  // Skip ESLint during builds to speed up build time
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  
   // Exclude x402-server from Next.js build (it's a separate Express server)
   typescript: {
     ignoreBuildErrors: false,
