@@ -35,8 +35,15 @@ export async function GET(request: NextRequest) {
     // If the provided URL is an API/endpoint, screenshot the project homepage instead
     try {
       const urlObj = new URL(normalizedUrl);
-      if (urlObj.pathname.startsWith('/api/') || urlObj.pathname.includes('/api/')) {
-        normalizedUrl = `${urlObj.protocol}//${urlObj.host}`;
+
+      const hasApiSubdomain = /^([a-z0-9-]+-)?api\./i.test(urlObj.hostname);
+      let homepageHost = urlObj.host;
+      if (hasApiSubdomain) {
+        homepageHost = homepageHost.replace(/^([a-z0-9-]+-)?api\./i, '');
+      }
+
+      if (hasApiSubdomain || urlObj.pathname.startsWith('/api/') || urlObj.pathname.includes('/api/')) {
+        normalizedUrl = `${urlObj.protocol}//${homepageHost}`;
       }
     } catch {
       return NextResponse.json(

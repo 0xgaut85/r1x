@@ -40,21 +40,30 @@ export default function ServiceScreenshot({
     let normalizedUrl = url.trim();
 
     // Derive a project homepage if the input looks like an API/endpoint
-    const apiPattern = /^https?:\/\/[^\/]+\/(api|v\d+)(\/|$)/i;
+    const apiPathPattern = /^https?:\/\/[^\/]+\/(api|v\d+)(\/|$)/i;
     const hasPathApi = normalizedUrl.includes('/api/')
       || normalizedUrl.includes('/v1/')
       || normalizedUrl.includes('/v2/')
       || normalizedUrl.includes('/v3/')
-      || apiPattern.test(normalizedUrl);
+      || apiPathPattern.test(normalizedUrl);
 
     try {
       if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
         normalizedUrl = `https://${normalizedUrl}`;
       }
       const u = new URL(normalizedUrl);
-      if (hasPathApi || u.pathname && u.pathname !== '/' && (u.pathname.includes('/api/') || apiPattern.test(normalizedUrl))) {
-        // Screenshot the project website (origin) instead of the API path
-        normalizedUrl = `${u.protocol}//${u.host}`;
+
+      // Detect API-style subdomains like api.example.com, dev-api.example.com, staging-api.example.com
+      const hasApiSubdomain = /^([a-z0-9-]+-)?api\./i.test(u.hostname);
+      // If we detect API subdomain, strip the api/staging-api prefix to get the project site
+      let homepageHost = u.host;
+      if (hasApiSubdomain) {
+        homepageHost = homepageHost.replace(/^([a-z0-9-]+-)?api\./i, '');
+      }
+
+      if (hasApiSubdomain || (hasPathApi || (u.pathname && u.pathname !== '/' && u.pathname.includes('/api/')))) {
+        // Screenshot the project website (apex or non-api subdomain) instead of the API path
+        normalizedUrl = `${u.protocol}//${homepageHost}`;
       }
     } catch {
       // Fall back: if it's clearly a path-like or starts with '/', we cannot screenshot reliably
