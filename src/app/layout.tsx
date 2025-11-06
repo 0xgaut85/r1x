@@ -16,31 +16,33 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "r1x - Humanity's first blind computer",
+  metadataBase: new URL('https://server.r1xlabs.com'),
+  title: "server.r1xlabs.com",
   description: "From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.",
   openGraph: {
-    title: "r1x - Humanity's first blind computer",
+    title: "server.r1xlabs.com",
     description: "From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.",
+    siteName: 'R1X Labs',
     type: 'website',
-    url: 'https://www.r1xlabs.com',
+    url: 'https://server.r1xlabs.com/',
     images: [
       {
-        url: 'https://www.r1xlabs.com/logo.png',
+        url: 'https://server.r1xlabs.com/logo.png',
         width: 1200,
         height: 630,
-        alt: 'r1x',
+        alt: 'R1X Labs',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: "r1x - Humanity's first blind computer",
+    title: "server.r1xlabs.com",
     description: "From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.",
-    images: ['https://www.r1xlabs.com/logo.png'],
+    images: ['https://server.r1xlabs.com/logo.png'],
   },
   icons: {
-    icon: '/tg2.png',
-    apple: '/tg2.png',
+    icon: '/favicon.ico',
+    apple: '/favicon.ico',
   },
 };
 
