@@ -48,8 +48,8 @@ export const metadata: Metadata = {
     'og:image:secure_url': 'https://server.r1xlabs.com/api/logo',
   },
   icons: {
-    icon: '/favicon.ico',
-    apple: '/favicon.ico',
+    icon: '/tg2.png',
+    apple: '/tg2.png',
   },
 };
 
