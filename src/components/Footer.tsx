@@ -57,6 +57,7 @@ export default function Footer() {
               <li><a href="/r1x-plug" className="text-gray-600 hover:text-[#FF4D00] transition-colors duration-200 text-xs sm:text-sm" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>R1X AGENT BUILDER</a></li>
               <li><a href="/r1x-sdk" className="text-gray-600 hover:text-[#FF4D00] transition-colors duration-200 text-xs sm:text-sm" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>R1X SDK</a></li>
               <li><a href="/r1x-facilitator" className="text-gray-600 hover:text-[#FF4D00] transition-colors duration-200 text-xs sm:text-sm" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>R1X FACILITATOR</a></li>
+              <li><a href="/r1x-x402-creator" className="text-gray-600 hover:text-[#FF4D00] transition-colors duration-200 text-xs sm:text-sm" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>R1X X402 CREATOR</a></li>
               <li className="pt-2 mt-2 border-t border-gray-300"><a href="/user-panel" className="text-gray-600 hover:text-[#FF4D00] transition-colors duration-200 text-xs sm:text-sm" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>USER PANEL</a></li>
               <li><a href="/platform-panel" className="text-gray-600 hover:text-[#FF4D00] transition-colors duration-200 text-xs sm:text-sm" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>PLATFORM PANEL</a></li>
             </ul>

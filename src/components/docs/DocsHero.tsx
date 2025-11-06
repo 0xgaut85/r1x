@@ -5,8 +5,8 @@ import { FadeInUp } from '@/components/motion';
 export default function DocsHero() {
   return (
     <section 
-      className="relative min-h-[60vh] flex items-center justify-center overflow-hidden" 
-      style={{ backgroundColor: '#000000', paddingTop: '80px', paddingBottom: '80px' }}
+      className="relative min-h-[60vh] flex items-center justify-center overflow-hidden docs-page-hero" 
+      style={{ backgroundColor: '#000000', paddingTop: '200px', paddingBottom: '80px' }}
     >
       <div className="w-full px-4 sm:px-6 md:px-10 lg:px-[40px]" style={{ maxWidth: 'none' }}>
         <FadeInUp>

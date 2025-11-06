@@ -1,6 +1,7 @@
 'use client';
 
 import DocsSection from '@/components/docs/DocsSection';
+import DocsNavigation from '@/components/docs/DocsNavigation';
 import DocsCallout from '@/components/docs/DocsCallout';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock';
 import DocsPageHero from '@/components/docs/DocsPageHero';
@@ -106,6 +107,7 @@ export default function ApiPage() {
         title="API Reference"
         description="x402‑compatible endpoints for quote → pay → retry flows. JSON first, USDC on Base, proof via X‑PAYMENT header."
       />
+      <DocsNavigation />
 
       <DocsSection>
         <div className="space-y-12">

@@ -4,6 +4,7 @@ import DocsSection from '@/components/docs/DocsSection';
 import DocsCallout from '@/components/docs/DocsCallout';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock';
 import DocsPageHero from '@/components/docs/DocsPageHero';
+import DocsNavigation from '@/components/docs/DocsNavigation';
 import { FadeInUp } from '@/components/motion';
 import Link from 'next/link';
 
@@ -60,6 +61,7 @@ export default function TutorialsPage() {
         title="Tutorials"
         description="Step-by-step guides for building on r1x. From basic setup to advanced integrations."
       />
+      <DocsNavigation />
 
       <DocsSection>
         <div className="space-y-12">

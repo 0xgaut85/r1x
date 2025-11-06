@@ -75,7 +75,7 @@ export default function AnatomyOfNodeSection() {
             <FadeInUp delay={0.2}>
               <div className="w-full h-64 sm:h-80 md:h-96 overflow-hidden" style={{ borderRadius: '0px' }}>
                 <GrainImage 
-                  src="https://images.unsplash.com/photo-1526378722484-cc91839f1b19?w=800&h=800&fit=crop&q=80&sat=-100&con=15&exp=-10"
+                  src="https://images.unsplash.com/photo-1497493292307-31c376b6e479?w=800&h=800&fit=crop&q=80&sat=-100&con=15&exp=-10"
                   alt="Infrastructure for autonomy"
                   className="w-full h-full"
                 />

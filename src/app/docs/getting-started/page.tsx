@@ -4,6 +4,7 @@ import DocsSection from '@/components/docs/DocsSection';
 import DocsCallout from '@/components/docs/DocsCallout';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock';
 import DocsPageHero from '@/components/docs/DocsPageHero';
+import DocsNavigation from '@/components/docs/DocsNavigation';
 import { FadeInUp } from '@/components/motion';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,7 @@ export default function GettingStartedPage() {
         title="Getting Started"
         description="Set up your r1x development environment and start building on the machine economy."
       />
+      <DocsNavigation />
 
       <DocsSection>
         <h2 className="text-black text-2xl sm:text-3xl md:text-[32px] mb-6" style={{

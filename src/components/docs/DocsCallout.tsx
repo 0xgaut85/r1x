@@ -23,16 +23,16 @@ const CALLOUT_VARIANTS: Record<NonNullable<DocsCalloutProps['variant']>, DocsCal
     text: 'rgba(255, 255, 255, 0.9)',
   },
   warning: {
-    bg: 'rgba(255, 77, 0, 0.1)',
+    bg: '#FFF4E6',
     border: '#FF4D00',
     accent: '#FF4D00',
-    text: 'rgba(255, 255, 255, 0.9)',
+    text: '#1F2937',
   },
   success: {
-    bg: 'rgba(0, 255, 0, 0.05)',
-    border: 'rgba(0, 255, 0, 0.3)',
-    accent: '#00FF00',
-    text: 'rgba(255, 255, 255, 0.9)',
+    bg: '#F0FDF4',
+    border: '#22C55E',
+    accent: '#22C55E',
+    text: '#1F2937',
   },
   note: {
     bg: 'rgba(255, 255, 255, 0.05)',

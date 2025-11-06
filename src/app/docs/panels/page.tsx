@@ -2,6 +2,7 @@
 
 import DocsPageHero from '@/components/docs/DocsPageHero';
 import DocsSection from '@/components/docs/DocsSection';
+import DocsNavigation from '@/components/docs/DocsNavigation';
 import DocsCallout from '@/components/docs/DocsCallout';
 import { FadeInUp, StaggerChildren, StaggerChild } from '@/components/motion';
 
@@ -14,6 +15,7 @@ export default function PanelsDocsPage() {
         title="User & Platform Panels"
         description="Real‑time analytics for users and platform operators. Monitor agent spending, track revenue, verify on‑chain settlements."
       />
+      <DocsNavigation />
 
       <DocsSection>
         <FadeInUp>

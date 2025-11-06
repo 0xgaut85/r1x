@@ -1,6 +1,7 @@
 'use client';
 
 import { FadeInUp } from '@/components/motion';
+import DocsNavigation from '@/components/docs/DocsNavigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,6 +9,7 @@ export default function RoboticsDocsPage() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F7F7F7' }}>
       <div className="px-4 sm:px-6 md:px-10 lg:px-[40px] py-24 md:pt-[138.641px]" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <DocsNavigation />
         <FadeInUp>
           <h1 className="text-black text-4xl sm:text-5xl md:text-[56px] leading-tight mb-8" style={{
             fontWeight: 400,

@@ -4,6 +4,7 @@ import DocsSection from '@/components/docs/DocsSection';
 import DocsCallout from '@/components/docs/DocsCallout';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock';
 import DocsPageHero from '@/components/docs/DocsPageHero';
+import DocsNavigation from '@/components/docs/DocsNavigation';
 import { FadeInUp, StaggerChildren, StaggerChild } from '@/components/motion';
 
 export const dynamic = 'force-dynamic';
@@ -81,6 +82,7 @@ export default function UtilitiesPage() {
         title="Utilities"
         description="Comprehensive utilities for building on r1x. All utilities are TypeScript-typed and documented."
       />
+      <DocsNavigation />
 
       <DocsSection>
         <StaggerChildren className="space-y-12">

@@ -22,7 +22,7 @@ export default function RoboticsUseCasesSection() {
       icon: <Users className="w-12 h-12" />,
       title: 'Human expertise on tap',
       description: 'Agents escalate complex tasks to human specialists. Pay per consultation minute. On‑chain receipts, instant settlement. The gig economy meets AGI.',
-      image: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
+      image: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
     },
     {
       icon: <Radio className="w-12 h-12" />,
@@ -34,7 +34,7 @@ export default function RoboticsUseCasesSection() {
       icon: <Battery className="w-12 h-12" />,
       title: 'Compute marketplaces',
       description: 'Rent GPU cycles, serverless functions, or specialized hardware. Agents pay per job. Idle compute becomes instant revenue. The Airbnb for AI infrastructure.',
-      image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
+      image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
     },
   ];
 

@@ -5,10 +5,10 @@ import HeroBackground from '@/components/hero/HeroBackground';
 export default function OverviewHero() {
   return (
     <section 
-      className="relative min-h-[60vh] flex items-center justify-center overflow-hidden" 
+      className="relative min-h-[60vh] flex items-center justify-center overflow-hidden docs-page-hero" 
       style={{ 
         backgroundColor: '#000000', 
-        paddingTop: '120px', // Account for header (138.641px) + nav bar (~56px)
+        paddingTop: '200px', // Account for header (138.641px) + extra space to prevent cutoff
         paddingBottom: '80px',
         scrollMarginTop: '200px',
       }}

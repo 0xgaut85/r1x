@@ -40,7 +40,7 @@ export default function TokenSection() {
           <p className="text-gray-700 text-lg sm:text-xl mb-12 max-w-3xl" style={{ 
             fontWeight: 400,
             fontFamily: 'TWKEverettMono-Regular, monospace',
-            color: 'rgb(0, 0, 0)',
+            color: '#374151',
           }}>
             Native token on Base network. Powering the machine economy.
           </p>
@@ -70,7 +70,7 @@ export default function TokenSection() {
                     fontWeight: 400,
                     fontFamily: 'BaselGrotesk-Regular, sans-serif',
                     lineHeight: '1.4',
-                    color: 'rgb(0, 0, 0)'
+                    color: '#374151'
                   }}>
                     {feature.description}
                   </p>

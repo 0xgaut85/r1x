@@ -135,7 +135,7 @@ export default function HeroSection() {
     };
   }, []);
 
-  const scrambleTexts = ['AI agents pay.', 'Agents transact.', 'Web3 evolves.', 'Autonomy scales.'];
+  const scrambleTexts = ['Machine economy.', 'AI agents.', 'Robots.', 'Pay-per-use.'];
   const enterText = ['ENTER'];
 
   return (
@@ -169,8 +169,8 @@ export default function HeroSection() {
         }}
       />
 
-      <div className="w-full px-4 sm:px-6 md:px-10 lg:px-[40px] pb-20 sm:pb-16 relative z-10" style={{ maxWidth: 'none', paddingTop: '138.641px' }}>
-        <div className="hero-content" ref={heroRef as React.RefObject<HTMLDivElement>} style={{ textAlign: 'start', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 1 }}>
+      <div className="w-full px-4 sm:px-6 md:px-10 lg:px-[40px] pb-20 sm:pb-16 pt-24 sm:pt-32 md:pt-[138.641px] relative z-10" style={{ maxWidth: 'none' }}>
+        <div className="hero-content max-w-full sm:max-w-[500px] md:max-w-[600px] lg:max-w-[700px]" ref={heroRef as React.RefObject<HTMLDivElement>} style={{ textAlign: 'start', width: '100%', position: 'relative', zIndex: 1 }}>
           <p className="text-white text-lg sm:text-xl md:text-[22px] mb-4 sm:mb-6" style={{ 
             fontWeight: 400,
             fontFamily: 'TWKEverettMono-Regular, monospace',
@@ -193,7 +193,7 @@ export default function HeroSection() {
             wordBreak: 'break-word',
             overflowWrap: 'break-word'
           }}>
-            AI agents are here. They need to pay.<br />x402 makes every API machine‑payable.<br />The autonomous economy starts now.
+            From users to AI agents, from AI agents to robots.<br />Enabling machines to operate in an autonomous economy.
           </h1>
           <div className="flex flex-col sm:flex-row" style={{ marginBottom: '0px', marginTop: '0px', gap: '16px' }}>
             <MagneticButton

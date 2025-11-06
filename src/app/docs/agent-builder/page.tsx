@@ -2,6 +2,7 @@
 
 import DocsPageHero from '@/components/docs/DocsPageHero';
 import DocsSection from '@/components/docs/DocsSection';
+import DocsNavigation from '@/components/docs/DocsNavigation';
 import DocsCallout from '@/components/docs/DocsCallout';
 import { FadeInUp } from '@/components/motion';
 
@@ -14,6 +15,7 @@ export default function AgentBuilderDocsPage() {
         title="r1x Agent Builder"
         description="No‑code platform for building AI agents with built‑in x402 payment capabilities."
       />
+      <DocsNavigation />
 
       <DocsSection>
         <FadeInUp>

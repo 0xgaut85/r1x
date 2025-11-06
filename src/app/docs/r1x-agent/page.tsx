@@ -2,6 +2,7 @@
 
 import DocsPageHero from '@/components/docs/DocsPageHero';
 import DocsSection from '@/components/docs/DocsSection';
+import DocsNavigation from '@/components/docs/DocsNavigation';
 import DocsCallout from '@/components/docs/DocsCallout';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock';
 import { FadeInUp, StaggerChildren, StaggerChild } from '@/components/motion';
@@ -15,6 +16,7 @@ export default function R1xAgentDocsPage() {
         title="r1x Agent"
         description="The first AI agent that actually pays. Built to prove AI agents can be economically autonomous."
       />
+      <DocsNavigation />
 
       <DocsSection>
         <FadeInUp>

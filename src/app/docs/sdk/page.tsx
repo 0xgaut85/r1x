@@ -2,6 +2,7 @@
 
 import DocsPageHero from '@/components/docs/DocsPageHero';
 import DocsSection from '@/components/docs/DocsSection';
+import DocsNavigation from '@/components/docs/DocsNavigation';
 import DocsCallout from '@/components/docs/DocsCallout';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock';
 import { FadeInUp } from '@/components/motion';
@@ -15,6 +16,7 @@ export default function SDKDocsPage() {
         title="r1x SDK"
         description="Build AI agents that pay. Ship x402 services agents buy. The complete toolkit for the autonomous economy."
       />
+      <DocsNavigation />
 
       <DocsSection>
         <FadeInUp>

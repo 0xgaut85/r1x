@@ -70,7 +70,7 @@ export default function OverviewFeatures() {
                   fontWeight: 400,
                   fontFamily: 'BaselGrotesk-Regular, sans-serif',
                   lineHeight: '1.4',
-                  color: 'rgb(0, 0, 0)'
+                  color: '#374151'
                 }}>
                   {feature.description}
                 </p>

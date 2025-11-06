@@ -1,7 +1,6 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { FadeInUp } from '@/components/motion';
 
 interface DocsSectionProps {
   children: ReactNode;
@@ -15,18 +14,18 @@ export default function DocsSection({
   children, 
   className = '', 
   backgroundColor = '#F7F7F7',
-  paddingTop = '80px',
+  paddingTop = '100px',
   paddingBottom = '80px',
 }: DocsSectionProps) {
   return (
     <section 
-      style={{ backgroundColor, paddingTop, paddingBottom }}
+      style={{ backgroundColor, paddingTop, paddingBottom, position: 'relative', zIndex: 1 }}
       className={className}
     >
       <div className="px-4 sm:px-6 md:px-10 lg:px-[40px]" style={{ maxWidth: 'none' }}>
-        <FadeInUp>
+        <div className="docs-section-content">
           {children}
-        </FadeInUp>
+        </div>
       </div>
     </section>
   );

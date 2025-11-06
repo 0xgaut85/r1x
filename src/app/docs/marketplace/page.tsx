@@ -2,6 +2,7 @@
 
 import DocsPageHero from '@/components/docs/DocsPageHero';
 import DocsSection from '@/components/docs/DocsSection';
+import DocsNavigation from '@/components/docs/DocsNavigation';
 import DocsCallout from '@/components/docs/DocsCallout';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock';
 import { FadeInUp, StaggerChildren, StaggerChild } from '@/components/motion';
@@ -15,6 +16,7 @@ export default function MarketplaceDocsPage() {
         title="r1x Marketplace"
         description="The app store for AI agents. Discover, quote, and purchase x402 services on demand."
       />
+      <DocsNavigation />
 
       <DocsSection>
         <FadeInUp>

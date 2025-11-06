@@ -246,6 +246,50 @@ export default function Header() {
                         )}
                       </AnimatePresence>
                     </a>
+                    <a 
+                      href="/r1x-x402-creator" 
+                      onClick={(e) => handleComingSoonClick(e, 'r1x-x402-creator')}
+                      className="block text-sm text-gray-700 hover:text-black py-3 transition-colors duration-200 relative overflow-hidden"
+                      style={{ minHeight: '44px', display: 'flex', alignItems: 'center', fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                    >
+                      <AnimatePresence mode="wait">
+                        {isComingSoonVisible('r1x-x402-creator') ? (
+                          <motion.div
+                            key="coming-soon"
+                            initial={{ opacity: 0, scale: 0.8, y: -10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.8, y: 10 }}
+                            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                            className="coming-soon-box"
+                            style={{
+                              backgroundColor: '#FF4D00',
+                              color: '#000000',
+                              padding: '8px 16px',
+                              clipPath: 'polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)',
+                              fontFamily: 'TWKEverettMono-Regular, monospace',
+                              fontSize: '12px',
+                              fontWeight: 400,
+                              textAlign: 'center',
+                              whiteSpace: 'nowrap',
+                              width: '100%',
+                              display: 'inline-block'
+                            }}
+                          >
+                            Coming soon
+                          </motion.div>
+                        ) : (
+                          <motion.span
+                            key="text"
+                            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.8, y: -10 }}
+                            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                          >
+                            R1X X402 CREATOR
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </a>
                     <div className="border-t border-black my-3" style={{ borderColor: '#000000', borderWidth: '1px' }}></div>
                     <a 
                       href="/user-panel" 
