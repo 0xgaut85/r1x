@@ -52,11 +52,9 @@ export async function GET(request: NextRequest) {
       .filter(tx => tx.service) // Filter out transactions with missing services
       .slice(0, 10)
       .map(tx => {
-        // For x402 transactions, settlementHash is the actual on-chain transaction hash
-        // transactionHash is the authorization hash (not on-chain)
-      const explorerHash = tx.settlementHash || tx.transactionHash;
-      const explorerUrl = explorerHash 
-        ? `https://basescan.org/tx/${explorerHash}`
+      // For x402 transactions, ONLY use settlementHash (actual on-chain tx)
+      const explorerUrl = tx.settlementHash 
+        ? `https://basescan.org/tx/${tx.settlementHash}`
         : null;
       
       return {

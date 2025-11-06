@@ -467,7 +467,7 @@ export default function UserPanelContent() {
                           </td>
                           <td className="py-2 px-4">
                             <a
-                              href={`https://basescan.org/tx/${purchase.settlementHash || purchase.transactionHash}`}
+                              href={`https://basescan.org/tx/${purchase.settlementHash as string}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-[#FF4D00] hover:underline text-xs"

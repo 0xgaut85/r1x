@@ -180,8 +180,9 @@ export default function R1xAgentContent() {
   const buildRequestFromSchema = (
     schema: any,
     userInput: string
-  ): { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string> } => {
-    const result: { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string> } = {};
+  ): { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string>; missing?: string[] } => {
+    const result: { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string>; missing?: string[] } = {};
+    const missing: string[] = [];
     
     if (!schema?.outputSchema?.input) {
       // No schema, use default
@@ -189,14 +190,18 @@ export default function R1xAgentContent() {
     }
 
     const input = schema.outputSchema.input;
+    const genericInputKeys = new Set(['input', 'message', 'prompt', 'query', 'text']);
     
     // Build query params if specified
     if (input.queryParams && typeof input.queryParams === 'object') {
       result.queryParams = {};
       Object.entries(input.queryParams).forEach(([key, fieldDef]: [string, any]) => {
         if (fieldDef.required && !fieldDef.default) {
-          // Use user input for required fields without defaults
-          result.queryParams![key] = userInput;
+          if (genericInputKeys.has(key)) {
+            result.queryParams![key] = userInput;
+          } else {
+            missing.push(key);
+          }
         } else if (fieldDef.default !== undefined) {
           result.queryParams![key] = String(fieldDef.default);
         }
@@ -208,7 +213,11 @@ export default function R1xAgentContent() {
       result.headers = {};
       Object.entries(input.headerFields).forEach(([key, fieldDef]: [string, any]) => {
         if (fieldDef.required && !fieldDef.default) {
-          result.headers![key] = userInput;
+          if (genericInputKeys.has(key)) {
+            result.headers![key] = userInput;
+          } else {
+            missing.push(key);
+          }
         } else if (fieldDef.default !== undefined) {
           result.headers![key] = String(fieldDef.default);
         }
@@ -221,7 +230,11 @@ export default function R1xAgentContent() {
         result.body = {};
         Object.entries(input.bodyFields).forEach(([key, fieldDef]: [string, any]) => {
           if (fieldDef.required && !fieldDef.default) {
-            result.body![key] = userInput;
+            if (genericInputKeys.has(key)) {
+              result.body![key] = userInput;
+            } else {
+              missing.push(key);
+            }
           } else if (fieldDef.default !== undefined) {
             result.body![key] = fieldDef.default;
           }
@@ -233,6 +246,10 @@ export default function R1xAgentContent() {
     } else {
       // No bodyFields specified, use default
       result.body = { input: userInput };
+    }
+
+    if (missing.length > 0) {
+      result.missing = missing;
     }
 
     return result;
@@ -278,6 +295,17 @@ export default function R1xAgentContent() {
       // Preflight: Get service schema
       const schema = await preflightService(service.endpoint);
       const requestData = buildRequestFromSchema(schema, lastUserMessage);
+
+      // If the provider requires specific fields (non-generic) ask user instead of guessing
+      if (requestData.missing && requestData.missing.length > 0) {
+        const missingList = requestData.missing.map(k => `- ${k}`).join('\n');
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `This service requires additional fields:\n${missingList}\n\nPlease provide these values (e.g., "agent=Alice").`,
+        }]);
+        setError('Missing required fields for the external service.');
+        return false;
+      }
       
       console.log('[Autopurchase] Built request from schema:', {
         hasBody: !!requestData.body,
