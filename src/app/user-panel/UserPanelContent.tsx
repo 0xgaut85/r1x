@@ -69,6 +69,7 @@ const COLORS = ['#FF4D00', '#FF6B35', '#FF8C5A', '#FFA87F', '#FFC4A5'];
 interface Purchase {
   id: string;
   transactionHash: string;
+  settlementHash?: string | null;
   service: {
     id: string;
     name: string;
@@ -466,7 +467,7 @@ export default function UserPanelContent() {
                           </td>
                           <td className="py-2 px-4">
                             <a
-                              href={`https://basescan.org/tx/${purchase.transactionHash}`}
+                              href={`https://basescan.org/tx/${purchase.settlementHash || purchase.transactionHash}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-[#FF4D00] hover:underline text-xs"

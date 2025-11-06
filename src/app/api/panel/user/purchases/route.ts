@@ -60,6 +60,7 @@ export async function GET(request: NextRequest) {
       return {
         id: tx.id,
         transactionHash: tx.transactionHash,
+        settlementHash: (tx as any).settlementHash || null,
         service: {
           id: tx.service.serviceId,
           name: tx.service.name,
