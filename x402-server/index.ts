@@ -14,6 +14,8 @@ import { parsePaymentProof, saveTransaction } from './save-transaction';
 import { x402scanResponseTransformer } from './x402scan-response';
 import fs from 'fs';
 import path from 'path';
+import https from 'https';
+import { URL } from 'url';
 
 config();
 
@@ -932,6 +934,24 @@ function extractCategory(name?: string, description?: string): string {
   return 'Other';
 }
 
+// Helper function to fetch image via HTTPS
+function fetchImage(url: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const parsedUrl = new URL(url);
+    https.get(parsedUrl, (response) => {
+      if (response.statusCode !== 200) {
+        reject(new Error(`Failed to fetch: ${response.statusCode}`));
+        return;
+      }
+      
+      const chunks: Buffer[] = [];
+      response.on('data', (chunk) => chunks.push(chunk));
+      response.on('end', () => resolve(Buffer.concat(chunks)));
+      response.on('error', reject);
+    }).on('error', reject);
+  });
+}
+
 // Logo endpoint - proxy to Next.js app logo (more reliable)
 app.get('/logo.png', async (req, res) => {
   try {
@@ -940,16 +960,10 @@ app.get('/logo.png', async (req, res) => {
     
     console.log('[x402-server] Fetching logo from:', logoUrl);
     
-    const response = await fetch(logoUrl);
-    if (!response.ok) {
-      console.error('[x402-server] Failed to fetch logo:', response.status);
-      return res.status(404).json({ error: 'Logo not found' });
-    }
-    
-    const buffer = await response.arrayBuffer();
+    const buffer = await fetchImage(logoUrl);
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    res.send(Buffer.from(buffer));
+    res.send(buffer);
   } catch (error: any) {
     console.error('[x402-server] Error serving logo:', error);
     res.status(500).json({ error: 'Failed to serve logo' });
@@ -962,15 +976,10 @@ app.get('/favicon.ico', async (req, res) => {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.r1xlabs.com';
     const logoUrl = `${baseUrl}/tg2.png`;
     
-    const response = await fetch(logoUrl);
-    if (!response.ok) {
-      return res.status(404).end();
-    }
-    
-    const buffer = await response.arrayBuffer();
+    const buffer = await fetchImage(logoUrl);
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    res.send(Buffer.from(buffer));
+    res.send(buffer);
   } catch (error: any) {
     console.error('[x402-server] Error serving favicon:', error);
     res.status(500).end();
