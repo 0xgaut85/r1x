@@ -48,35 +48,40 @@ export async function GET(request: NextRequest) {
     const uniqueServices = new Set(verifiedTransactions.map(tx => tx.serviceId));
     
     // Get recent transactions (last 10)
-    const recentTransactions = transactions.slice(0, 10).map(tx => {
-      // For x402 transactions, prefer settlement hash if available (final settlement transaction)
-      // Otherwise use transaction hash (original payment transaction)
-      const explorerHash = tx.settlementHash || tx.transactionHash;
-      const explorerUrl = explorerHash 
-        ? `https://basescan.org/tx/${explorerHash}`
-        : null;
-      
-      return {
-        id: tx.id,
-        transactionHash: tx.transactionHash,
-        settlementHash: tx.settlementHash,
-        serviceName: tx.service.name,
-        serviceId: tx.service.serviceId,
-        amount: formatUnits(BigInt(tx.amount), USDC_DECIMALS),
-        fee: formatUnits(BigInt(tx.feeAmount), USDC_DECIMALS),
-        status: tx.status,
-        timestamp: tx.timestamp,
-        blockNumber: tx.blockNumber,
-        blockExplorerUrl: explorerUrl,
-      };
-    });
+    const recentTransactions = transactions
+      .filter(tx => tx.service) // Filter out transactions with missing services
+      .slice(0, 10)
+      .map(tx => {
+        // For x402 transactions, prefer settlement hash if available (final settlement transaction)
+        // Otherwise use transaction hash (original payment transaction)
+        const explorerHash = tx.settlementHash || tx.transactionHash;
+        const explorerUrl = explorerHash 
+          ? `https://basescan.org/tx/${explorerHash}`
+          : null;
+        
+        return {
+          id: tx.id,
+          transactionHash: tx.transactionHash,
+          settlementHash: tx.settlementHash,
+          serviceName: tx.service!.name,
+          serviceId: tx.service!.serviceId,
+          amount: formatUnits(BigInt(tx.amount), USDC_DECIMALS),
+          fee: formatUnits(BigInt(tx.feeAmount), USDC_DECIMALS),
+          status: tx.status,
+          timestamp: tx.timestamp,
+          blockNumber: tx.blockNumber,
+          blockExplorerUrl: explorerUrl,
+        };
+      });
 
     // Get transactions by category (from verified and settled transactions)
-    const transactionsByCategory = verifiedTransactions.reduce((acc, tx) => {
-      const category = tx.service.category || 'Other';
-      acc[category] = (acc[category] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const transactionsByCategory = verifiedTransactions
+      .filter(tx => tx.service) // Filter out transactions with missing services
+      .reduce((acc, tx) => {
+        const category = tx.service!.category || 'Other';
+        acc[category] = (acc[category] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
 
     return NextResponse.json({
       address: userAddress,

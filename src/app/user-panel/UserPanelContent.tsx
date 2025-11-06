@@ -138,9 +138,26 @@ export default function UserPanelContent() {
         fetch(`/api/panel/user/purchases?address=${address}`),
       ]);
 
+      // Parse responses and check for errors
       const statsData = await statsRes.json();
+      if (!statsRes.ok) {
+        console.error('Failed to fetch user stats:', statsData);
+        throw new Error(statsData.error || 'Failed to fetch user stats');
+      }
+
       const usageData = await usageRes.json();
-      const purchasesData = await purchasesRes.json();
+      if (!usageRes.ok) {
+        console.error('Failed to fetch user usage:', usageData);
+        throw new Error(usageData.error || 'Failed to fetch user usage');
+      }
+
+      let purchasesData = { purchases: [] };
+      if (purchasesRes.ok) {
+        purchasesData = await purchasesRes.json();
+      } else {
+        const errorData = await purchasesRes.json();
+        console.error('Failed to fetch purchases:', errorData);
+      }
 
       setStats(statsData);
       setUsage(usageData);
@@ -249,7 +266,7 @@ export default function UserPanelContent() {
             </div>
 
             {/* Stats Cards */}
-            {stats && (
+            {stats?.stats && (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -261,7 +278,7 @@ export default function UserPanelContent() {
                   </p>
                   <p className="text-2xl font-bold" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
                     <span className="flex items-center gap-1">
-                      {parseFloat(stats.stats.totalSpent).toFixed(2)} 
+                      {parseFloat(stats.stats.totalSpent || '0').toFixed(2)} 
                       <CryptoLogo symbol="USDC" size={16} />
                       USDC
                     </span>
@@ -329,27 +346,31 @@ export default function UserPanelContent() {
                   <h3 className="text-lg font-semibold mb-4" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
                     Daily Usage
                   </h3>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={usage.dailyUsage} margin={{ top: 8, right: 16, left: 0, bottom: 24 }}>
-                      <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" />
-                      <XAxis
-                        dataKey="date"
-                        tickFormatter={dateLabelFormatter}
-                        tickLine={false}
-                        axisLine={{ stroke: '#E5E7EB' }}
-                        minTickGap={24}
-                        style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
-                      />
-                      <YAxis
-                        tickFormatter={numberValueFormatter}
-                        tickLine={false}
-                        axisLine={{ stroke: '#E5E7EB' }}
-                        style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
-                      />
-                      <Tooltip content={<ChartTooltip valueFormatter={(v) => numberValueFormatter(v)} labelFormatter={dateLabelFormatter} />} />
-                      <Line type="monotone" dataKey="transactions" stroke="#FF4D00" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <div style={{ width: '100%', height: '320px' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={usage.dailyUsage} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+                        <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="date"
+                          tickFormatter={dateLabelFormatter}
+                          tickLine={false}
+                          axisLine={{ stroke: '#E5E7EB' }}
+                          minTickGap={30}
+                          interval="preserveStartEnd"
+                          style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '11px' }}
+                        />
+                        <YAxis
+                          tickFormatter={numberValueFormatter}
+                          tickLine={false}
+                          axisLine={{ stroke: '#E5E7EB' }}
+                          width={45}
+                          style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '11px' }}
+                        />
+                        <Tooltip content={<ChartTooltip valueFormatter={(v) => numberValueFormatter(v)} labelFormatter={dateLabelFormatter} />} />
+                        <Line type="monotone" dataKey="transactions" stroke="#FF4D00" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
                 </motion.div>
 
                 {/* Usage by Service */}
@@ -362,28 +383,32 @@ export default function UserPanelContent() {
                   <h3 className="text-lg font-semibold mb-4" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
                     Usage by Service
                   </h3>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={usage.usageByService.slice(0, 10)} margin={{ top: 8, right: 16, left: 0, bottom: 24 }}>
-                      <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" />
-                      <XAxis
-                        dataKey="serviceName"
-                        angle={-45}
-                        textAnchor="end"
-                        height={100}
-                        tickLine={false}
-                        axisLine={{ stroke: '#E5E7EB' }}
-                        style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
-                      />
-                      <YAxis
-                        tickFormatter={numberValueFormatter}
-                        tickLine={false}
-                        axisLine={{ stroke: '#E5E7EB' }}
-                        style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
-                      />
-                      <Tooltip content={<ChartTooltip valueFormatter={(v) => numberValueFormatter(v)} />} />
-                      <Bar dataKey="count" fill="#FF4D00" radius={[6, 6, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <div style={{ width: '100%', height: '320px' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={usage.usageByService.slice(0, 10)} margin={{ top: 10, right: 20, left: 10, bottom: 80 }}>
+                        <CartesianGrid stroke="#E5E7EB" strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="serviceName"
+                          angle={-45}
+                          textAnchor="end"
+                          height={80}
+                          interval={0}
+                          tickLine={false}
+                          axisLine={{ stroke: '#E5E7EB' }}
+                          style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '10px' }}
+                        />
+                        <YAxis
+                          tickFormatter={numberValueFormatter}
+                          tickLine={false}
+                          axisLine={{ stroke: '#E5E7EB' }}
+                          width={45}
+                          style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '11px' }}
+                        />
+                        <Tooltip content={<ChartTooltip valueFormatter={(v) => numberValueFormatter(v)} />} />
+                        <Bar dataKey="count" fill="#FF4D00" radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </motion.div>
               </div>
             )}

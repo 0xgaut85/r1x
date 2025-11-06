@@ -91,27 +91,29 @@ export async function GET(request: NextRequest) {
     }));
 
     // Service performance
-    const serviceStats = transactions.reduce((acc, tx) => {
-      const serviceId = tx.service.serviceId;
-      if (!acc[serviceId]) {
-        acc[serviceId] = {
-          serviceId,
-          serviceName: tx.service.name,
-          category: tx.service.category || 'Other',
-          transactions: 0,
-          volume: BigInt(0),
-          fees: BigInt(0),
-          users: new Set<string>(),
-        };
-      }
-      acc[serviceId].transactions++;
-      acc[serviceId].volume += BigInt(tx.amount);
-      acc[serviceId].fees += BigInt(tx.feeAmount);
-      if (tx.from) {
-        acc[serviceId].users.add(tx.from.toLowerCase());
-      }
-      return acc;
-    }, {} as Record<string, { serviceId: string; serviceName: string; category: string; transactions: number; volume: bigint; fees: bigint; users: Set<string> }>);
+    const serviceStats = transactions
+      .filter(tx => tx.service) // Filter out transactions with missing services
+      .reduce((acc, tx) => {
+        const serviceId = tx.service!.serviceId;
+        if (!acc[serviceId]) {
+          acc[serviceId] = {
+            serviceId,
+            serviceName: tx.service!.name,
+            category: tx.service!.category || 'Other',
+            transactions: 0,
+            volume: BigInt(0),
+            fees: BigInt(0),
+            users: new Set<string>(),
+          };
+        }
+        acc[serviceId].transactions++;
+        acc[serviceId].volume += BigInt(tx.amount);
+        acc[serviceId].fees += BigInt(tx.feeAmount);
+        if (tx.from) {
+          acc[serviceId].users.add(tx.from.toLowerCase());
+        }
+        return acc;
+      }, {} as Record<string, { serviceId: string; serviceName: string; category: string; transactions: number; volume: bigint; fees: bigint; users: Set<string> }>);
 
     const topServices = Object.values(serviceStats)
       .map(service => ({

@@ -77,21 +77,23 @@ export async function GET(request: NextRequest) {
     }));
 
     // Group by service
-    const usageByService = transactions.reduce((acc, tx) => {
-      const serviceId = tx.service.serviceId;
-      if (!acc[serviceId]) {
-        acc[serviceId] = {
-          serviceId,
-          serviceName: tx.service.name,
-          category: tx.service.category || 'Other',
-          count: 0,
-          amount: BigInt(0),
-        };
-      }
-      acc[serviceId].count++;
-      acc[serviceId].amount += BigInt(tx.amount);
-      return acc;
-    }, {} as Record<string, { serviceId: string; serviceName: string; category: string; count: number; amount: bigint }>);
+    const usageByService = transactions
+      .filter(tx => tx.service) // Filter out transactions with missing services
+      .reduce((acc, tx) => {
+        const serviceId = tx.service!.serviceId;
+        if (!acc[serviceId]) {
+          acc[serviceId] = {
+            serviceId,
+            serviceName: tx.service!.name,
+            category: tx.service!.category || 'Other',
+            count: 0,
+            amount: BigInt(0),
+          };
+        }
+        acc[serviceId].count++;
+        acc[serviceId].amount += BigInt(tx.amount);
+        return acc;
+      }, {} as Record<string, { serviceId: string; serviceName: string; category: string; count: number; amount: bigint }>);
 
     const serviceData = Object.values(usageByService)
       .map(service => ({
