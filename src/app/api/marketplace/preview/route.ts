@@ -32,14 +32,11 @@ export async function GET(request: NextRequest) {
       normalizedUrl = `https://${normalizedUrl}`;
     }
 
-    // Skip API endpoints - these won't render well as screenshots
+    // If the provided URL is an API/endpoint, screenshot the project homepage instead
     try {
       const urlObj = new URL(normalizedUrl);
       if (urlObj.pathname.startsWith('/api/') || urlObj.pathname.includes('/api/')) {
-        return NextResponse.json(
-          { error: 'API endpoints cannot be screenshot', screenshotUrl: null },
-          { status: 400 }
-        );
+        normalizedUrl = `${urlObj.protocol}//${urlObj.host}`;
       }
     } catch {
       return NextResponse.json(
