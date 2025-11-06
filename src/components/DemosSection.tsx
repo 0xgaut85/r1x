@@ -6,10 +6,10 @@ import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const demos = [
-  { title: "Paid API calls", desc: "Monetize every endpoint instantly. Agents pay per request in USDC. Your backend becomes a revenue stream today.", image: "https://images.unsplash.com/photo-1529101091764-c3526daf38fe?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10" },
+  { title: "Paid API calls", desc: "Monetize every endpoint instantly. Agents pay per request in USDC. Your backend becomes a revenue stream today.", image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10" },
   { title: "Agent marketplaces", desc: "List services agents discover and purchase automatically. Build the next Stripe for AI. We provide the payment rails.", image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10" },
-  { title: "Premium models", desc: "Gate your LLMs behind x402. Agents pay per token. Instant settlement. This is how AI model creators monetize at scale.", image: "https://images.unsplash.com/photo-1604147706282-84e312d1a977?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10" },
-  { title: "Live data feeds", desc: "Market data, social graphs, sensor networks—all x402‑protected. Agents pay per access. Build Bloomberg for machines.", image: "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10" },
+  { title: "Premium models", desc: "Gate your LLMs behind x402. Agents pay per token. Instant settlement. This is how AI model creators monetize at scale.", image: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10" },
+  { title: "Live data feeds", desc: "Market data, social graphs, sensor networks—all x402‑protected. Agents pay per access. Build Bloomberg for machines.", image: "https://images.unsplash.com/photo-1482192596544-9eb780fc7f66?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10" },
   { title: "GPU‑as‑a‑service", desc: "Agents rent your idle compute. Per‑second billing. USDC settlement. Turn every GPU into passive income.", image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10" },
   { title: "Gated knowledge", desc: "Proprietary datasets, research, trained embeddings—agents pay to access. Intellectual property meets machine payments.", image: "https://images.unsplash.com/photo-1485322551133-3a4c27a9d925?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10" },
 ];

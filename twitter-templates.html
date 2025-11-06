@@ -990,6 +990,183 @@
             letter-spacing: 2px;
             text-transform: uppercase;
         }
+
+        /* Template F - Token Launch Date Teaser */
+        .template-f {
+            background: 
+                radial-gradient(ellipse at 50% 50%, rgba(255, 77, 0, 0.12) 0%, transparent 60%),
+                radial-gradient(circle at 20% 80%, rgba(255, 77, 0, 0.05) 0%, transparent 40%),
+                #000000;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .template-f-radial-grid {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 1000px;
+            height: 1000px;
+            background-image: 
+                repeating-radial-gradient(
+                    circle at center,
+                    transparent 0px,
+                    transparent 79px,
+                    var(--white-08) 79px,
+                    var(--white-08) 80px
+                );
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .template-f-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 10;
+            width: 100%;
+        }
+
+        .template-f-logo-top {
+            margin-bottom: 60px;
+        }
+
+        .template-f-logo-top img {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+        }
+
+        .template-f-date {
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 180px;
+            line-height: 1;
+            color: #ffffff;
+            letter-spacing: -6px;
+            font-weight: 400;
+            margin-bottom: 48px;
+            text-shadow: 0 0 80px rgba(255, 77, 0, 0.3);
+            position: relative;
+        }
+
+        .template-f-date::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120%;
+            height: 2px;
+            background: repeating-linear-gradient(
+                to right,
+                transparent 0px,
+                transparent 20px,
+                var(--white-15) 20px,
+                var(--white-15) 40px
+            );
+            z-index: -1;
+        }
+
+        .template-f-tagline {
+            font-family: 'BaselGrotesk-Regular', sans-serif;
+            font-size: 28px;
+            line-height: 1.5;
+            color: var(--white-85);
+            margin-bottom: 32px;
+            font-weight: 400;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .template-f-tagline-accent {
+            color: var(--accent-orange);
+            font-weight: 400;
+        }
+
+        .template-f-subtitle {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 12px;
+            color: var(--white-40);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-top: 60px;
+            font-weight: 400;
+        }
+
+
+        .template-f-accent-bars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(
+                to right,
+                transparent 0%,
+                var(--accent-orange) 20%,
+                var(--accent-orange) 80%,
+                transparent 100%
+            );
+            z-index: 10;
+        }
+
+        .template-f-accent-bars-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(
+                to right,
+                transparent 0%,
+                var(--accent-orange) 20%,
+                var(--accent-orange) 80%,
+                transparent 100%
+            );
+            z-index: 10;
+        }
+
+
+        .template-f-countdown-label {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 11px;
+            color: var(--accent-orange);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            padding: 10px 24px;
+            border: 1px solid var(--accent-orange);
+            background: rgba(255, 77, 0, 0.05);
+            backdrop-filter: blur(4px);
+            z-index: 10;
+        }
+
+        .template-f-corner-glow {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .template-f-corner-glow.top-left {
+            top: -150px;
+            left: -150px;
+            background: radial-gradient(circle at center, rgba(255, 77, 0, 0.08) 0%, transparent 70%);
+        }
+
+        .template-f-corner-glow.bottom-right {
+            bottom: -150px;
+            right: -150px;
+            background: radial-gradient(circle at center, rgba(255, 77, 0, 0.08) 0%, transparent 70%);
+        }
     </style>
 </head>
 <body>
@@ -1206,6 +1383,31 @@
             </div>
         </div>
         <div class="template-e-bottom-bar"></div>
+    </div>
+
+    <!-- Template F - Token Launch Date Teaser -->
+    <div class="artboard template-f">
+        <div class="grain-overlay"></div>
+        <div class="template-f-radial-grid"></div>
+        <div class="template-f-corner-glow top-left"></div>
+        <div class="template-f-corner-glow bottom-right"></div>
+        <div class="corner-marks">
+            <div class="corner-mark top-left"></div>
+            <div class="corner-mark top-right"></div>
+            <div class="corner-mark bottom-left"></div>
+            <div class="corner-mark bottom-right"></div>
+        </div>
+        <div class="template-f-accent-bars"></div>
+        <div class="template-f-accent-bars-bottom"></div>
+        <div class="template-f-content">
+            <div class="template-f-logo-top">
+                <img src="./public/logosvg.svg" alt="r1x Logo" class="logo-white" />
+            </div>
+            <div class="template-f-date">11.6.2025</div>
+            <div class="template-f-tagline">The <span class="template-f-tagline-accent">$R1X</span> token launches</div>
+            <div class="template-f-subtitle">THE FUTURE OF AUTONOMOUS PAYMENTS</div>
+        </div>
+        <div class="template-f-countdown-label">TOKEN LAUNCH</div>
     </div>
 </body>
 </html>

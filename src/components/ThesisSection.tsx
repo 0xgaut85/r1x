@@ -22,7 +22,7 @@ export default function ThesisSection() {
       icon: <Zap className="w-12 h-12" />,
       title: '[x402]',
       description: 'HTTP 402 Payment Required, reimagined for Web3. Server quotes, agent pays in USDC, client retries with proof. The missing protocol that makes agents economically autonomous.',
-      image: 'https://images.unsplash.com/photo-1518085250887-2f903c200fee?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
+      image: 'https://images.unsplash.com/photo-1518779578993-ec3579fee39f?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
     },
   ];
 
