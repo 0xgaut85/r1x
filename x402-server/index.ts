@@ -161,8 +161,32 @@ app.use(paymentMiddleware(
   facilitatorConfig,
 ));
 
+// Error handler - only catches errors that middleware doesn't handle
+// Payment middleware handles settlement errors internally, but may throw if something goes wrong
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  // If headers already sent, middleware already handled the error
+  if (res.headersSent) {
+    console.error('[Express] Error after response sent (likely async settlement error):', err.message);
+    return;
+  }
+  
+  // Log the error for debugging
+  console.error('[Express] Unhandled error:', {
+    message: err.message,
+    stack: err.stack,
+    path: req.path,
+  });
+  
+  // Only send response if middleware didn't already handle it
+  if (!res.headersSent) {
+    res.status(500).json({
+      error: 'Internal server error',
+      message: process.env.NODE_ENV === 'development' ? err.message : 'An error occurred',
+    });
+  }
+});
+
 // Routes réelles - le middleware vérifie le paiement avant d'arriver ici
-// Payment middleware handles its own errors - no need for error handler
 app.post('/api/r1x-agent/chat', async (req, res) => {
   // Le paiement est déjà vérifié par le middleware PayAI
   // Si le middleware a déjà envoyé une réponse (erreur de settlement, etc.), on ne fait rien
