@@ -19,6 +19,9 @@ export async function GET(request: NextRequest) {
     const network = searchParams.get('network') || 'base';
     const chainId = searchParams.get('chainId') ? parseInt(searchParams.get('chainId')!) : 8453;
     const skipSync = searchParams.get('skipSync') === 'true';
+    const type = searchParams.get('type'); // Service type filter
+    const q = searchParams.get('q'); // Search query
+    const source = searchParams.get('source'); // Source filter (payai, x402scan)
 
     // Build query
     const where: any = {
@@ -33,6 +36,22 @@ export async function GET(request: NextRequest) {
 
     if (merchant) {
       where.merchant = { equals: merchant, mode: 'insensitive' };
+    }
+
+    if (type) {
+      where.type = { equals: type, mode: 'insensitive' };
+    }
+
+    if (source) {
+      where.source = { equals: source, mode: 'insensitive' };
+    }
+
+    // Search query (name or description)
+    if (q) {
+      where.OR = [
+        { name: { contains: q, mode: 'insensitive' } },
+        { description: { contains: q, mode: 'insensitive' } },
+      ];
     }
 
     let services = await prisma.service.findMany({
@@ -75,9 +94,13 @@ export async function GET(request: NextRequest) {
         merchant: service.merchant,
         category: service.category || 'Other',
         endpoint: service.endpoint || undefined,
-        websiteUrl: websiteUrl,
+        websiteUrl: websiteUrl || service.websiteUrl || undefined,
         available: service.available,
-        isExternal: false, // Services from our database
+        isExternal: service.isExternal ?? false,
+        token: service.token,
+        tokenSymbol: service.tokenSymbol,
+        network: service.network,
+        chainId: service.chainId,
       };
     });
 

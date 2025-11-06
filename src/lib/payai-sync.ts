@@ -24,6 +24,13 @@ export interface PayAIService {
   endpoint?: string;
   websiteUrl?: string; // Website URL for screenshot preview
   metadata?: any;
+  // Extended fields
+  type?: string;
+  method?: string;
+  inputSchema?: any;
+  outputSchema?: any;
+  source?: string;
+  isExternal?: boolean;
 }
 
 /**
@@ -338,6 +345,31 @@ function normalizePayAIService(service: any): PayAIService {
                      (service.resource && (service.resource.startsWith('http://') || service.resource.startsWith('https://')) ? service.resource : '') ||
                      '';
   
+  // Extract service type from metadata or infer from endpoint/resource
+  const type = metadata.type ||
+               metadata.serviceType ||
+               (service.resource?.includes('nft') || service.resource?.includes('mint') ? 'nft_mint' :
+                service.resource?.includes('token') ? 'token' :
+                service.resource?.includes('api') ? 'api' : 'api');
+  
+  // Extract HTTP method (default POST for x402)
+  const method = metadata.method || 
+                 metadata.httpMethod ||
+                 (firstAccept.outputSchema?.input?.method || 'POST');
+  
+  // Extract schemas from accepts array
+  const inputSchema = firstAccept.outputSchema?.input || 
+                      firstAccept.inputSchema ||
+                      metadata.inputSchema ||
+                      null;
+  const outputSchema = firstAccept.outputSchema?.output ||
+                       firstAccept.outputSchema ||
+                       metadata.outputSchema ||
+                       null;
+  
+  // Mark as external (from PayAI facilitator)
+  const isExternal = true; // All PayAI facilitator services are external
+  
   // Extract service ID - use resource URL as ID or generate from resource
   const serviceId = service.id ||
                     service.resourceId ||
@@ -381,6 +413,13 @@ function normalizePayAIService(service: any): PayAIService {
     endpoint: endpoint,
     websiteUrl: websiteUrl,
     metadata: service,
+    // Extended fields
+    type: type,
+    method: method,
+    inputSchema: inputSchema,
+    outputSchema: outputSchema,
+    source: 'payai',
+    isExternal: isExternal,
   };
 }
 
@@ -416,6 +455,14 @@ export async function syncPayAIServices(): Promise<{ synced: number; errors: num
           endpoint: service.endpoint,
           available: true,
           metadata: service.metadata || {},
+          // Extended fields
+          type: service.type || null,
+          method: service.method || null,
+          inputSchema: service.inputSchema || null,
+          outputSchema: service.outputSchema || null,
+          source: service.source || 'payai',
+          isExternal: service.isExternal ?? true,
+          websiteUrl: service.websiteUrl || null,
           updatedAt: new Date(),
         },
         create: {
@@ -433,6 +480,14 @@ export async function syncPayAIServices(): Promise<{ synced: number; errors: num
           endpoint: service.endpoint,
           available: true,
           metadata: service.metadata || {},
+          // Extended fields
+          type: service.type || null,
+          method: service.method || null,
+          inputSchema: service.inputSchema || null,
+          outputSchema: service.outputSchema || null,
+          source: service.source || 'payai',
+          isExternal: service.isExternal ?? true,
+          websiteUrl: service.websiteUrl || null,
         },
       });
 
