@@ -2,7 +2,16 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  serverExternalPackages: ['wagmi', '@reown/appkit', '@reown/appkit-adapter-wagmi'],
+  serverExternalPackages: [
+    'wagmi', 
+    '@reown/appkit', 
+    '@reown/appkit-adapter-wagmi',
+    '@reown/appkit-polyfills',
+    '@reown/appkit-wallet',
+    '@reown/appkit-common',
+    '@reown/appkit-controllers',
+    '@reown/appkit-utils',
+  ],
   output: 'standalone',
   
   // Exclude x402-server from Next.js build (it's a separate Express server)

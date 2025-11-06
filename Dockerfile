@@ -65,6 +65,11 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/scripts ./scripts
 
+# Copy node_modules for external packages (required for standalone mode with serverExternalPackages)
+# Next.js standalone doesn't include dependencies of external packages, so we need to copy them
+# Copy entire node_modules to ensure all dependencies are available (standalone mode requirement)
+COPY --from=builder /app/node_modules ./node_modules
+
 RUN chown -R nextjs:nodejs /app
 RUN chmod +x scripts/start.sh
 
