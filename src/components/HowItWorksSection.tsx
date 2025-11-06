@@ -29,7 +29,7 @@ export default function HowItWorksSection() {
   const economyTexts = ['economy', 'economy', 'economy'];
 
   return (
-    <section style={{ backgroundColor: '#000000', paddingTop: '80px', paddingBottom: '120px' }}>
+    <section className="relative" style={{ backgroundColor: '#000000', paddingTop: '80px', paddingBottom: '120px', zIndex: 10 }}>
       <div className="px-4 sm:px-6 md:px-10 lg:px-[40px]" style={{ maxWidth: 'none' }}>
         <FadeInUp>
           <h2 className="text-white text-3xl sm:text-4xl md:text-[46.45px] leading-tight md:leading-[51.095px]" style={{

@@ -30,7 +30,7 @@ const careers = [
 
 export default function CareersSection() {
   return (
-    <section style={{ backgroundColor: '#F7F7F7', paddingTop: '80px', paddingBottom: '80px' }}>
+    <section className="relative" style={{ backgroundColor: '#F7F7F7', paddingTop: '80px', paddingBottom: '80px', zIndex: 10 }}>
       <div className="px-4 sm:px-6 md:px-10 lg:px-[40px]" style={{ maxWidth: 'none' }}>
         <div className="space-y-12 sm:space-y-16">
           {careers.map((career, index) => (

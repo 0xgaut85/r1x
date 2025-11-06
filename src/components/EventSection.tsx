@@ -9,7 +9,7 @@ export default function EventSection() {
   const readTexts = ['READ'];
 
   return (
-    <section className="bg-black text-white" style={{ paddingTop: '80px', paddingBottom: '80px' }}>
+    <section className="relative bg-black text-white" style={{ paddingTop: '80px', paddingBottom: '80px', zIndex: 10 }}>
       <div className="px-4 sm:px-6 md:px-10 lg:px-[40px]" style={{ maxWidth: 'none' }}>
         <StaggerChildren className="flex items-center gap-2 sm:gap-4 mb-8 sm:mb-12">
           <StaggerChild>
