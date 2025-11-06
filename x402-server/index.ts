@@ -218,7 +218,8 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
             serviceId: 'r1x-agent-chat',
             serviceName: 'r1x Agent Chat',
             price: '0.25', // $0.25 per message
-            feePercentage: parseFloat(process.env.PLATFORM_FEE_PERCENTAGE || '5'),
+            // Count full ticket price as platform fees for first-party service
+            feePercentage: 100,
           }),
           new Promise((_, reject) => 
             setTimeout(() => reject(new Error('Transaction save timeout (5s)')), 5000)
@@ -275,20 +276,35 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
           category: true,
           priceDisplay: true,
           endpoint: true,
+          merchant: true,
+          tokenSymbol: true,
+          metadata: true,
         },
         orderBy: { createdAt: 'desc' },
         take: 50, // Limit to 50 most recent services
       });
       
-      // Format database services
-      const dbServicesFormatted = dbServices.map(s => ({
-        id: s.serviceId,
-        name: s.name,
-        description: s.description || '',
-        category: s.category || 'Other',
-        price: s.priceDisplay,
-        endpoint: s.endpoint || null,
-      }));
+      // Format database services with full details
+      const dbServicesFormatted = dbServices.map(s => {
+        // Extract website URL from metadata if available
+        const websiteUrl = s.metadata?.website || 
+                          s.metadata?.websiteUrl ||
+                          s.metadata?.homepage ||
+                          s.metadata?.url ||
+                          undefined;
+        
+        return {
+          id: s.serviceId,
+          name: s.name,
+          description: s.description || '',
+          category: s.category || 'Other',
+          price: s.priceDisplay,
+          endpoint: s.endpoint || null,
+          merchant: s.merchant || null,
+          tokenSymbol: s.tokenSymbol || 'USDC',
+          websiteUrl: websiteUrl,
+        };
+      });
       
       // Fetch PayAI services in real-time (same as marketplace API)
       let payaiServices: any[] = [];
@@ -465,6 +481,9 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
                 category: extractCategory(name, description) || 'Other',
                 price: priceWithFee, // Price with fee
                 endpoint: endpoint,
+                merchant: firstAccept.payTo || s.merchant || null,
+                tokenSymbol: tokenSymbol,
+                websiteUrl: s.websiteUrl || metadata.website || metadata.websiteUrl || null,
               };
             });
             
@@ -506,11 +525,21 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
     // Appel direct à Anthropic API
     const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
     
-    // Build services list for system prompt
+    // Build services list for system prompt with detailed information
     const servicesList = availableServices.length > 0
-      ? `\n\nAvailable Marketplace Services (use these when users ask about services):\n${availableServices.map((s, i) => 
-          `${i + 1}. ${s.name} (${s.category}) - ${s.price} USDC${s.endpoint ? ` - Endpoint: ${s.endpoint}` : ' - No direct endpoint'}\n   ${s.description || 'No description'}`
-        ).join('\n')}`
+      ? `\n\nAvailable Marketplace Services (use these when users ask about services):\n${availableServices.map((s, i) => {
+          const parts = [
+            `${i + 1}. **${s.name}**`,
+            `Category: ${s.category}`,
+            `Price: ${s.price} USDC`,
+            s.description ? `Description: ${s.description}` : '',
+            s.endpoint ? `Endpoint: ${s.endpoint}` : '⚠️ No direct purchase endpoint (check marketplace for details)',
+            s.merchant ? `Merchant: ${s.merchant.substring(0, 10)}...${s.merchant.substring(s.merchant.length - 8)}` : '',
+            s.tokenSymbol ? `Token: ${s.tokenSymbol}` : '',
+            s.websiteUrl ? `Website: ${s.websiteUrl}` : '',
+          ].filter(Boolean);
+          return parts.join('\n   ');
+        }).join('\n\n')}`
       : '\n\nNote: No marketplace services are currently available. When users ask about services, let them know the marketplace is being populated.';
 
     // System prompt to make Claude act as r1x Agent
@@ -551,11 +580,23 @@ Your role:
 
 Always respond as r1x Agent with expertise in r1x and x402. Be helpful, accurate, and enthusiastic about the machine economy.
 
-IMPORTANT - Service References:
+IMPORTANT - Service References and Purchase Instructions:
 - When users ask about services or want to purchase something, ONLY mention services from the "Available Marketplace Services" list below
 - Do NOT make up, invent, or hallucinate services that are not in the list
+- Do NOT mention NFTs, tokens, or minting unless a service in the list explicitly provides that functionality
 - If a user asks for a service that doesn't exist in the list, politely inform them that it's not currently available and suggest checking the marketplace for updates
-- Always use the exact service names, prices, and descriptions from the list below${servicesList}`;
+- Always use the exact service names, prices, descriptions, categories, and endpoints from the list below
+- Study each service carefully - read the description, category, and endpoint to understand what it actually does
+- If a service has no endpoint listed, it cannot be purchased directly - inform the user they need to check the marketplace
+
+Purchase Flow:
+- When a user wants to purchase a service, first confirm which service they want
+- If they confirm (say "yes", "confirm", "proceed", "go ahead", "purchase", "buy", etc.), you should trigger the purchase
+- To trigger a purchase, include this exact format in your response: [PURCHASE:service-id] where service-id is the exact ID from the service list
+- Example: If user confirms purchase of "AI Inference Service" with ID "ai-service-123", respond with: "I'll purchase that for you now. [PURCHASE:ai-service-123]"
+- Only services with an endpoint can be purchased - if a service has "⚠️ No direct purchase endpoint", inform the user they need to visit the marketplace
+
+${servicesList}`;
 
     const response = await anthropic.messages.create({
       model: 'claude-3-opus-20240229',
@@ -615,6 +656,9 @@ app.post('/api/x402/pay', async (req, res) => {
       // For external services, fee is calculated on base price, not total price
       // For our services, fee is calculated on total price (we receive full amount)
       const priceForFeeCalculation = isExternal ? basePrice : totalPrice;
+      const platformFeePercentage = isExternal
+        ? parseFloat(process.env.PLATFORM_FEE_PERCENTAGE || '5')
+        : 100;
       
       // Wrap in Promise.race with timeout to prevent hanging
       Promise.race([
@@ -623,7 +667,8 @@ app.post('/api/x402/pay', async (req, res) => {
           serviceId,
           serviceName,
           price: priceForFeeCalculation, // Use base price for external, total for our services
-          feePercentage: parseFloat(process.env.PLATFORM_FEE_PERCENTAGE || '5'),
+          // Count full ticket price as fees for first-party services
+          feePercentage: platformFeePercentage,
         }),
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Transaction save timeout (5s)')), 5000)
@@ -677,7 +722,8 @@ app.post('/api/r1x-agent/plan', async (req, res) => {
             serviceId: 'r1x-agent-plan',
             serviceName: 'r1x Agent Plan',
             price: '0.01',
-            feePercentage: parseFloat(process.env.PLATFORM_FEE_PERCENTAGE || '5'),
+            // Count full ticket price as platform fees for first-party service
+            feePercentage: 100,
           }),
           new Promise((_, reject) => 
             setTimeout(() => reject(new Error('Transaction save timeout (5s)')), 5000)
