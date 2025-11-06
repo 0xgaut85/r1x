@@ -369,6 +369,26 @@ export default function R1xAgentContent() {
           error: errorData,
         });
 
+        // If the external merchant requires specific input fields, surface it clearly
+        if (response.status === 400) {
+          const message: string = errorData.error || errorData.message || '';
+          if (typeof message === 'string' && /required/i.test(message)) {
+            // Inform the user exactly what is missing and stop the flow
+            const missingHint = message;
+            setMessages(prev => {
+              const updated = [...prev];
+              const last = updated[updated.length - 1];
+              updated[updated.length - 1] = {
+                ...last,
+                status: 'error',
+                content: `The selected service requires additional input from you:\n\n${missingHint}\n\nPlease provide the required value (e.g., the agent name), and I'll retry the purchase.`,
+              };
+              return updated;
+            });
+            return false;
+          }
+        }
+
         // Handle 402 Payment Required (shouldn't happen with x402-fetch, but handle gracefully)
         if (response.status === 402) {
           throw new Error(
