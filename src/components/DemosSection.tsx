@@ -3,15 +3,14 @@
 import { FadeInUp, StaggerChildren, StaggerChild, ScaleOnHover } from './motion';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import ApiServiceVisual from './visuals/ApiServiceVisual';
 
 const demos = [
-  { title: "API access", desc: "Price any HTTP endpoint per request. Charge for data, compute, or premium routes in USDC on Base." },
-  { title: "Robot services", desc: "Robots and agents buy perception, routing, and teleop on demand. Quotes become receipts." },
-  { title: "AI inference", desc: "Charge per inference, embedding, or tool call. No keys—just 402 quotes and verifiable payment." },
-  { title: "Data streams", desc: "Sell real‑time feeds per window. Clients pay per access and retry with proof to unlock." },
-  { title: "Compute resources", desc: "Expose bursty GPU/CPU as x402 services. Set prices by minute or job and settle instantly." },
-  { title: "Digital content", desc: "Unlock files, reports, or assets with one‑time payments. Machine‑readable receipts by design." },
+  { title: "API access", desc: "Price any HTTP endpoint per request. Charge for data, compute, or premium routes in USDC on Base.", image: "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=800&h=600&fit=crop&q=80" },
+  { title: "Robot services", desc: "Robots and agents buy perception, routing, and teleop on demand. Quotes become receipts.", image: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&h=600&fit=crop&q=80" },
+  { title: "AI inference", desc: "Charge per inference, embedding, or tool call. No keys—just 402 quotes and verifiable payment.", image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=600&fit=crop&q=80" },
+  { title: "Data streams", desc: "Sell real‑time feeds per window. Clients pay per access and retry with proof to unlock.", image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=600&fit=crop&q=80" },
+  { title: "Compute resources", desc: "Expose bursty GPU/CPU as x402 services. Set prices by minute or job and settle instantly.", image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&h=600&fit=crop&q=80" },
+  { title: "Digital content", desc: "Unlock files, reports, or assets with one‑time payments. Machine‑readable receipts by design.", image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&h=600&fit=crop&q=80" },
 ];
 
 export default function DemosSection() {
@@ -112,7 +111,11 @@ export default function DemosSection() {
               <ScaleOnHover>
                 <li className="p-4 sm:p-6 md:p-8 bg-white border border-gray-200 hover:border-[#FF4D00] transition-all duration-300 card-hover" style={{ borderRadius: '0px' }}>
               <div className="w-full h-40 sm:h-48 overflow-hidden mb-3 sm:mb-4" style={{ borderRadius: '0px' }}>
-                <ApiServiceVisual />
+                <img 
+                  src={demo.image}
+                  alt={demo.title}
+                  className="w-full h-full object-cover"
+                />
               </div>
               <h4 className="text-black mb-2 sm:mb-3 text-base sm:text-lg" style={{
                 fontWeight: 400,

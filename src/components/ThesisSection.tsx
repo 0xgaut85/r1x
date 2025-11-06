@@ -2,9 +2,6 @@
 
 import { FadeInUp, StaggerChildren, StaggerChild, ScaleOnHover } from './motion';
 import { MessageSquare, BarChart3, Zap } from 'lucide-react';
-import AgentVisual from './visuals/AgentVisual';
-import PanelVisual from './visuals/PanelVisual';
-import X402Visual from './visuals/X402Visual';
 
 export default function ThesisSection() {
   const features = [
@@ -12,19 +9,19 @@ export default function ThesisSection() {
       icon: <MessageSquare className="w-12 h-12" />,
       title: '[Agent]',
       description: 'An AI agent that plans, prices, and pays in USDC on Base. Chats with Claude 3 Opus, understands x402 flows, and executes end‑to‑end purchases to unlock resources.',
-      visual: <AgentVisual />
+      image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=600&fit=crop&q=80'
     },
     {
       icon: <BarChart3 className="w-12 h-12" />,
       title: '[Panel]',
       description: 'Create priced endpoints, set fees, and see quotes, receipts, and purchases in real time. Ship machine‑payable services and monitor adoption.',
-      visual: <PanelVisual />
+      image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=600&fit=crop&q=80'
     },
     {
       icon: <Zap className="w-12 h-12" />,
       title: '[x402]',
       description: 'HTTP 402 Payment Required for machines. Server quotes a price, wallet pays in USDC, client retries with proof via X‑PAYMENT header. Simple, verifiable, machine‑native.',
-      visual: <X402Visual />
+      image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&h=600&fit=crop&q=80'
     },
   ];
 
@@ -80,7 +77,11 @@ export default function ThesisSection() {
                 <ScaleOnHover>
                   <li className="border border-gray-200 hover:border-[#FF4D00] transition-all duration-300 card-hover group" style={{ borderRadius: '0px', paddingTop: '24px', paddingBottom: '24px', paddingLeft: '20px', paddingRight: '20px' }}>
                     <div className="w-full h-40 sm:h-48 overflow-hidden mb-3 sm:mb-4 relative" style={{ borderRadius: '0px' }}>
-                      {feature.visual}
+                      <img 
+                        src={feature.image} 
+                        alt={feature.title}
+                        className="w-full h-full object-cover"
+                      />
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/80">
                         <div className="text-[#FF4D00]">
                           {feature.icon}

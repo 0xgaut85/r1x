@@ -29,11 +29,15 @@ export class X402Client {
     this.maxValue = config.maxValue || BigInt(100 * 10 ** USDC_DECIMALS);
 
     try {
-      this.fetchWithPayment = wrapFetchWithPayment(
-        fetch,
+      // Wrap fetch - wrapFetchWithPayment expects a function that accepts URL | RequestInfo
+      // Native fetch already supports this, but we need to ensure type compatibility
+      const wrappedFetch = wrapFetchWithPayment(
+        fetch as any, // Type assertion to handle URL | RequestInfo compatibility
         config.walletClient as any,
         this.maxValue
       );
+      // Type assertion to match our interface - wrapFetchWithPayment returns compatible function
+      this.fetchWithPayment = wrappedFetch as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
     } catch (error) {
       console.error('[X402Client] Failed to wrap fetch:', error);
       throw error;
