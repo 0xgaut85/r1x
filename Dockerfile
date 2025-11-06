@@ -13,13 +13,11 @@ COPY package.json package-lock.json* ./
 # Copy Prisma schema before installing (needed for postinstall script)
 COPY prisma ./prisma/
 
-# Install dependencies with optimizations and BuildKit cache mount
+# Install dependencies with optimizations
 # Use --prefer-offline and --no-audit for faster installs
 # npm ci installs devDependencies by default
 # postinstall script will run prisma generate automatically
-# Cache mount speeds up repeated builds significantly
-RUN --mount=type=cache,id=npm-cache,target=/root/.npm \
-    npm ci --prefer-offline --no-audit --progress=false
+RUN npm ci --prefer-offline --no-audit --progress=false
 
 # Rebuild the source code only when needed
 FROM base AS builder
