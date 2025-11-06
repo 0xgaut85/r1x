@@ -254,7 +254,8 @@ export async function POST(request: NextRequest) {
             data: {
               serviceId: feeService.id,
               transactionHash: feeHash,
-              settlementHash: feeSettlementHash || null,
+              // Store a working explorer hash immediately; prefer settlementHash, else use feeHash
+              settlementHash: feeSettlementHash || feeHash,
               from: feeDetails.from?.toLowerCase() || payer.toLowerCase(),
               to: feeDetails.to?.toLowerCase() || process.env.MERCHANT_ADDRESS?.toLowerCase() || payer.toLowerCase(),
               amount: feeDetails.amount || feeAmountWei,
@@ -269,11 +270,11 @@ export async function POST(request: NextRequest) {
           });
 
           transactions.push({ type: 'fee', id: feeTx.id });
-        } else if (feeSettlementHash && !existingFeeTx.settlementHash) {
+        } else if ((feeSettlementHash || feeHash) && !existingFeeTx.settlementHash) {
           // Backfill settlement hash if we now have it
           await prisma.transaction.update({
             where: { id: existingFeeTx.id },
-            data: { settlementHash: feeSettlementHash },
+            data: { settlementHash: feeSettlementHash || feeHash },
           });
         }
       }
@@ -298,7 +299,8 @@ export async function POST(request: NextRequest) {
             data: {
               serviceId: service.id,
               transactionHash: serviceHash,
-              settlementHash: serviceSettlementHash || null,
+              // Store a working explorer hash immediately; prefer settlementHash, else use serviceHash
+              settlementHash: serviceSettlementHash || serviceHash,
               from: serviceDetails.from?.toLowerCase() || payer.toLowerCase(),
               to: serviceDetails.to?.toLowerCase() || service.merchant.toLowerCase(),
               amount: serviceDetails.amount || servicePriceWei,
@@ -313,11 +315,11 @@ export async function POST(request: NextRequest) {
           });
 
           transactions.push({ type: 'service', id: serviceTx.id });
-        } else if (serviceSettlementHash && !existingServiceTx.settlementHash) {
+        } else if ((serviceSettlementHash || serviceHash) && !existingServiceTx.settlementHash) {
           // Backfill settlement hash if we now have it
           await prisma.transaction.update({
             where: { id: existingServiceTx.id },
-            data: { settlementHash: serviceSettlementHash },
+            data: { settlementHash: serviceSettlementHash || serviceHash },
           });
         }
       }
