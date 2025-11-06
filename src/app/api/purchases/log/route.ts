@@ -53,10 +53,23 @@ function extractTransactionHash(receipt: any): string | null {
   if (!receipt) return null;
 
   // Try various possible fields
-  return receipt.transactionHash ||
+  return receipt.settlementHash || // Prefer settlement hash if receipt provides it
+         receipt.settlement?.transactionHash ||
+         receipt.transactionHash ||
          receipt.hash ||
          receipt.txHash ||
          receipt.payload?.authorization?.transactionHash ||
+         null;
+}
+
+/**
+ * Extract settlement transaction hash (on-chain) from receipt
+ */
+function extractSettlementHash(receipt: any): string | null {
+  if (!receipt) return null;
+  return receipt.settlementHash ||
+         receipt.settlement?.transactionHash ||
+         receipt.data?.settlement?.transactionHash ||
          null;
 }
 
@@ -170,6 +183,7 @@ export async function POST(request: NextRequest) {
     // Log fee transaction (if external service)
     if (type === 'external' && decodedFeeReceipt && feeAmount) {
       const feeHash = extractTransactionHash(decodedFeeReceipt);
+      const feeSettlementHash = extractSettlementHash(decodedFeeReceipt);
       const feeDetails = extractPaymentDetails(decodedFeeReceipt);
 
       if (feeHash) {
@@ -240,6 +254,7 @@ export async function POST(request: NextRequest) {
             data: {
               serviceId: feeService.id,
               transactionHash: feeHash,
+              settlementHash: feeSettlementHash || null,
               from: feeDetails.from?.toLowerCase() || payer.toLowerCase(),
               to: feeDetails.to?.toLowerCase() || process.env.MERCHANT_ADDRESS?.toLowerCase() || payer.toLowerCase(),
               amount: feeDetails.amount || feeAmountWei,
@@ -254,6 +269,12 @@ export async function POST(request: NextRequest) {
           });
 
           transactions.push({ type: 'fee', id: feeTx.id });
+        } else if (feeSettlementHash && !existingFeeTx.settlementHash) {
+          // Backfill settlement hash if we now have it
+          await prisma.transaction.update({
+            where: { id: existingFeeTx.id },
+            data: { settlementHash: feeSettlementHash },
+          });
         }
       }
     }
@@ -261,6 +282,7 @@ export async function POST(request: NextRequest) {
     // Log service transaction
     if (decodedServiceReceipt) {
       const serviceHash = extractTransactionHash(decodedServiceReceipt);
+      const serviceSettlementHash = extractSettlementHash(decodedServiceReceipt);
       const serviceDetails = extractPaymentDetails(decodedServiceReceipt);
 
       if (serviceHash) {
@@ -276,6 +298,7 @@ export async function POST(request: NextRequest) {
             data: {
               serviceId: service.id,
               transactionHash: serviceHash,
+              settlementHash: serviceSettlementHash || null,
               from: serviceDetails.from?.toLowerCase() || payer.toLowerCase(),
               to: serviceDetails.to?.toLowerCase() || service.merchant.toLowerCase(),
               amount: serviceDetails.amount || servicePriceWei,
@@ -290,6 +313,12 @@ export async function POST(request: NextRequest) {
           });
 
           transactions.push({ type: 'service', id: serviceTx.id });
+        } else if (serviceSettlementHash && !existingServiceTx.settlementHash) {
+          // Backfill settlement hash if we now have it
+          await prisma.transaction.update({
+            where: { id: existingServiceTx.id },
+            data: { settlementHash: serviceSettlementHash },
+          });
         }
       }
     }
