@@ -10,7 +10,7 @@ export default function RoboticsUseCasesSection() {
       icon: <Camera className="w-12 h-12" />,
       title: 'Vision APIs agents buy',
       description: 'Agents pay per inference for OCR, object detection, image analysis. No monthly fees. Just USDC per call. The AI vision market, now machine‑accessible.',
-      image: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
+      image: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
     },
     {
       icon: <MapPin className="w-12 h-12" />,
@@ -34,7 +34,7 @@ export default function RoboticsUseCasesSection() {
       icon: <Battery className="w-12 h-12" />,
       title: 'Compute marketplaces',
       description: 'Rent GPU cycles, serverless functions, or specialized hardware. Agents pay per job. Idle compute becomes instant revenue. The Airbnb for AI infrastructure.',
-      image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
+      image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
     },
   ];
 

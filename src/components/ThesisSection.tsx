@@ -16,13 +16,13 @@ export default function ThesisSection() {
       icon: <BarChart3 className="w-12 h-12" />,
       title: '[Panel]',
       description: 'Turn your API into revenue in minutes. Set prices, deploy x402, watch agents pay. Real‑time analytics, on‑chain receipts, instant USDC settlement. The dashboard for the agent economy.',
-      image: 'https://images.unsplash.com/photo-1556157382-97eda2d62296?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
+      image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
     },
     {
       icon: <Zap className="w-12 h-12" />,
       title: '[x402]',
       description: 'HTTP 402 Payment Required, reimagined for Web3. Server quotes, agent pays in USDC, client retries with proof. The missing protocol that makes agents economically autonomous.',
-      image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
+      image: 'https://images.unsplash.com/photo-1518085250887-2f903c200fee?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
     },
   ];
 
