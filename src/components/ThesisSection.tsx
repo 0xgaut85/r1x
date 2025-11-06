@@ -8,19 +8,19 @@ export default function ThesisSection() {
     {
       icon: <MessageSquare className="w-12 h-12" />,
       title: '[Agent]',
-      description: 'An AI agent that plans, prices, and pays in USDC on Base. Chats with Claude 3 Opus, understands x402 flows, and executes end‑to‑end purchases to unlock resources.',
+      description: 'The first AI agent that actually pays. Plans, quotes, and settles in USDC on Base. Understands x402, executes purchases, unlocks premium APIs. This is what autonomous spending looks like.',
       image: 'https://images.unsplash.com/photo-1676911809746-7bd861606144?w=800&h=600&fit=crop&q=80&sat=-20'
     },
     {
       icon: <BarChart3 className="w-12 h-12" />,
       title: '[Panel]',
-      description: 'Create priced endpoints, set fees, and see quotes, receipts, and purchases in real time. Ship machine‑payable services and monitor adoption.',
+      description: 'Turn your API into revenue in minutes. Set prices, deploy x402, watch agents pay. Real‑time analytics, on‑chain receipts, instant USDC settlement. The dashboard for the agent economy.',
       image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=600&fit=crop&q=80&sat=-30'
     },
     {
       icon: <Zap className="w-12 h-12" />,
       title: '[x402]',
-      description: 'HTTP 402 Payment Required for machines. Server quotes a price, wallet pays in USDC, client retries with proof via X‑PAYMENT header. Simple, verifiable, machine‑native.',
+      description: 'HTTP 402 Payment Required, reimagined for Web3. Server quotes, agent pays in USDC, client retries with proof. The missing protocol that makes agents economically autonomous.',
       image: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&h=600&fit=crop&q=80&sat=-20'
     },
   ];
@@ -40,7 +40,7 @@ export default function ThesisSection() {
               wordBreak: 'break-word',
               overflowWrap: 'break-word'
             }}>
-            Autonomy needs pay‑per‑request, not subscriptions. We make HTTP machine‑payable with x402 and USDC on Base.
+            AI agents will spend billions. x402 makes every HTTP endpoint machine‑payable. USDC on Base. We're building the payment layer for AGI.
             </h2>
           </FadeInUp>
 
@@ -54,7 +54,7 @@ export default function ThesisSection() {
                 wordBreak: 'break-word',
                 overflowWrap: 'break-word'
               }}>
-                <strong style={{ fontWeight: 600 }}>We're building the payment rail for autonomous machines.</strong> One request → one price → one payment. Pay per frame, minute, or route. USDC on Base. Verifiable receipts. No accounts. No contracts. Just machines paying for what they use.
+                <strong style={{ fontWeight: 600 }}>The future isn't humans with API keys—it's agents with wallets.</strong> Every Claude, GPT, and custom agent will need to pay for services. We've built the first protocol where HTTP 402 meets blockchain settlement. One request → one quote → one payment. Instant, verifiable, on‑chain.
               </p>
             </StaggerChild>
             <StaggerChild>
@@ -66,7 +66,7 @@ export default function ThesisSection() {
                 wordBreak: 'break-word',
                 overflowWrap: 'break-word'
               }}>
-                Turn any HTTP endpoint into a priced service. If you can return HTTP, you can sell it. If you can call HTTP, you can buy it. Build perception, routing, teleop, or data windows as x402 services—and let robots and agents compose them on demand.
+                Deploy any service as x402. Agents discover it, quote it, pay for it—no accounts, no OAuth, no credit cards. Just wallets and smart contracts. This is how trillion‑dollar agent economies get built. We're making it standard.
               </p>
             </StaggerChild>
           </StaggerChildren>

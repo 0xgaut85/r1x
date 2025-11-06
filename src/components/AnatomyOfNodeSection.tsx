@@ -5,18 +5,18 @@ import { Shield, Zap, Globe } from 'lucide-react';
 
 const benefits = [
   {
-    title: "[ ] Autonomous by design",
-    description: "Machines use wallets, not accounts. Agents use payment standards, not API keys. Built for autonomy from the ground up.",
+    title: "[ ] Built for AGI scale",
+    description: "Millions of agents, billions of transactions. x402 scales with USDC on Base L2. Sub‑cent fees. Instant finality. This infrastructure is ready for the agent explosion.",
     icon: <Shield className="w-6 h-6" />,
   },
     {
-    title: "[ ] Machine‑native payments",
-    description: "Quote → pay → retry with proof. x402 brings pricing and settlement to HTTP so machines can transact directly.",
+    title: "[ ] No integration hell",
+    description: "One protocol, every agent. No OAuth, no API keys, no rate limits. Agents use wallets. Your API returns 402. That's it. Standard, simple, unstoppable.",
     icon: <Zap className="w-6 h-6" />,
     },
     {
-    title: "[ ] Transparent economy",
-    description: "Quotes and receipts are verifiable on‑chain. Observe adoption, track spend, and audit outcomes in real time.",
+    title: "[ ] Verifiable from day one",
+    description: "Every payment is on‑chain. Every quote is signed. Every receipt is provable. Build trust into agent economies by default. No disputes, no chargebacks.",
     icon: <Globe className="w-6 h-6" />,
   },
 ];
@@ -38,7 +38,7 @@ export default function AnatomyOfNodeSection() {
               wordBreak: 'break-word',
               overflowWrap: 'break-word'
             }}>
-                The infrastructure<br />for autonomy.
+                The payment protocol<br />AGI needs.
             </h3>
             </FadeInUp>
             <StaggerChildren className="space-y-8 sm:space-y-12 list-none mt-6 sm:mt-8">

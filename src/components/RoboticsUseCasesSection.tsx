@@ -7,32 +7,32 @@ export default function RoboticsUseCasesSection() {
   const useCases = [
     {
       icon: <Camera className="w-12 h-12" />,
-      title: 'Perception on demand',
-      description: 'Call vision or OCR only when uncertain. Pay per frame or image in USDC. Zero subscriptions—just buy sight when you need it.',
+      title: 'Vision APIs agents buy',
+      description: 'Agents pay per inference for OCR, object detection, image analysis. No monthly fees. Just USDC per call. The AI vision market, now machine‑accessible.',
       image: 'https://images.unsplash.com/photo-1535378917042-10a22c95931a?w=800&h=600&fit=crop&q=80&sat=-30'
     },
     {
       icon: <MapPin className="w-12 h-12" />,
-      title: 'Navigation per segment',
-      description: 'Buy HD map tiles and routing per segment. Pay per minute for guidance. Navigation becomes a commodity robots purchase on demand.',
+      title: 'Real‑time data streams',
+      description: 'Market data, social feeds, IoT sensors—all priced per access. Agents compose data sources on demand. Pay only for what they consume.',
       image: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&h=600&fit=crop&q=80'
     },
     {
       icon: <Users className="w-12 h-12" />,
-      title: 'Human‑in‑the‑loop fallback',
-      description: 'Escalate to teleop by the minute when autonomy hits edge cases. Pay only when you need human expertise. Transparent receipts on‑chain.',
+      title: 'Human expertise on tap',
+      description: 'Agents escalate complex tasks to human specialists. Pay per consultation minute. On‑chain receipts, instant settlement. The gig economy meets AGI.',
       image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&h=600&fit=crop&q=80&sat=-20'
     },
     {
       icon: <Radio className="w-12 h-12" />,
-      title: 'Sensor markets',
-      description: 'Publish LiDAR/IMU windows. Consume peer sensor data. Compose real‑time perception networks that are priced per window.',
+      title: 'Premium model access',
+      description: 'Deploy gated LLMs, custom fine‑tunes, or specialized models. Agents pay per token or inference. Your models become revenue streams.',
       image: 'https://images.unsplash.com/photo-1558346490-a72e53ae2d4f?w=800&h=600&fit=crop&q=80&sat=-20'
     },
     {
       icon: <Battery className="w-12 h-12" />,
-      title: 'Machine‑payable infrastructure',
-      description: 'Reserve charging slots or docks per use. Settle per operation. Physical infrastructure becomes pay‑per‑use for fleets.',
+      title: 'Compute marketplaces',
+      description: 'Rent GPU cycles, serverless functions, or specialized hardware. Agents pay per job. Idle compute becomes instant revenue. The Airbnb for AI infrastructure.',
       image: 'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&h=600&fit=crop&q=80&sat=-20'
     },
   ];
@@ -52,7 +52,7 @@ export default function RoboticsUseCasesSection() {
               wordBreak: 'break-word',
               overflowWrap: 'break-word'
             }}>
-              Robotics workloads spike. Price per request, not per month.
+              AI agents unlock trillion‑dollar markets. Every capability becomes pay‑per‑use.
             </h2>
           </FadeInUp>
 

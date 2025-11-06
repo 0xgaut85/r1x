@@ -161,32 +161,8 @@ app.use(paymentMiddleware(
   facilitatorConfig,
 ));
 
-// Error handler middleware to catch payment middleware errors
-// Must be AFTER paymentMiddleware but BEFORE route handlers
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('[Express Error Handler] Payment middleware error:', {
-    message: err.message,
-    stack: err.stack,
-    path: req.path,
-    method: req.method,
-    hasPayment: !!req.headers['x-payment'],
-  });
-  
-  // If headers already sent, just log and return
-  if (res.headersSent) {
-    console.error('[Express Error Handler] Headers already sent, cannot send error response');
-    return;
-  }
-  
-  // Send error response
-  res.status(500).json({
-    error: 'Payment processing error',
-    message: err.message || 'An error occurred during payment processing',
-    details: process.env.NODE_ENV === 'development' ? err.stack : undefined,
-  });
-});
-
 // Routes réelles - le middleware vérifie le paiement avant d'arriver ici
+// Payment middleware handles its own errors - no need for error handler
 app.post('/api/r1x-agent/chat', async (req, res) => {
   // Le paiement est déjà vérifié par le middleware PayAI
   // Si le middleware a déjà envoyé une réponse (erreur de settlement, etc.), on ne fait rien
@@ -425,64 +401,11 @@ app.post('/api/r1x-agent/plan', async (req, res) => {
       }
     }
 
-    // Fetch marketplace services
+    // Fetch marketplace services from database only
+    // PayAI facilitator doesn't provide service discovery - only payment verification/settlement
     const { PrismaClient } = await import('@prisma/client');
     const prisma = new PrismaClient();
     const { formatUnits } = await import('viem');
-    
-    // Fetch PayAI services (inline to avoid cross-directory imports)
-    const fetchPayAIServices = async (): Promise<any[]> => {
-      try {
-        const facilitatorUrl = process.env.FACILITATOR_URL || 'https://facilitator.payai.network';
-        const endpoints = ['/resources', '/api/resources', '/v1/resources', '/services', '/list'];
-        
-        for (const endpoint of endpoints) {
-          try {
-            const response = await fetch(`${facilitatorUrl}${endpoint}`, {
-              signal: AbortSignal.timeout(5000),
-            });
-            
-            if (!response.ok) continue;
-            
-            const data = await response.json() as any;
-            let services: any[] = [];
-            
-            if (Array.isArray(data)) {
-              services = data;
-            } else if (data?.resources && Array.isArray(data.resources)) {
-              services = data.resources;
-            } else if (data?.services && Array.isArray(data.services)) {
-              services = data.services;
-            }
-            
-            if (services.length > 0) {
-              return services.map((s: any) => {
-                const accept = s.accepts?.[0] || {};
-                return {
-                  id: s.resource || s.id || `payai-${Math.random()}`,
-                  name: accept.description || s.metadata?.name || s.name || 'PayAI Service',
-                  description: accept.description || s.description || '',
-                  merchant: accept.payTo || s.merchant || '',
-                  network: accept.network || s.network || 'base',
-                  chainId: accept.chainId || s.chainId || 8453,
-                  token: accept.asset || s.token || '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-                  tokenSymbol: accept.extra?.tokenSymbol || s.tokenSymbol || 'USDC',
-                  price: accept.maxAmountRequired || s.price || '0',
-                  endpoint: s.resource || s.endpoint,
-                  websiteUrl: s.metadata?.websiteUrl || s.websiteUrl,
-                };
-              });
-            }
-          } catch (e) {
-            continue;
-          }
-        }
-        return [];
-      } catch (error) {
-        console.error('[x402-server] Error fetching PayAI services:', error);
-        return [];
-      }
-    };
 
     const query = req.body.query || '';
     const category = req.body.category;
@@ -507,60 +430,26 @@ app.post('/api/r1x-agent/plan', async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Fetch from PayAI facilitator
-    let payaiServices: any[] = [];
-    try {
-      payaiServices = await fetchPayAIServices();
-    } catch (error) {
-      console.error('[x402-server] Error fetching PayAI services:', error);
-    }
-
-    // Combine and rank services
-    const allServices: any[] = [];
-
-    // Add database services
-    dbServices.forEach(service => {
-      const price = parseFloat(service.priceDisplay || '0');
-      if (!budgetMax || price <= budgetMax) {
-        allServices.push({
-          serviceId: service.serviceId,
-          name: service.name,
-          category: service.category || 'Other',
-          price: service.priceDisplay,
-          merchant: service.merchant,
-          network: service.network,
-          resource: service.endpoint,
-          schemaSummary: {
-            method: 'POST',
-            contentType: 'application/json',
-          },
-        });
-      }
-    });
-
-    // Add PayAI services
-    payaiServices.forEach(service => {
-      const decimals = service.tokenSymbol === 'USDC' ? 6 : 18;
-      const price = parseFloat(formatUnits(BigInt(service.price), decimals));
-      const priceWithFee = price * 1.05; // 5% fee
-      
-      if (!budgetMax || priceWithFee <= budgetMax) {
-        allServices.push({
-          serviceId: service.id,
-          name: service.name,
-          category: extractCategory(service.name, service.description) || 'Other',
-          price: price.toString(),
-          priceWithFee: priceWithFee.toString(),
-          merchant: service.merchant,
-          network: service.network,
-          resource: service.endpoint,
-          schemaSummary: {
-            method: 'POST',
-            contentType: 'application/json',
-          },
-        });
-      }
-    });
+    // Format database services for response
+    // PayAI services are synced to database via /api/sync/payai endpoint
+    const allServices = dbServices
+      .filter(service => {
+        const price = parseFloat(service.priceDisplay || '0');
+        return !budgetMax || price <= budgetMax;
+      })
+      .map(service => ({
+        serviceId: service.serviceId,
+        name: service.name,
+        category: service.category || 'Other',
+        price: service.priceDisplay,
+        merchant: service.merchant,
+        network: service.network,
+        resource: service.endpoint,
+        schemaSummary: {
+          method: 'POST',
+          contentType: 'application/json',
+        },
+      }));
 
     // Rank: Base network first, then by price
     const ranked = allServices

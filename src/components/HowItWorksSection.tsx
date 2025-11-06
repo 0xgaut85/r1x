@@ -7,20 +7,20 @@ import TextScramble from './TextScramble';
 const steps = [
   {
     number: '[01]',
-    title: 'Robots request',
-    description: 'Client calls your HTTP endpoint. Server replies 402 Payment Required with a price quote. One request = one price. No accounts.',
+    title: 'Agent requests',
+    description: 'AI agent calls your API. Server returns HTTP 402 with a USDC quote on Base. Dynamic pricing. Instant quotes. Zero overhead.',
     icon: <Send className="w-6 h-6" />,
   },
   {
     number: '[02]',
-    title: 'Robots pay',
-    description: 'Wallet approves and pays in USDC on Base. Settlement is verifiable on‑chain. The quote becomes a receipt.',
+    title: 'Agent pays',
+    description: 'Wallet auto‑approves, settles in USDC. Transaction confirmed on‑chain in seconds. The quote is now a verifiable receipt.',
     icon: <DollarSign className="w-6 h-6" />,
   },
   {
     number: '[03]',
-    title: 'Robots access',
-    description: 'Client retries with proof via the X‑PAYMENT header. Resource unlocks. Compose capabilities on demand: per frame, per minute, per route.',
+    title: 'Agent accesses',
+    description: 'Client retries with payment proof in X‑PAYMENT header. API unlocks. Agent gets the resource. You get paid. This is the new internet.',
     icon: <CheckCircle className="w-6 h-6" />,
   },
 ];

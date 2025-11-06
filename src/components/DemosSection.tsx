@@ -5,12 +5,12 @@ import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const demos = [
-  { title: "API access", desc: "Price any HTTP endpoint per request. Charge for data, compute, or premium routes in USDC on Base.", image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&h=600&fit=crop&q=80&sat=-20" },
-  { title: "Robot services", desc: "Robots and agents buy perception, routing, and teleop on demand. Quotes become receipts.", image: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&h=600&fit=crop&q=80&sat=-30" },
-  { title: "AI inference", desc: "Charge per inference, embedding, or tool call. No keys—just 402 quotes and verifiable payment.", image: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&h=600&fit=crop&q=80" },
-  { title: "Data streams", desc: "Sell real‑time feeds per window. Clients pay per access and retry with proof to unlock.", image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=600&fit=crop&q=80&sat=-40" },
-  { title: "Compute resources", desc: "Expose bursty GPU/CPU as x402 services. Set prices by minute or job and settle instantly.", image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&h=600&fit=crop&q=80&sat=-20" },
-  { title: "Digital content", desc: "Unlock files, reports, or assets with one‑time payments. Machine‑readable receipts by design.", image: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&h=600&fit=crop&q=80" },
+  { title: "Paid API calls", desc: "Monetize every endpoint instantly. Agents pay per request in USDC. Your backend becomes a revenue stream today.", image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&h=600&fit=crop&q=80&sat=-20" },
+  { title: "Agent marketplaces", desc: "List services agents discover and purchase automatically. Build the next Stripe for AI. We provide the payment rails.", image: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&h=600&fit=crop&q=80&sat=-30" },
+  { title: "Premium models", desc: "Gate your LLMs behind x402. Agents pay per token. Instant settlement. This is how AI model creators monetize at scale.", image: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&h=600&fit=crop&q=80" },
+  { title: "Live data feeds", desc: "Market data, social graphs, sensor networks—all x402‑protected. Agents pay per access. Build Bloomberg for machines.", image: "https://images.unsplash.com/photo-1642790595397-7047dc98fa72?w=800&h=600&fit=crop&q=80" },
+  { title: "GPU‑as‑a‑service", desc: "Agents rent your idle compute. Per‑second billing. USDC settlement. Turn every GPU into passive income.", image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&h=600&fit=crop&q=80&sat=-20" },
+  { title: "Gated knowledge", desc: "Proprietary datasets, research, trained embeddings—agents pay to access. Intellectual property meets machine payments.", image: "https://images.unsplash.com/photo-1639762681057-408e52192e55?w=800&h=600&fit=crop&q=80" },
 ];
 
 export default function DemosSection() {
@@ -27,7 +27,7 @@ export default function DemosSection() {
             color: 'rgb(0, 0, 0)',
             marginBottom: '0px'
           }}>
-            UNLOCKING UNLIMITED<br />POTENTIAL
+            AGENT‑NATIVE<br />REVENUE STREAMS
           </h3>
           </StaggerChild>
           <StaggerChild>
@@ -83,7 +83,7 @@ export default function DemosSection() {
           wordBreak: 'break-word',
           overflowWrap: 'break-word'
         }}>
-            WHERE MACHINES BECOME ECONOMIC AGENTS.
+            BUILD THE SERVICES AGENTS WILL PAY BILLIONS FOR.
         </h2>
         </FadeInUp>
 

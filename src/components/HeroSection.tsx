@@ -135,7 +135,7 @@ export default function HeroSection() {
     };
   }, []);
 
-  const scrambleTexts = ['Machine economy.', 'AI agents.', 'Robots.', 'Pay-per-use.'];
+  const scrambleTexts = ['AI agents pay.', 'Agents transact.', 'Web3 evolves.', 'Autonomy scales.'];
   const enterText = ['ENTER'];
 
   return (
@@ -193,7 +193,7 @@ export default function HeroSection() {
             wordBreak: 'break-word',
             overflowWrap: 'break-word'
           }}>
-            From users to AI agents, from AI agents to robots.<br />Autonomy buys capabilities per request.<br />The web for robots runs on x402.
+            AI agents are here. They need to pay.<br />x402 makes every API machine‑payable.<br />The autonomous economy starts now.
           </h1>
           <div className="flex flex-col sm:flex-row" style={{ marginBottom: '0px', marginTop: '0px', gap: '16px' }}>
             <MagneticButton

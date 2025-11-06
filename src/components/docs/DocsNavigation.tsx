@@ -6,8 +6,12 @@ import { usePathname } from 'next/navigation';
 const navItems = [
   { href: '/docs', label: 'Overview' },
   { href: '/docs/getting-started', label: 'Getting Started' },
-  { href: '/docs/utilities', label: 'Utilities' },
-  { href: '/docs/tutorials', label: 'Tutorials' },
+  { href: '/docs/r1x-agent', label: 'r1x Agent' },
+  { href: '/docs/marketplace', label: 'Marketplace' },
+  { href: '/docs/agent-builder', label: 'Agent Builder' },
+  { href: '/docs/sdk', label: 'SDK' },
+  { href: '/docs/facilitator', label: 'Facilitator' },
+  { href: '/docs/panels', label: 'Panels' },
   { href: '/docs/api', label: 'API Reference' },
 ];
 

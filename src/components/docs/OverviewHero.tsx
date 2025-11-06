@@ -22,14 +22,14 @@ export default function OverviewHero() {
           color: '#FFFFFF',
           textAlign: 'start',
         }}>
-          Build machine‑payable APIs
+          Ship APIs agents actually pay for
         </h1>
         <p className="text-white text-lg sm:text-xl md:text-[22px] mb-8 max-w-3xl" style={{ 
           fontWeight: 400,
           fontFamily: 'TWKEverettMono-Regular, monospace',
           color: '#FFFFFF',
         }}>
-          Everything you need to ship x402 services. Quote → pay → retry with proof. USDC on Base. Verifiable receipts. The infrastructure for autonomous machines.
+          x402 + USDC + Base. Deploy in minutes. Agents discover, quote, and pay automatically. On‑chain settlement. This is how you monetize the AI economy.
         </p>
       </div>
     </section>
