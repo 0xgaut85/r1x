@@ -115,11 +115,16 @@ export class X402Client {
         'Content-Type': 'application/json',
         ...headers,
       };
-      
-      return this.request(url, {
+
+      // Route external calls through Next.js proxy to avoid browser CORS
+      return this.request('/api/x402/proxy', {
         method: 'POST',
-        headers: requestHeaders,
-        body: requestBody ? JSON.stringify(requestBody) : undefined,
+        body: JSON.stringify({
+          url,
+          method: 'POST',
+          headers: requestHeaders,
+          body: requestBody ?? undefined,
+        }),
       });
     } else {
       // Use Next.js API proxy for our services

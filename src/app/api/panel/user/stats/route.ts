@@ -54,34 +54,34 @@ export async function GET(request: NextRequest) {
       .map(tx => {
         // For x402 transactions, settlementHash is the actual on-chain transaction hash
         // transactionHash is the authorization hash (not on-chain)
-        const explorerHash = tx.settlementHash || tx.transactionHash;
-        const explorerUrl = explorerHash 
-          ? `https://basescan.org/tx/${explorerHash}`
-          : null;
-        
-        return {
-          id: tx.id,
-          transactionHash: tx.transactionHash,
-          settlementHash: tx.settlementHash,
+      const explorerHash = tx.settlementHash || tx.transactionHash;
+      const explorerUrl = explorerHash 
+        ? `https://basescan.org/tx/${explorerHash}`
+        : null;
+      
+      return {
+        id: tx.id,
+        transactionHash: tx.transactionHash,
+        settlementHash: tx.settlementHash,
           serviceName: tx.service!.name,
           serviceId: tx.service!.serviceId,
-          amount: formatUnits(BigInt(tx.amount), USDC_DECIMALS),
-          fee: formatUnits(BigInt(tx.feeAmount), USDC_DECIMALS),
-          status: tx.status,
-          timestamp: tx.timestamp,
-          blockNumber: tx.blockNumber,
-          blockExplorerUrl: explorerUrl,
-        };
-      });
+        amount: formatUnits(BigInt(tx.amount), USDC_DECIMALS),
+        fee: formatUnits(BigInt(tx.feeAmount), USDC_DECIMALS),
+        status: tx.status,
+        timestamp: tx.timestamp,
+        blockNumber: tx.blockNumber,
+        blockExplorerUrl: explorerUrl,
+      };
+    });
 
     // Get transactions by category (from verified and settled transactions)
     const transactionsByCategory = verifiedTransactions
       .filter(tx => tx.service) // Filter out transactions with missing services
       .reduce((acc, tx) => {
         const category = tx.service!.category || 'Other';
-        acc[category] = (acc[category] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      acc[category] = (acc[category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
     return NextResponse.json({
       address: userAddress,
