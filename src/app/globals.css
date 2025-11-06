@@ -42,6 +42,15 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Hide scrollbars but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #F7F7F7;
