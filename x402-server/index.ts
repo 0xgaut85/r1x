@@ -401,11 +401,80 @@ app.post('/api/r1x-agent/plan', async (req, res) => {
       }
     }
 
-    // Fetch marketplace services from database only
-    // PayAI facilitator doesn't provide service discovery - only payment verification/settlement
+    // Fetch marketplace services
     const { PrismaClient } = await import('@prisma/client');
     const prisma = new PrismaClient();
     const { formatUnits } = await import('viem');
+    
+    // Fetch PayAI services from facilitator /list endpoint (official PayAI API)
+    const fetchPayAIServices = async (): Promise<any[]> => {
+      try {
+        const facilitatorUrl = process.env.FACILITATOR_URL || 'https://facilitator.payai.network';
+        const url = `${facilitatorUrl}/list`; // Official PayAI endpoint per docs
+        
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        };
+        
+        // Add CDP API key authentication if available (required for Base mainnet)
+        const cdpApiKeyId = process.env.CDP_API_KEY_ID;
+        const cdpApiKeySecret = process.env.CDP_API_KEY_SECRET;
+        
+        if (cdpApiKeyId && cdpApiKeySecret) {
+          const auth = Buffer.from(`${cdpApiKeyId}:${cdpApiKeySecret}`).toString('base64');
+          headers['Authorization'] = `Basic ${auth}`;
+        }
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers,
+          signal: AbortSignal.timeout(10000), // 10 second timeout
+        });
+        
+        if (!response.ok) {
+          console.warn(`[PayAI] /list returned ${response.status}`);
+          return [];
+        }
+        
+        const data = await response.json() as any;
+        
+        // Handle response format - could be array or object with resources array
+        let services: any[] = [];
+        if (Array.isArray(data)) {
+          services = data;
+        } else if (data?.resources && Array.isArray(data.resources)) {
+          services = data.resources;
+        } else if (data?.list && Array.isArray(data.list)) {
+          services = data.list;
+        }
+        
+        if (services.length === 0) {
+          return [];
+        }
+        
+        // Normalize PayAI services to our format
+        return services.map((s: any) => {
+          const accept = s.accepts?.[0] || {};
+          return {
+            id: s.resource || s.id || `payai-${Math.random()}`,
+            name: accept.description || s.metadata?.name || s.name || 'PayAI Service',
+            description: accept.description || s.description || '',
+            merchant: accept.payTo || s.merchant || '',
+            network: accept.network || s.network || 'base',
+            chainId: accept.chainId || s.chainId || 8453,
+            token: accept.asset || s.token || '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+            tokenSymbol: accept.extra?.tokenSymbol || s.tokenSymbol || 'USDC',
+            price: accept.maxAmountRequired || s.price || '0',
+            endpoint: s.resource || s.endpoint,
+            websiteUrl: s.metadata?.websiteUrl || s.websiteUrl,
+          };
+        });
+      } catch (error) {
+        console.error('[x402-server] Error fetching PayAI services:', error);
+        return [];
+      }
+    };
 
     const query = req.body.query || '';
     const category = req.body.category;
@@ -430,9 +499,16 @@ app.post('/api/r1x-agent/plan', async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Format database services for response
-    // PayAI services are synced to database via /api/sync/payai endpoint
-    const allServices = dbServices
+    // Fetch PayAI services from facilitator
+    let payaiServices: any[] = [];
+    try {
+      payaiServices = await fetchPayAIServices();
+    } catch (error) {
+      console.error('[x402-server] Error fetching PayAI services:', error);
+    }
+    
+    // Format database services
+    const dbServicesFormatted = dbServices
       .filter(service => {
         const price = parseFloat(service.priceDisplay || '0');
         return !budgetMax || price <= budgetMax;
@@ -444,19 +520,53 @@ app.post('/api/r1x-agent/plan', async (req, res) => {
         price: service.priceDisplay,
         merchant: service.merchant,
         network: service.network,
+        chainId: service.chainId,
         resource: service.endpoint,
         schemaSummary: {
           method: 'POST',
           contentType: 'application/json',
         },
       }));
+    
+    // Format PayAI services
+    const payaiServicesFormatted = payaiServices
+      .filter(service => {
+        const decimals = service.tokenSymbol === 'USDC' ? 6 : 18;
+        const price = parseFloat(formatUnits(BigInt(service.price), decimals));
+        const priceWithFee = price * 1.05; // 5% platform fee
+        return !budgetMax || priceWithFee <= budgetMax;
+      })
+      .map(service => {
+        const decimals = service.tokenSymbol === 'USDC' ? 6 : 18;
+        const price = parseFloat(formatUnits(BigInt(service.price), decimals));
+        const priceWithFee = price * 1.05;
+        
+        return {
+          serviceId: service.id,
+          name: service.name,
+          category: extractCategory(service.name, service.description) || 'Other',
+          price: price.toString(),
+          priceWithFee: priceWithFee.toString(),
+          merchant: service.merchant,
+          network: service.network,
+          chainId: service.chainId,
+          resource: service.endpoint,
+          schemaSummary: {
+            method: 'POST',
+            contentType: 'application/json',
+          },
+        };
+      });
+    
+    // Combine services (database first, then PayAI)
+    const allServices = [...dbServicesFormatted, ...payaiServicesFormatted];
 
     // Rank: Base network first, then by price
     const ranked = allServices
       .filter(s => s.network === 'base' && (!s.chainId || s.chainId === chainId))
       .sort((a, b) => {
-        const priceA = parseFloat(a.priceWithFee || a.price || '999999');
-        const priceB = parseFloat(b.priceWithFee || b.price || '999999');
+        const priceA = parseFloat(a.price || '999999');
+        const priceB = parseFloat(b.price || '999999');
         return priceA - priceB;
       })
       .slice(0, 10); // Top 10 proposals
