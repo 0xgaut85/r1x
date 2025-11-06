@@ -82,9 +82,29 @@ export async function GET(request: NextRequest) {
         if (where.merchant) safeWhere.merchant = where.merchant;
         if (where.OR) safeWhere.OR = where.OR;
         
-        // Query without selecting new fields (use raw query or minimal select)
+        // Query without selecting new fields - explicitly select only existing fields
         services = await prisma.service.findMany({
           where: safeWhere,
+          select: {
+            id: true,
+            serviceId: true,
+            name: true,
+            description: true,
+            category: true,
+            merchant: true,
+            network: true,
+            chainId: true,
+            token: true,
+            tokenSymbol: true,
+            price: true,
+            priceDisplay: true,
+            endpoint: true,
+            available: true,
+            metadata: true,
+            createdAt: true,
+            updatedAt: true,
+            // Exclude new fields: type, method, inputSchema, outputSchema, source, isExternal, websiteUrl, screenshotUrl
+          },
           orderBy: { createdAt: 'desc' },
         });
       } else {
@@ -99,11 +119,51 @@ export async function GET(request: NextRequest) {
         const syncResult = await syncPayAIServices();
         console.log(`Sync completed: ${syncResult.synced} services synced, ${syncResult.errors} errors`);
         
-        // Query again after sync
-        services = await prisma.service.findMany({
-          where,
-          orderBy: { createdAt: 'desc' },
-        });
+        // Query again after sync - use same fallback logic
+        try {
+          services = await prisma.service.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+          });
+        } catch (syncQueryError: any) {
+          // If migration still not applied, use safe query
+          if (syncQueryError.code === 'P2022' || syncQueryError.message?.includes('does not exist')) {
+            const safeWhere: any = {
+              available: where.available,
+              network: where.network,
+              chainId: where.chainId,
+            };
+            if (where.category) safeWhere.category = where.category;
+            if (where.merchant) safeWhere.merchant = where.merchant;
+            if (where.OR) safeWhere.OR = where.OR;
+            
+            services = await prisma.service.findMany({
+              where: safeWhere,
+              select: {
+                id: true,
+                serviceId: true,
+                name: true,
+                description: true,
+                category: true,
+                merchant: true,
+                network: true,
+                chainId: true,
+                token: true,
+                tokenSymbol: true,
+                price: true,
+                priceDisplay: true,
+                endpoint: true,
+                available: true,
+                metadata: true,
+                createdAt: true,
+                updatedAt: true,
+              },
+              orderBy: { createdAt: 'desc' },
+            });
+          } else {
+            throw syncQueryError;
+          }
+        }
       } catch (syncError: any) {
         console.error('Sync error:', syncError);
         // Continue with empty services if sync fails
@@ -226,9 +286,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const service = await prisma.service.findUnique({
-      where: { serviceId },
-    });
+    // Query service - handle migration not applied
+    let service;
+    try {
+      service = await prisma.service.findUnique({
+        where: { serviceId },
+      });
+    } catch (error: any) {
+      // If migration not applied, query with select
+      if (error.code === 'P2022' || error.message?.includes('does not exist')) {
+        service = await prisma.service.findUnique({
+          where: { serviceId },
+          select: {
+            id: true,
+            serviceId: true,
+            name: true,
+            description: true,
+            category: true,
+            merchant: true,
+            network: true,
+            chainId: true,
+            token: true,
+            tokenSymbol: true,
+            price: true,
+            priceDisplay: true,
+            endpoint: true,
+            available: true,
+            metadata: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+      } else {
+        throw error;
+      }
+    }
 
     if (!service) {
       return NextResponse.json(

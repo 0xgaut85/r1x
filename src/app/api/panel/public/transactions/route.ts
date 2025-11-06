@@ -24,9 +24,41 @@ export async function GET(request: NextRequest) {
     };
 
     if (serviceId) {
-      const service = await prisma.service.findUnique({
-        where: { serviceId },
-      });
+      let service;
+      try {
+        service = await prisma.service.findUnique({
+          where: { serviceId },
+        });
+      } catch (error: any) {
+        // If migration not applied, query with select
+        if (error.code === 'P2022' || error.message?.includes('does not exist')) {
+          service = await prisma.service.findUnique({
+            where: { serviceId },
+            select: {
+              id: true,
+              serviceId: true,
+              name: true,
+              description: true,
+              category: true,
+              merchant: true,
+              network: true,
+              chainId: true,
+              token: true,
+              tokenSymbol: true,
+              price: true,
+              priceDisplay: true,
+              endpoint: true,
+              available: true,
+              metadata: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          });
+        } else {
+          throw error;
+        }
+      }
+      
       if (service) {
         where.serviceId = service.id;
       } else {

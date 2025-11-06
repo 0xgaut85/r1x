@@ -439,57 +439,101 @@ export async function syncPayAIServices(): Promise<{ synced: number; errors: num
       const decimals = service.tokenSymbol === 'USDC' ? 6 : 18;
       const priceDisplay = formatUnits(BigInt(service.price), decimals);
 
-      await prisma.service.upsert({
-        where: { serviceId: service.id },
-        update: {
-          name: service.name,
-          description: service.description,
-          category: extractCategory(service.name, service.description),
-          merchant: service.merchant,
-          network: service.network,
-          chainId: service.chainId,
-          token: service.token,
-          tokenSymbol: service.tokenSymbol,
-          price: service.price,
-          priceDisplay,
-          endpoint: service.endpoint,
-          available: true,
-          metadata: service.metadata || {},
-          // Extended fields
-          type: service.type || null,
-          method: service.method || null,
-          inputSchema: service.inputSchema || null,
-          outputSchema: service.outputSchema || null,
-          source: service.source || 'payai',
-          isExternal: service.isExternal ?? true,
-          websiteUrl: service.websiteUrl || null,
-          updatedAt: new Date(),
-        },
-        create: {
-          serviceId: service.id,
-          name: service.name,
-          description: service.description,
-          category: extractCategory(service.name, service.description),
-          merchant: service.merchant,
-          network: service.network,
-          chainId: service.chainId,
-          token: service.token,
-          tokenSymbol: service.tokenSymbol,
-          price: service.price,
-          priceDisplay,
-          endpoint: service.endpoint,
-          available: true,
-          metadata: service.metadata || {},
-          // Extended fields
-          type: service.type || null,
-          method: service.method || null,
-          inputSchema: service.inputSchema || null,
-          outputSchema: service.outputSchema || null,
-          source: service.source || 'payai',
-          isExternal: service.isExternal ?? true,
-          websiteUrl: service.websiteUrl || null,
-        },
-      });
+      // Try upsert with extended fields first
+      try {
+        await prisma.service.upsert({
+          where: { serviceId: service.id },
+          update: {
+            name: service.name,
+            description: service.description,
+            category: extractCategory(service.name, service.description),
+            merchant: service.merchant,
+            network: service.network,
+            chainId: service.chainId,
+            token: service.token,
+            tokenSymbol: service.tokenSymbol,
+            price: service.price,
+            priceDisplay,
+            endpoint: service.endpoint,
+            available: true,
+            metadata: service.metadata || {},
+            // Extended fields (only if migration applied)
+            type: service.type || null,
+            method: service.method || null,
+            inputSchema: service.inputSchema || null,
+            outputSchema: service.outputSchema || null,
+            source: service.source || 'payai',
+            isExternal: service.isExternal ?? true,
+            websiteUrl: service.websiteUrl || null,
+            updatedAt: new Date(),
+          },
+          create: {
+            serviceId: service.id,
+            name: service.name,
+            description: service.description,
+            category: extractCategory(service.name, service.description),
+            merchant: service.merchant,
+            network: service.network,
+            chainId: service.chainId,
+            token: service.token,
+            tokenSymbol: service.tokenSymbol,
+            price: service.price,
+            priceDisplay,
+            endpoint: service.endpoint,
+            available: true,
+            metadata: service.metadata || {},
+            // Extended fields (only if migration applied)
+            type: service.type || null,
+            method: service.method || null,
+            inputSchema: service.inputSchema || null,
+            outputSchema: service.outputSchema || null,
+            source: service.source || 'payai',
+            isExternal: service.isExternal ?? true,
+            websiteUrl: service.websiteUrl || null,
+          },
+        });
+      } catch (upsertError: any) {
+        // If migration not applied, upsert without extended fields
+        if (upsertError.code === 'P2022' || upsertError.message?.includes('does not exist')) {
+          await prisma.service.upsert({
+            where: { serviceId: service.id },
+            update: {
+              name: service.name,
+              description: service.description,
+              category: extractCategory(service.name, service.description),
+              merchant: service.merchant,
+              network: service.network,
+              chainId: service.chainId,
+              token: service.token,
+              tokenSymbol: service.tokenSymbol,
+              price: service.price,
+              priceDisplay,
+              endpoint: service.endpoint,
+              available: true,
+              metadata: service.metadata || {},
+              updatedAt: new Date(),
+            },
+            create: {
+              serviceId: service.id,
+              name: service.name,
+              description: service.description,
+              category: extractCategory(service.name, service.description),
+              merchant: service.merchant,
+              network: service.network,
+              chainId: service.chainId,
+              token: service.token,
+              tokenSymbol: service.tokenSymbol,
+              price: service.price,
+              priceDisplay,
+              endpoint: service.endpoint,
+              available: true,
+              metadata: service.metadata || {},
+            },
+          });
+        } else {
+          throw upsertError;
+        }
+      }
 
       synced++;
     } catch (error: any) {

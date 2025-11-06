@@ -18,26 +18,73 @@ export async function GET(request: NextRequest) {
     const network = searchParams.get('network') || 'base';
     const chainId = searchParams.get('chainId') ? parseInt(searchParams.get('chainId')!) : 8453;
 
-    // Fetch marketplace services from database
-    const dbServices = await prisma.service.findMany({
-      where: {
-        available: true,
-        network,
-        chainId,
-      },
-      include: {
-        _count: {
+    // Fetch marketplace services from database - handle migration not applied
+    let dbServices;
+    try {
+      dbServices = await prisma.service.findMany({
+        where: {
+          available: true,
+          network,
+          chainId,
+        },
+        include: {
+          _count: {
+            select: {
+              transactions: {
+                where: {
+                  status: { in: ['verified', 'settled'] },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    } catch (error: any) {
+      // If migration hasn't been applied, query without new fields
+      if (error.code === 'P2022' || error.message?.includes('does not exist')) {
+        console.warn('[Discovery] Migration not applied yet, querying without new fields');
+        const services = await prisma.service.findMany({
+          where: {
+            available: true,
+            network,
+            chainId,
+          },
           select: {
+            id: true,
+            serviceId: true,
+            name: true,
+            description: true,
+            category: true,
+            merchant: true,
+            network: true,
+            chainId: true,
+            token: true,
+            tokenSymbol: true,
+            price: true,
+            priceDisplay: true,
+            endpoint: true,
+            available: true,
+            createdAt: true,
             transactions: {
               where: {
                 status: { in: ['verified', 'settled'] },
               },
             },
           },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+          orderBy: { createdAt: 'desc' },
+        });
+        
+        dbServices = services.map((service: any) => ({
+          ...service,
+          _count: {
+            transactions: service.transactions?.length || 0,
+          },
+        }));
+      } else {
+        throw error;
+      }
+    }
 
     // Format marketplace services
     const marketplaceResources = dbServices.map(service => ({

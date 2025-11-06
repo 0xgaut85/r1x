@@ -50,21 +50,30 @@ export async function GET(request: NextRequest) {
 
     // Check if we have a cached screenshot URL in database (if serviceId provided)
     if (serviceId) {
-      const service = await prisma.service.findUnique({
-        where: { serviceId },
-        select: { screenshotUrl: true },
-      });
+      try {
+        const service = await prisma.service.findUnique({
+          where: { serviceId },
+          select: { screenshotUrl: true },
+        });
 
-      if (service?.screenshotUrl) {
-        // Return cached URL with cache headers
-        return NextResponse.json(
-          { screenshotUrl: service.screenshotUrl, cached: true },
-          {
-            headers: {
-              'Cache-Control': 'public, max-age=86400', // 24 hours
-            },
-          }
-        );
+        if (service?.screenshotUrl) {
+          // Return cached URL with cache headers
+          return NextResponse.json(
+            { screenshotUrl: service.screenshotUrl, cached: true },
+            {
+              headers: {
+                'Cache-Control': 'public, max-age=86400', // 24 hours
+              },
+            }
+          );
+        }
+      } catch (error: any) {
+        // If migration not applied, screenshotUrl column doesn't exist - skip cache check
+        if (error.code === 'P2022' || error.message?.includes('does not exist')) {
+          console.warn('[Preview API] Migration not applied, skipping screenshot cache check');
+        } else {
+          throw error;
+        }
       }
     }
 
@@ -78,9 +87,14 @@ export async function GET(request: NextRequest) {
           where: { serviceId },
           data: { screenshotUrl: apiUrl },
         });
-      } catch (error) {
+      } catch (error: any) {
         // Non-blocking - log but don't fail
-        console.warn('[Preview API] Failed to cache screenshot URL:', error);
+        // If migration not applied, screenshotUrl column doesn't exist - skip cache
+        if (error.code === 'P2022' || error.message?.includes('does not exist')) {
+          console.warn('[Preview API] Migration not applied, skipping screenshot cache');
+        } else {
+          console.warn('[Preview API] Failed to cache screenshot URL:', error);
+        }
       }
     }
 

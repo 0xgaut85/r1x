@@ -25,21 +25,68 @@ export async function GET(request: NextRequest) {
       where.category = { equals: category, mode: 'insensitive' };
     }
 
-    const services = await prisma.service.findMany({
-      where,
-      include: {
-        _count: {
+    // Query services - handle case where migration hasn't been applied yet
+    let services;
+    try {
+      services = await prisma.service.findMany({
+        where,
+        include: {
+          _count: {
+            select: {
+              transactions: {
+                where: {
+                  status: { in: ['verified', 'settled'] },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    } catch (error: any) {
+      // If migration hasn't been applied (P2022 = column doesn't exist), retry without new fields
+      if (error.code === 'P2022' || error.message?.includes('does not exist')) {
+        console.warn('[Public Services] Migration not applied yet, querying without new fields');
+        services = await prisma.service.findMany({
+          where,
           select: {
+            id: true,
+            serviceId: true,
+            name: true,
+            description: true,
+            category: true,
+            merchant: true,
+            network: true,
+            chainId: true,
+            token: true,
+            tokenSymbol: true,
+            price: true,
+            priceDisplay: true,
+            endpoint: true,
+            available: true,
+            metadata: true,
+            createdAt: true,
+            updatedAt: true,
             transactions: {
               where: {
                 status: { in: ['verified', 'settled'] },
               },
             },
           },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+          orderBy: { createdAt: 'desc' },
+        });
+        
+        // Manually add _count
+        services = services.map((service: any) => ({
+          ...service,
+          _count: {
+            transactions: service.transactions?.length || 0,
+          },
+        }));
+      } else {
+        throw error;
+      }
+    }
 
     // Format for public API
     const publicServices = services.map(service => ({

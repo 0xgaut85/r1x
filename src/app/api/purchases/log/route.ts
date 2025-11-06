@@ -108,10 +108,41 @@ export async function POST(request: NextRequest) {
     const decodedFeeReceipt = decodePaymentReceipt(feeReceipt);
     const decodedServiceReceipt = decodePaymentReceipt(serviceReceipt);
 
-    // Ensure service exists
-    let service = await prisma.service.findUnique({
-      where: { serviceId },
-    });
+    // Ensure service exists - handle migration not applied
+    let service;
+    try {
+      service = await prisma.service.findUnique({
+        where: { serviceId },
+      });
+    } catch (error: any) {
+      // If migration not applied, query with select
+      if (error.code === 'P2022' || error.message?.includes('does not exist')) {
+        service = await prisma.service.findUnique({
+          where: { serviceId },
+          select: {
+            id: true,
+            serviceId: true,
+            name: true,
+            description: true,
+            category: true,
+            merchant: true,
+            network: true,
+            chainId: true,
+            token: true,
+            tokenSymbol: true,
+            price: true,
+            priceDisplay: true,
+            endpoint: true,
+            available: true,
+            metadata: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+      } else {
+        throw error;
+      }
+    }
 
     if (!service) {
       // Create service if it doesn't exist
@@ -150,10 +181,41 @@ export async function POST(request: NextRequest) {
         if (!existingFeeTx) {
           const feeAmountWei = parseUnits(feeAmount, USDC_DECIMALS).toString();
           
-          // Create platform fee service if needed
-          let feeService = await prisma.service.findUnique({
-            where: { serviceId: 'platform-fee' },
-          });
+          // Create platform fee service if needed - handle migration not applied
+          let feeService;
+          try {
+            feeService = await prisma.service.findUnique({
+              where: { serviceId: 'platform-fee' },
+            });
+          } catch (error: any) {
+            // If migration not applied, query with select
+            if (error.code === 'P2022' || error.message?.includes('does not exist')) {
+              feeService = await prisma.service.findUnique({
+                where: { serviceId: 'platform-fee' },
+                select: {
+                  id: true,
+                  serviceId: true,
+                  name: true,
+                  description: true,
+                  category: true,
+                  merchant: true,
+                  network: true,
+                  chainId: true,
+                  token: true,
+                  tokenSymbol: true,
+                  price: true,
+                  priceDisplay: true,
+                  endpoint: true,
+                  available: true,
+                  metadata: true,
+                  createdAt: true,
+                  updatedAt: true,
+                },
+              });
+            } else {
+              throw error;
+            }
+          }
 
           if (!feeService) {
             feeService = await prisma.service.create({

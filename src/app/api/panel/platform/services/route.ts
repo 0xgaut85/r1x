@@ -32,17 +32,47 @@ export async function GET(request: NextRequest) {
         startDate = new Date(0);
     }
 
-    // Get all services
-    const services = await prisma.service.findMany({
-      include: {
-        transactions: {
-          where: {
-            timestamp: { gte: startDate },
-            status: { in: ['verified', 'settled'] },
+    // Get all services - handle migration not applied
+    let services;
+    try {
+      services = await prisma.service.findMany({
+        include: {
+          transactions: {
+            where: {
+              timestamp: { gte: startDate },
+              status: { in: ['verified', 'settled'] },
+            },
+          },
+          _count: {
+            select: {
+              transactions: {
+                where: {
+                  timestamp: { gte: startDate },
+                  status: { in: ['verified', 'settled'] },
+                },
+              },
+            },
           },
         },
-        _count: {
+        orderBy: { createdAt: 'desc' },
+      });
+    } catch (error: any) {
+      // If migration hasn't been applied, query without new fields
+      if (error.code === 'P2022' || error.message?.includes('does not exist')) {
+        console.warn('[Platform Services] Migration not applied yet, querying without new fields');
+        const servicesData = await prisma.service.findMany({
           select: {
+            id: true,
+            serviceId: true,
+            name: true,
+            description: true,
+            category: true,
+            merchant: true,
+            price: true,
+            priceDisplay: true,
+            available: true,
+            createdAt: true,
+            updatedAt: true,
             transactions: {
               where: {
                 timestamp: { gte: startDate },
@@ -50,10 +80,19 @@ export async function GET(request: NextRequest) {
               },
             },
           },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+          orderBy: { createdAt: 'desc' },
+        });
+        
+        services = servicesData.map((service: any) => ({
+          ...service,
+          _count: {
+            transactions: service.transactions?.length || 0,
+          },
+        }));
+      } else {
+        throw error;
+      }
+    }
 
     // Calculate stats for each service
     const serviceStats = services.map(service => {
