@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
             description: true,
             category: true,
             endpoint: true,
-            websiteUrl: true,
+            metadata: true,
           },
         },
       },
@@ -45,17 +45,29 @@ export async function GET(request: NextRequest) {
     });
 
     // Format for frontend
-    const purchases = transactions.map(tx => ({
-      id: tx.id,
-      transactionHash: tx.transactionHash,
-      service: {
-        id: tx.service.serviceId,
-        name: tx.service.name,
-        description: tx.service.description,
-        category: tx.service.category,
-        endpoint: tx.service.endpoint,
-        websiteUrl: tx.service.websiteUrl,
-      },
+    const purchases = transactions.map(tx => {
+      // Extract websiteUrl from metadata if available
+      const metadata = tx.service.metadata && typeof tx.service.metadata === 'object' && !Array.isArray(tx.service.metadata)
+        ? tx.service.metadata as Record<string, any>
+        : null;
+      
+      const websiteUrl = metadata?.website ||
+                        metadata?.websiteUrl ||
+                        metadata?.homepage ||
+                        metadata?.url ||
+                        undefined;
+
+      return {
+        id: tx.id,
+        transactionHash: tx.transactionHash,
+        service: {
+          id: tx.service.serviceId,
+          name: tx.service.name,
+          description: tx.service.description,
+          category: tx.service.category,
+          endpoint: tx.service.endpoint,
+          websiteUrl: websiteUrl,
+        },
       amount: tx.amount,
       feeAmount: tx.feeAmount,
       merchantAmount: tx.merchantAmount,
@@ -65,7 +77,8 @@ export async function GET(request: NextRequest) {
       timestamp: tx.timestamp,
       verifiedAt: tx.verifiedAt,
       type: tx.service.serviceId === 'platform-fee' ? 'fee' : 'service',
-    }));
+      };
+    });
 
     return NextResponse.json({
       purchases,
