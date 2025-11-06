@@ -180,9 +180,10 @@ export default function R1xAgentContent() {
   const buildRequestFromSchema = (
     schema: any,
     userInput: string
-  ): { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string>; missing?: string[] } => {
-    const result: { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string>; missing?: string[] } = {};
+  ): { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string>; missing?: string[]; hints?: Record<string, { description?: string; example?: string; options?: string[] }> } => {
+    const result: { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string>; missing?: string[]; hints?: Record<string, { description?: string; example?: string; options?: string[] }> } = {};
     const missing: string[] = [];
+    const hints: Record<string, { description?: string; example?: string; options?: string[] }> = {};
     
     if (!schema?.outputSchema?.input) {
       // No schema, use default
@@ -192,10 +193,33 @@ export default function R1xAgentContent() {
     const input = schema.outputSchema.input;
     const genericInputKeys = new Set(['input', 'message', 'prompt', 'query', 'text']);
     
+    // Helper to extract field metadata (description, example, options/enum)
+    const captureFieldHints = (key: string, fieldDef: any) => {
+      const hint: { description?: string; example?: string; options?: string[] } = {};
+      if (typeof fieldDef?.description === 'string') hint.description = fieldDef.description;
+      if (fieldDef?.example !== undefined) hint.example = String(fieldDef.example);
+      // Common option carriers: enum | options | values | oneOf[].const/title
+      let options: string[] | undefined;
+      if (Array.isArray(fieldDef?.enum)) {
+        options = fieldDef.enum.map((v: any) => String(v));
+      } else if (Array.isArray(fieldDef?.options)) {
+        options = fieldDef.options.map((v: any) => typeof v === 'object' && v !== null ? String(v.value ?? v.label ?? v) : String(v));
+      } else if (Array.isArray(fieldDef?.values)) {
+        options = fieldDef.values.map((v: any) => String(v));
+      } else if (Array.isArray(fieldDef?.oneOf)) {
+        options = fieldDef.oneOf.map((v: any) => String(v?.const ?? v?.value ?? v?.title ?? v));
+      }
+      if (options && options.length > 0) hint.options = options;
+      if (hint.description || hint.example || hint.options) {
+        hints[key] = hint;
+      }
+    };
+
     // Build query params if specified
     if (input.queryParams && typeof input.queryParams === 'object') {
       result.queryParams = {};
       Object.entries(input.queryParams).forEach(([key, fieldDef]: [string, any]) => {
+        captureFieldHints(key, fieldDef);
         if (fieldDef.required && !fieldDef.default) {
           if (genericInputKeys.has(key)) {
             result.queryParams![key] = userInput;
@@ -212,6 +236,7 @@ export default function R1xAgentContent() {
     if (input.headerFields && typeof input.headerFields === 'object') {
       result.headers = {};
       Object.entries(input.headerFields).forEach(([key, fieldDef]: [string, any]) => {
+        captureFieldHints(key, fieldDef);
         if (fieldDef.required && !fieldDef.default) {
           if (genericInputKeys.has(key)) {
             result.headers![key] = userInput;
@@ -229,6 +254,7 @@ export default function R1xAgentContent() {
       if (input.bodyType === 'json') {
         result.body = {};
         Object.entries(input.bodyFields).forEach(([key, fieldDef]: [string, any]) => {
+          captureFieldHints(key, fieldDef);
           if (fieldDef.required && !fieldDef.default) {
             if (genericInputKeys.has(key)) {
               result.body![key] = userInput;
@@ -250,6 +276,9 @@ export default function R1xAgentContent() {
 
     if (missing.length > 0) {
       result.missing = missing;
+    }
+    if (Object.keys(hints).length > 0) {
+      result.hints = hints;
     }
 
     return result;
@@ -296,9 +325,22 @@ export default function R1xAgentContent() {
       const schema = await preflightService(service.endpoint);
       const requestData = buildRequestFromSchema(schema, lastUserMessage);
 
-      // If the provider requires specific fields (non-generic) ask user instead of guessing
+      // If the provider requires specific fields (non-generic) ask user instead of guessing (include options/examples when available)
       if (requestData.missing && requestData.missing.length > 0) {
-        const missingList = requestData.missing.map(k => `- ${k}`).join('\n');
+        const missingList = requestData.missing.map(k => {
+          const hint = requestData.hints?.[k];
+          const parts: string[] = [`- ${k}`];
+          if (hint?.options && hint.options.length > 0) {
+            parts.push(`  options: ${hint.options.slice(0, 10).join(', ')}${hint.options.length > 10 ? ', ...' : ''}`);
+          }
+          if (hint?.example) {
+            parts.push(`  example: ${hint.example}`);
+          }
+          if (hint?.description) {
+            parts.push(`  desc: ${hint.description}`);
+          }
+          return parts.join('\n');
+        }).join('\n');
         setMessages(prev => [...prev, {
           role: 'assistant',
           content: `This service requires additional fields:\n${missingList}\n\nPlease provide these values (e.g., "agent=Alice").`,
