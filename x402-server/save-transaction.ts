@@ -50,8 +50,9 @@ const USDC_DECIMALS = 6;
 const BASE_CHAIN_ID = 8453;
 const USDC_BASE_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
-interface PaymentProof {
+export interface PaymentProof {
   transactionHash: string;
+  settlementHash?: string; // Actual on-chain transaction hash from facilitator settlement
   blockNumber?: number;
   from: string;
   to: string;
@@ -398,6 +399,7 @@ export async function saveTransaction(params: SaveTransactionParams): Promise<vo
       data: {
         serviceId: dbServiceId,
         transactionHash: proof.transactionHash,
+        settlementHash: proof.settlementHash || null, // Actual on-chain transaction hash
         blockNumber: proof.blockNumber || null,
         from: proof.from,
         to: proof.to,

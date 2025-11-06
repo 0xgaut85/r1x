@@ -10,7 +10,7 @@ import express from 'express';
 import cors from 'cors';
 import { paymentMiddleware, Resource } from 'x402-express';
 import Anthropic from '@anthropic-ai/sdk';
-import { parsePaymentProof, saveTransaction } from './save-transaction';
+import { parsePaymentProof, saveTransaction, type PaymentProof } from './save-transaction';
 import { x402scanResponseTransformer } from './x402scan-response';
 import fs from 'fs';
 import path from 'path';
@@ -238,11 +238,29 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
       const paymentProof = parsePaymentProof(xPaymentHeader);
       
       if (paymentProof) {
+        // Try to get settlement hash from res.locals (if PayAI middleware exposes it)
+        // The PayAI middleware might expose settlement info in res.locals
+        const settlementHash = (res.locals as any)?.settlement?.transactionHash || 
+                               (res.locals as any)?.settlementHash ||
+                               (req.headers['x-settlement-hash'] as string | undefined);
+        
+        // Create proof object with settlement hash if available
+        const proofWithSettlement: PaymentProof = {
+          ...paymentProof,
+          settlementHash: settlementHash || undefined,
+        };
+        
+        if (settlementHash) {
+          console.log('[x402-server] Found settlement hash:', settlementHash.substring(0, 20) + '...');
+        } else {
+          console.log('[x402-server] No settlement hash available yet (settlement may be async)');
+        }
+        
         // Save transaction asynchronously (don't wait for it)
         // Wrap in Promise.race with timeout to prevent hanging
         Promise.race([
           saveTransaction({
-            proof: paymentProof,
+            proof: proofWithSettlement,
             serviceId: 'r1x-agent-chat',
             serviceName: 'r1x Agent Chat',
             price: '0.25', // $0.25 per message
@@ -681,6 +699,23 @@ app.post('/api/x402/pay', async (req, res) => {
     const paymentProof = parsePaymentProof(xPaymentHeader);
     
     if (paymentProof) {
+      // Try to get settlement hash from res.locals (if PayAI middleware exposes it)
+      const settlementHash = (res.locals as any)?.settlement?.transactionHash || 
+                             (res.locals as any)?.settlementHash ||
+                             (req.headers['x-settlement-hash'] as string | undefined);
+      
+      // Create proof object with settlement hash if available
+      const proofWithSettlement: PaymentProof = {
+        ...paymentProof,
+        settlementHash: settlementHash || undefined,
+      };
+      
+      if (settlementHash) {
+        console.log('[x402-server] Found settlement hash:', settlementHash.substring(0, 20) + '...');
+      } else {
+        console.log('[x402-server] No settlement hash available yet (settlement may be async)');
+      }
+      
       const serviceId = req.body.serviceId || 'unknown-service';
       const serviceName = req.body.serviceName || 'Unknown Service';
       const totalPrice = req.body.price || '0.01'; // Total price paid (includes fee for external services)
@@ -697,7 +732,7 @@ app.post('/api/x402/pay', async (req, res) => {
       // Wrap in Promise.race with timeout to prevent hanging
       Promise.race([
         saveTransaction({
-          proof: paymentProof,
+          proof: proofWithSettlement,
           serviceId,
           serviceName,
           price: priceForFeeCalculation, // Use base price for external, total for our services
