@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import dynamicImport from 'next/dynamic';
+import Header from '@/components/Header';
 import HeroSection from '@/components/HeroSection';
 import ThesisSection from '@/components/ThesisSection';
 import RoboticsUseCasesSection from '@/components/RoboticsUseCasesSection';
@@ -9,8 +9,6 @@ import DemosSection from '@/components/DemosSection';
 import EventSection from '@/components/EventSection';
 import CareersSection from '@/components/CareersSection';
 import Footer from '@/components/Footer';
-
-const Header = dynamicImport(() => import('@/components/Header'), { ssr: false });
 
 // Explicit metadata for this page to ensure x402scan can scrape it
 export const metadata: Metadata = {
