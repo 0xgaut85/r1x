@@ -9,31 +9,31 @@ export default function RoboticsUseCasesSection() {
       icon: <Camera className="w-12 h-12" />,
       title: 'Vision APIs agents buy',
       description: 'Agents pay per inference for OCR, object detection, image analysis. No monthly fees. Just USDC per call. The AI vision market, now machine‑accessible.',
-      image: 'https://images.unsplash.com/photo-1535378917042-10a22c95931a?w=800&h=600&fit=crop&q=80&sat=-30'
+      image: 'https://images.unsplash.com/photo-1535378917042-10a22c95931a?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
     },
     {
       icon: <MapPin className="w-12 h-12" />,
       title: 'Real‑time data streams',
       description: 'Market data, social feeds, IoT sensors—all priced per access. Agents compose data sources on demand. Pay only for what they consume.',
-      image: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&h=600&fit=crop&q=80'
+      image: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
     },
     {
       icon: <Users className="w-12 h-12" />,
       title: 'Human expertise on tap',
       description: 'Agents escalate complex tasks to human specialists. Pay per consultation minute. On‑chain receipts, instant settlement. The gig economy meets AGI.',
-      image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&h=600&fit=crop&q=80&sat=-20'
+      image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
     },
     {
       icon: <Radio className="w-12 h-12" />,
       title: 'Premium model access',
       description: 'Deploy gated LLMs, custom fine‑tunes, or specialized models. Agents pay per token or inference. Your models become revenue streams.',
-      image: 'https://images.unsplash.com/photo-1558346490-a72e53ae2d4f?w=800&h=600&fit=crop&q=80&sat=-20'
+      image: 'https://images.unsplash.com/photo-1558346490-a72e53ae2d4f?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
     },
     {
       icon: <Battery className="w-12 h-12" />,
       title: 'Compute marketplaces',
       description: 'Rent GPU cycles, serverless functions, or specialized hardware. Agents pay per job. Idle compute becomes instant revenue. The Airbnb for AI infrastructure.',
-      image: 'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&h=600&fit=crop&q=80&sat=-20'
+      image: 'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&h=600&fit=crop&q=80&sat=-100&con=15&exp=-10'
     },
   ];
 
@@ -66,6 +66,7 @@ export default function RoboticsUseCasesSection() {
                         src={useCase.image} 
                         alt={useCase.title}
                         className="w-full h-full object-cover"
+                        style={{ filter: 'grayscale(100%) contrast(115%) brightness(95%)' }}
                       />
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/80">
                         <div className="text-[#FF4D00]">

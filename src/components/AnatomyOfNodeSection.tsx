@@ -74,9 +74,10 @@ export default function AnatomyOfNodeSection() {
             <FadeInUp delay={0.2}>
               <div className="w-full h-64 sm:h-80 md:h-96 overflow-hidden" style={{ borderRadius: '0px' }}>
                 <img 
-                  src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&h=800&fit=crop&q=80&sat=-30"
+                  src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&h=800&fit=crop&q=80&sat=-100&con=15&exp=-10"
                   alt="Infrastructure for autonomy"
                   className="w-full h-full object-cover"
+                  style={{ filter: 'grayscale(100%) contrast(115%) brightness(95%)' }}
                 />
               </div>
             </FadeInUp>

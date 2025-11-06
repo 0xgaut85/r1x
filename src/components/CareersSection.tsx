@@ -11,14 +11,14 @@ export default function CareersSection() {
           {/* Top Left - Title */}
           <StaggerChild className="absolute top-0 left-0">
             <h3 className="text-black text-2xl sm:text-3xl md:text-4xl lg:text-[48px]" style={{
-              fontWeight: 400,
-              fontFamily: 'TWKEverettMono-Regular, monospace',
+                fontWeight: 400,
+                fontFamily: 'TWKEverettMono-Regular, monospace',
               lineHeight: '1.2',
               letterSpacing: '-1.5px',
-              color: 'rgb(0, 0, 0)'
-            }}>
+                color: 'rgb(0, 0, 0)'
+              }}>
               JOIN THE CONVERSATION
-            </h3>
+              </h3>
           </StaggerChild>
           
           {/* Top Right - Telegram Icon */}
@@ -38,23 +38,23 @@ export default function CareersSection() {
               color: 'rgba(0, 0, 0, 0.4)'
             }}>
               [TG]
-            </div>
+          </div>
           </StaggerChild>
           
           {/* Center Right - Description */}
           <StaggerChild className="absolute top-1/2 right-[10%] transform -translate-y-1/2 max-w-xl">
             <p className="text-gray-700 leading-relaxed text-lg sm:text-xl md:text-2xl lg:text-[28px]" style={{
-              fontWeight: 400,
-              fontFamily: 'BaselGrotesk-Regular, sans-serif',
+                fontWeight: 400,
+                fontFamily: 'BaselGrotesk-Regular, sans-serif',
               lineHeight: '1.5',
-              color: 'rgb(0, 0, 0)',
+                color: 'rgb(0, 0, 0)',
               wordBreak: 'break-word',
               overflowWrap: 'break-word'
             }}>
               Be the first to know what we've been up to and how we can help unleash the potential in your high-value data.
             </p>
-          </StaggerChild>
-        </StaggerChildren>
+              </StaggerChild>
+            </StaggerChildren>
       </div>
     </section>
   );
