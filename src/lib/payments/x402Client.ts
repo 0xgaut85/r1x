@@ -80,7 +80,9 @@ export class X402Client {
       priceWithFee?: string; // Total price with fee
       isExternal?: boolean; // Whether service is external
     },
-    requestBody?: any
+    requestBody?: any,
+    queryParams?: Record<string, string>,
+    headers?: Record<string, string>
   ): Promise<Response> {
     if (!service.endpoint) {
       throw new Error('Service endpoint is required');
@@ -99,11 +101,24 @@ export class X402Client {
       );
     }
 
+    // Build URL with query params if provided
+    let url = service.endpoint;
+    if (queryParams && Object.keys(queryParams).length > 0) {
+      const params = new URLSearchParams(queryParams);
+      url = `${service.endpoint}${service.endpoint.includes('?') ? '&' : '?'}${params.toString()}`;
+    }
+
     // For external services: call endpoint directly via x402
     // For internal services: use our proxy
     if (service.isExternal) {
-      return this.request(service.endpoint, {
+      const requestHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...headers,
+      };
+      
+      return this.request(url, {
         method: 'POST',
+        headers: requestHeaders,
         body: requestBody ? JSON.stringify(requestBody) : undefined,
       });
     } else {
@@ -120,6 +135,8 @@ export class X402Client {
           isExternal: false,
           endpoint: service.endpoint,
           ...(requestBody ? { requestBody } : {}),
+          ...(queryParams ? { queryParams } : {}),
+          ...(headers ? { headers } : {}),
         }),
       });
     }
@@ -137,7 +154,7 @@ export class X402Client {
    * Returns both responses with headers for receipt decoding
    */
   async payFeeThenPurchase(params: {
-    feeEndpoint: string; // Full URL to fee endpoint (e.g., https://server.r1xlabs.com/api/fees/collect)
+    feeEndpoint: string; // Full URL to fee endpoint (e.g., /api/fees/collect)
     feeAmount: string; // Fee amount in USDC (decimal string)
     service: {
       id: string;
@@ -148,6 +165,8 @@ export class X402Client {
       isExternal?: boolean;
     };
     requestBody?: any;
+    queryParams?: Record<string, string>;
+    headers?: Record<string, string>;
   }): Promise<{
     feeResponse: Response;
     serviceResponse: Response;
@@ -165,7 +184,12 @@ export class X402Client {
     }
 
     // Step 2: Purchase service via x402
-    const serviceResponse = await this.purchaseService(params.service, params.requestBody);
+    const serviceResponse = await this.purchaseService(
+      params.service, 
+      params.requestBody,
+      params.queryParams,
+      params.headers
+    );
 
     return {
       feeResponse,

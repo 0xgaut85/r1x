@@ -104,6 +104,116 @@ export default function R1xAgentContent() {
   }, [messages]);
 
   /**
+   * Preflight service endpoint to get 402 response and extract schema
+   * Returns the accepts[0] object with outputSchema if available
+   */
+  const preflightService = async (endpoint: string): Promise<any | null> => {
+    try {
+      console.log('[Preflight] Fetching schema from:', endpoint);
+      
+      // Make a plain POST request (no payment) to trigger 402
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}), // Empty body to trigger 402
+      });
+
+      if (response.status !== 402) {
+        console.warn('[Preflight] Expected 402, got:', response.status);
+        return null;
+      }
+
+      const data = await response.json();
+      
+      // Extract accepts[0] which contains the schema
+      if (data.accepts && Array.isArray(data.accepts) && data.accepts.length > 0) {
+        const accept = data.accepts[0];
+        console.log('[Preflight] Found schema:', {
+          hasOutputSchema: !!accept.outputSchema,
+          method: accept.outputSchema?.input?.method,
+          bodyType: accept.outputSchema?.input?.bodyType,
+          hasBodyFields: !!accept.outputSchema?.input?.bodyFields,
+          hasQueryParams: !!accept.outputSchema?.input?.queryParams,
+        });
+        return accept;
+      }
+
+      console.warn('[Preflight] No accepts array found in 402 response');
+      return null;
+    } catch (error: any) {
+      console.error('[Preflight] Error fetching schema:', error);
+      return null;
+    }
+  };
+
+  /**
+   * Build request body/query/headers from schema and user input
+   * Returns { body, queryParams, headers }
+   */
+  const buildRequestFromSchema = (
+    schema: any,
+    userInput: string
+  ): { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string> } => {
+    const result: { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string> } = {};
+    
+    if (!schema?.outputSchema?.input) {
+      // No schema, use default
+      return { body: { input: userInput } };
+    }
+
+    const input = schema.outputSchema.input;
+    
+    // Build query params if specified
+    if (input.queryParams && typeof input.queryParams === 'object') {
+      result.queryParams = {};
+      Object.entries(input.queryParams).forEach(([key, fieldDef]: [string, any]) => {
+        if (fieldDef.required && !fieldDef.default) {
+          // Use user input for required fields without defaults
+          result.queryParams![key] = userInput;
+        } else if (fieldDef.default !== undefined) {
+          result.queryParams![key] = String(fieldDef.default);
+        }
+      });
+    }
+
+    // Build headers if specified
+    if (input.headerFields && typeof input.headerFields === 'object') {
+      result.headers = {};
+      Object.entries(input.headerFields).forEach(([key, fieldDef]: [string, any]) => {
+        if (fieldDef.required && !fieldDef.default) {
+          result.headers![key] = userInput;
+        } else if (fieldDef.default !== undefined) {
+          result.headers![key] = String(fieldDef.default);
+        }
+      });
+    }
+
+    // Build body based on bodyType
+    if (input.bodyFields && typeof input.bodyFields === 'object') {
+      if (input.bodyType === 'json') {
+        result.body = {};
+        Object.entries(input.bodyFields).forEach(([key, fieldDef]: [string, any]) => {
+          if (fieldDef.required && !fieldDef.default) {
+            result.body![key] = userInput;
+          } else if (fieldDef.default !== undefined) {
+            result.body![key] = fieldDef.default;
+          }
+        });
+      } else {
+        // For form-data, text, etc., use user input as default
+        result.body = { input: userInput };
+      }
+    } else {
+      // No bodyFields specified, use default
+      result.body = { input: userInput };
+    }
+
+    return result;
+  };
+
+  /**
    * Handle autonomous purchase of a marketplace service
    */
   const handleAutopurchase = async (service: MarketplaceService): Promise<boolean> => {
@@ -120,6 +230,9 @@ export default function R1xAgentContent() {
     }
 
     try {
+      // Get last user message for input
+      const lastUserMessage = messages.filter(m => m.role === 'user').pop()?.content || '';
+      
       // Show in chat that we're purchasing
       const purchaseMessage: ChatMessage = {
         role: 'assistant',
@@ -137,15 +250,55 @@ export default function R1xAgentContent() {
         isExternal: service.isExternal,
       });
 
-      // Call service endpoint with x402 payment via Next.js proxy
-      const response = await x402Client.purchaseService({
-        id: service.id,
-        name: service.name,
-        endpoint: service.endpoint,
-        price: service.price,
-        priceWithFee: service.priceWithFee,
-        isExternal: service.isExternal,
+      // Preflight: Get service schema
+      const schema = await preflightService(service.endpoint);
+      const requestData = buildRequestFromSchema(schema, lastUserMessage);
+      
+      console.log('[Autopurchase] Built request from schema:', {
+        hasBody: !!requestData.body,
+        hasQueryParams: !!requestData.queryParams,
+        hasHeaders: !!requestData.headers,
       });
+
+      let response: Response;
+      
+      // For external services: collect fee first, then purchase
+      if (service.isExternal) {
+        // Calculate 5% platform fee
+        const basePrice = parseFloat(service.price);
+        const feeAmount = (basePrice * 0.05).toFixed(6);
+        
+        console.log('[Autopurchase] External service - collecting fee:', feeAmount, 'USDC');
+        
+        // Use payFeeThenPurchase for external services
+        const { serviceResponse } = await x402Client.payFeeThenPurchase({
+          feeEndpoint: '/api/fees/collect',
+          feeAmount: feeAmount,
+          service: {
+            id: service.id,
+            name: service.name,
+            endpoint: service.endpoint,
+            price: service.price,
+            priceWithFee: service.priceWithFee,
+            isExternal: true,
+          },
+          requestBody: requestData.body,
+          queryParams: requestData.queryParams,
+          headers: requestData.headers,
+        });
+        
+        response = serviceResponse;
+      } else {
+        // Internal service: use regular purchase flow
+        response = await x402Client.purchaseService({
+          id: service.id,
+          name: service.name,
+          endpoint: service.endpoint,
+          price: service.price,
+          priceWithFee: service.priceWithFee,
+          isExternal: false,
+        }, requestData.body, requestData.queryParams, requestData.headers);
+      }
 
       console.log('[Autopurchase] Response status:', response.status);
 
@@ -178,16 +331,54 @@ export default function R1xAgentContent() {
         );
       }
 
-      const result = await response.json();
-      console.log('[Autopurchase] Purchase successful:', result);
+      // Get response content type
+      const contentType = response.headers.get('content-type') || '';
+      let result: any;
       
-      // Update purchase message
+      if (contentType.includes('application/json')) {
+        result = await response.json();
+      } else if (contentType.includes('text/')) {
+        result = { text: await response.text() };
+      } else {
+        // Binary or unknown - create blob
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        result = { 
+          blob: blobUrl,
+          filename: response.headers.get('content-disposition')?.match(/filename="(.+)"/)?.[1] || 'download',
+          contentType: contentType,
+        };
+      }
+      
+      console.log('[Autopurchase] Purchase successful:', {
+        contentType,
+        hasResult: !!result,
+      });
+      
+      // Extract payment receipt from headers
+      const paymentResponseHeader = response.headers.get('x-payment-response');
+      let paymentReceipt: any = null;
+      if (paymentResponseHeader) {
+        try {
+          paymentReceipt = JSON.parse(paymentResponseHeader);
+        } catch {
+          // Ignore parse errors
+        }
+      }
+      
+      // Update purchase message with result (will be enhanced by ServiceResultCard component later)
       setMessages(prev => {
         const updated = [...prev];
         updated[updated.length - 1] = {
           ...updated[updated.length - 1],
-          content: `✅ Successfully purchased "${service.name}"! ${result.message || result.data?.message || 'Service accessed.'}`,
+          content: `✅ Successfully purchased "${service.name}"!`,
           status: 'sent',
+          serviceResult: {
+            service,
+            result,
+            paymentReceipt,
+            contentType,
+          },
         };
         return updated;
       });

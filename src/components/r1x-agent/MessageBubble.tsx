@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { ChatMessage } from '@/lib/types/chat';
+import ServiceResultCard from './ServiceResultCard';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -87,28 +88,45 @@ function UserAvatar() {
 
 function MessageContent({ message }: { message: ChatMessage }) {
   return (
-    <motion.div
-      className={`rounded-2xl px-6 py-4.5 ${
-        message.role === 'user'
-          ? 'bg-gradient-to-br from-[#FF4D00] via-[#FF5A1A] to-[#FF6B35] text-white ml-auto'
-          : 'bg-[#111111] text-[#E5E5E5] border border-[#1A1A1A] backdrop-blur-sm'
-      }`}
-      style={{
-        fontFamily: message.role === 'assistant' ? 'TWKEverettMono-Regular, monospace' : 'TWKEverett-Regular, sans-serif',
-        boxShadow: message.role === 'user' 
-          ? '0 12px 40px rgba(255, 77, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)' 
-          : '0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03)',
-        fontSize: message.role === 'assistant' ? '14px' : '15px',
-        lineHeight: '1.6',
-        letterSpacing: message.role === 'assistant' ? '-0.2px' : '0',
-      }}
-    >
-      <div className="whitespace-pre-wrap leading-relaxed">
-        {message.content}
-      </div>
-      {message.status === 'sending' && <LoadingDots />}
-      {message.status === 'error' && <ErrorMessage />}
-    </motion.div>
+    <>
+      <motion.div
+        className={`rounded-2xl px-6 py-4.5 ${
+          message.role === 'user'
+            ? 'bg-gradient-to-br from-[#FF4D00] via-[#FF5A1A] to-[#FF6B35] text-white ml-auto'
+            : 'bg-[#111111] text-[#E5E5E5] border border-[#1A1A1A] backdrop-blur-sm'
+        }`}
+        style={{
+          fontFamily: message.role === 'assistant' ? 'TWKEverettMono-Regular, monospace' : 'TWKEverett-Regular, sans-serif',
+          boxShadow: message.role === 'user' 
+            ? '0 12px 40px rgba(255, 77, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)' 
+            : '0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03)',
+          fontSize: message.role === 'assistant' ? '14px' : '15px',
+          lineHeight: '1.6',
+          letterSpacing: message.role === 'assistant' ? '-0.2px' : '0',
+        }}
+      >
+        <div className="whitespace-pre-wrap leading-relaxed">
+          {message.content}
+        </div>
+        {message.status === 'sending' && <LoadingDots />}
+        {message.status === 'error' && <ErrorMessage />}
+      </motion.div>
+      {message.serviceResult && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mt-2"
+        >
+          <ServiceResultCard
+            service={message.serviceResult.service}
+            result={message.serviceResult.result}
+            paymentReceipt={message.serviceResult.paymentReceipt}
+            contentType={message.serviceResult.contentType}
+          />
+        </motion.div>
+      )}
+    </>
   );
 }
 
