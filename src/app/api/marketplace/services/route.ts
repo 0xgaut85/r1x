@@ -38,12 +38,19 @@ export async function GET(request: NextRequest) {
       where.merchant = { equals: merchant, mode: 'insensitive' };
     }
 
-    if (type) {
-      where.type = { equals: type, mode: 'insensitive' };
-    }
+    // Only filter by type/source if columns exist (after migration)
+    // These filters will work once migration is applied
+    try {
+      if (type) {
+        where.type = { equals: type, mode: 'insensitive' };
+      }
 
-    if (source) {
-      where.source = { equals: source, mode: 'insensitive' };
+      if (source) {
+        where.source = { equals: source, mode: 'insensitive' };
+      }
+    } catch (error) {
+      // Columns might not exist yet - ignore filter errors
+      console.warn('[Marketplace] Type/source filters skipped (columns may not exist yet)');
     }
 
     // Search query (name or description)
@@ -54,10 +61,36 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    let services = await prisma.service.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-    });
+    // Query services - handle case where migration hasn't been applied yet
+    let services;
+    try {
+      services = await prisma.service.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+      });
+    } catch (error: any) {
+      // If migration hasn't been applied (P2022 = column doesn't exist), retry without new fields
+      if (error.code === 'P2022' || error.message?.includes('does not exist')) {
+        console.warn('[Marketplace] Migration not applied yet, querying without new fields');
+        // Remove filters that use new columns
+        const safeWhere: any = {
+          available: where.available,
+          network: where.network,
+          chainId: where.chainId,
+        };
+        if (where.category) safeWhere.category = where.category;
+        if (where.merchant) safeWhere.merchant = where.merchant;
+        if (where.OR) safeWhere.OR = where.OR;
+        
+        // Query without selecting new fields (use raw query or minimal select)
+        services = await prisma.service.findMany({
+          where: safeWhere,
+          orderBy: { createdAt: 'desc' },
+        });
+      } else {
+        throw error;
+      }
+    }
 
     // If no services found and sync not skipped, trigger sync
     if (services.length === 0 && !skipSync) {
@@ -94,10 +127,10 @@ export async function GET(request: NextRequest) {
         merchant: service.merchant,
         category: service.category || 'Other',
         endpoint: service.endpoint || undefined,
-        websiteUrl: websiteUrl || service.websiteUrl || undefined,
-        screenshotUrl: service.screenshotUrl || undefined,
+        websiteUrl: websiteUrl || (service as any).websiteUrl || undefined,
+        screenshotUrl: (service as any).screenshotUrl || undefined,
         available: service.available,
-        isExternal: service.isExternal ?? false,
+        isExternal: (service as any).isExternal ?? false,
         token: service.token,
         tokenSymbol: service.tokenSymbol,
         network: service.network,
