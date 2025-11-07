@@ -32,17 +32,24 @@ export async function GET(request: NextRequest) {
       normalizedUrl = `https://${normalizedUrl}`;
     }
 
-    // If the provided URL is an API/endpoint, screenshot the project homepage instead
+    // If the provided URL is an API/endpoint or x402 subdomain, screenshot the project homepage instead
     try {
       const urlObj = new URL(normalizedUrl);
 
       const hasApiSubdomain = /^([a-z0-9-]+-)?api\./i.test(urlObj.hostname);
+      const hasX402Subdomain = /^([a-z0-9-]+-)?x402\./i.test(urlObj.hostname);
+
+      const hostParts = urlObj.hostname.split('.');
+      const apex = hostParts.length >= 2 ? hostParts.slice(-2).join('.') : urlObj.hostname;
+
       let homepageHost = urlObj.host;
       if (hasApiSubdomain) {
         homepageHost = homepageHost.replace(/^([a-z0-9-]+-)?api\./i, '');
+      } else if (hasX402Subdomain) {
+        homepageHost = `www.${apex}`;
       }
 
-      if (hasApiSubdomain || urlObj.pathname.startsWith('/api/') || urlObj.pathname.includes('/api/')) {
+      if (hasApiSubdomain || hasX402Subdomain || urlObj.pathname.startsWith('/api/') || urlObj.pathname.includes('/api/')) {
         normalizedUrl = `${urlObj.protocol}//${homepageHost}`;
       }
     } catch {

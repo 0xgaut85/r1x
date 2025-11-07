@@ -39,7 +39,7 @@ export default function ServiceScreenshot({
     // Normalize URL - ensure it has protocol
     let normalizedUrl = url.trim();
 
-    // Derive a project homepage if the input looks like an API/endpoint
+    // Derive a project homepage if the input looks like an API/endpoint or x402 subdomain
     const apiPathPattern = /^https?:\/\/[^\/]+\/(api|v\d+)(\/|$)/i;
     const hasPathApi = normalizedUrl.includes('/api/')
       || normalizedUrl.includes('/v1/')
@@ -53,15 +53,25 @@ export default function ServiceScreenshot({
       }
       const u = new URL(normalizedUrl);
 
-      // Detect API-style subdomains like api.example.com, dev-api.example.com, staging-api.example.com
+      // Detect infrastructure subdomains like api.*, x402.*, dev-api.*, etc.
       const hasApiSubdomain = /^([a-z0-9-]+-)?api\./i.test(u.hostname);
-      // If we detect API subdomain, strip the api/staging-api prefix to get the project site
+      const hasX402Subdomain = /^([a-z0-9-]+-)?x402\./i.test(u.hostname);
+
+      // Compute apex (best-effort) for www.<apex>
+      const hostParts = u.hostname.split('.');
+      const apex = hostParts.length >= 2 ? hostParts.slice(-2).join('.') : u.hostname;
+
+      // Decide homepage host
       let homepageHost = u.host;
       if (hasApiSubdomain) {
+        // api.example.com -> example.com
         homepageHost = homepageHost.replace(/^([a-z0-9-]+-)?api\./i, '');
+      } else if (hasX402Subdomain) {
+        // x402.example.com -> www.example.com
+        homepageHost = `www.${apex}`;
       }
 
-      if (hasApiSubdomain || (hasPathApi || (u.pathname && u.pathname !== '/' && u.pathname.includes('/api/')))) {
+      if (hasApiSubdomain || hasX402Subdomain || (hasPathApi || (u.pathname && u.pathname !== '/' && u.pathname.includes('/api/')))) {
         // Screenshot the project website (apex or non-api subdomain) instead of the API path
         normalizedUrl = `${u.protocol}//${homepageHost}`;
       }
