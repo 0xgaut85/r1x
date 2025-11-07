@@ -56,6 +56,7 @@ export default function R1xAgentContent() {
     fieldLocations?: Record<string, 'body' | 'query' | 'header'>;
     hints?: Record<string, { description?: string; example?: string; options?: string[] }>;
     fields?: Array<{ name: string; location: 'body' | 'query' | 'header'; required: boolean; description?: string; example?: string; options?: string[]; defaultValue?: string }>;
+    method?: 'GET' | 'POST';
   }>(null);
 
   // Initialize marketplace catalog with 60s refresh
@@ -1555,6 +1556,7 @@ export default function R1xAgentContent() {
                   },
                   isExternal: service.isExternal ?? false,
                   fields: requestData.fields,
+                  method: requestData.method as any,
                 });
               }
               
