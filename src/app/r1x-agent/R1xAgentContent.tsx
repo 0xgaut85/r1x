@@ -123,7 +123,7 @@ export default function R1xAgentContent() {
   const preflightService = async (endpoint: string): Promise<any | null> => {
     try {
       console.log('[Preflight] Fetching schema from:', endpoint);
-
+      
       // Use proxy for external endpoints to avoid CORS
       let isExternalEndpoint = false;
       try {
@@ -147,14 +147,14 @@ export default function R1xAgentContent() {
           }),
         });
       } else {
-        // Make a plain POST request (no payment) to trigger 402
+      // Make a plain POST request (no payment) to trigger 402
         response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}), // Empty body to trigger 402
-        });
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}), // Empty body to trigger 402
+      });
       }
 
       if (response.status !== 402) {
