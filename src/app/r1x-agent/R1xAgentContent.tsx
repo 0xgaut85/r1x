@@ -20,6 +20,7 @@ import ChatMessages from '@/components/r1x-agent/ChatMessages';
 import ChatInput from '@/components/r1x-agent/ChatInput';
 import ChatSuggestions from '@/components/r1x-agent/ChatSuggestions';
 import ErrorBanner from '@/components/r1x-agent/ErrorBanner';
+import ParamWizard from '@/components/r1x-agent/ParamWizard';
 import AgentLeftSidebar from '@/components/r1x-agent/sidebar/AgentLeftSidebar';
 
 const initialWelcomeMessage: ChatMessage = {
@@ -54,6 +55,7 @@ export default function R1xAgentContent() {
     missing: string[];
     fieldLocations?: Record<string, 'body' | 'query' | 'header'>;
     hints?: Record<string, { description?: string; example?: string; options?: string[] }>;
+    fields?: Array<{ name: string; location: 'body' | 'query' | 'header'; required: boolean; description?: string; example?: string; options?: string[]; defaultValue?: string }>;
   }>(null);
 
   // Initialize marketplace catalog with 60s refresh
@@ -138,7 +140,7 @@ export default function R1xAgentContent() {
       // First try POST
       if (isExternalEndpoint) {
         response = await fetch('/api/x402/proxy', {
-          method: 'POST',
+        method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             url: endpoint,
@@ -257,11 +259,12 @@ export default function R1xAgentContent() {
   const buildRequestFromSchema = (
     schema: any,
     userInput: string
-  ): { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string>; missing?: string[]; hints?: Record<string, { description?: string; example?: string; options?: string[] }>; fieldLocations?: Record<string, 'body' | 'query' | 'header'> } => {
-    const result: { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string>; missing?: string[]; hints?: Record<string, { description?: string; example?: string; options?: string[] }>; fieldLocations?: Record<string, 'body' | 'query' | 'header'> } = {};
+  ): { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string>; missing?: string[]; hints?: Record<string, { description?: string; example?: string; options?: string[] }>; fieldLocations?: Record<string, 'body' | 'query' | 'header'>; fields?: Array<{ name: string; location: 'body' | 'query' | 'header'; required: boolean; description?: string; example?: string; options?: string[]; defaultValue?: string }> } => {
+    const result: { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string>; missing?: string[]; hints?: Record<string, { description?: string; example?: string; options?: string[] }>; fieldLocations?: Record<string, 'body' | 'query' | 'header'>; fields?: Array<{ name: string; location: 'body' | 'query' | 'header'; required: boolean; description?: string; example?: string; options?: string[]; defaultValue?: string }> } = {};
     const missing: string[] = [];
     const hints: Record<string, { description?: string; example?: string; options?: string[] }> = {};
     const fieldLocations: Record<string, 'body' | 'query' | 'header'> = {};
+    const fields: Array<{ name: string; location: 'body' | 'query' | 'header'; required: boolean; description?: string; example?: string; options?: string[]; defaultValue?: string }> = [];
     
     if (!schema?.outputSchema?.input) {
       // No schema, use default
@@ -298,6 +301,15 @@ export default function R1xAgentContent() {
       result.queryParams = {};
       Object.entries(input.queryParams).forEach(([key, fieldDef]: [string, any]) => {
         captureFieldHints(key, fieldDef);
+        fields.push({
+          name: key,
+          location: 'query',
+          required: !!fieldDef?.required && fieldDef?.default === undefined,
+          description: fieldDef?.description,
+          example: fieldDef?.example !== undefined ? String(fieldDef.example) : undefined,
+          options: Array.isArray(fieldDef?.enum) ? fieldDef.enum.map((v: any) => String(v)) : undefined,
+          defaultValue: fieldDef?.default !== undefined ? String(fieldDef.default) : undefined,
+        });
         if (fieldDef.required && !fieldDef.default) {
           if (genericInputKeys.has(key)) {
           result.queryParams![key] = userInput;
@@ -316,6 +328,15 @@ export default function R1xAgentContent() {
       result.headers = {};
       Object.entries(input.headerFields).forEach(([key, fieldDef]: [string, any]) => {
         captureFieldHints(key, fieldDef);
+        fields.push({
+          name: key,
+          location: 'header',
+          required: !!fieldDef?.required && fieldDef?.default === undefined,
+          description: fieldDef?.description,
+          example: fieldDef?.example !== undefined ? String(fieldDef.example) : undefined,
+          options: Array.isArray(fieldDef?.enum) ? fieldDef.enum.map((v: any) => String(v)) : undefined,
+          defaultValue: fieldDef?.default !== undefined ? String(fieldDef.default) : undefined,
+        });
         if (fieldDef.required && !fieldDef.default) {
           if (genericInputKeys.has(key)) {
           result.headers![key] = userInput;
@@ -335,6 +356,15 @@ export default function R1xAgentContent() {
         result.body = {};
         Object.entries(input.bodyFields).forEach(([key, fieldDef]: [string, any]) => {
           captureFieldHints(key, fieldDef);
+          fields.push({
+            name: key,
+            location: 'body',
+            required: !!fieldDef?.required && fieldDef?.default === undefined,
+            description: fieldDef?.description,
+            example: fieldDef?.example !== undefined ? String(fieldDef.example) : undefined,
+            options: Array.isArray(fieldDef?.enum) ? fieldDef.enum.map((v: any) => String(v)) : undefined,
+            defaultValue: fieldDef?.default !== undefined ? String(fieldDef.default) : undefined,
+          });
           if (fieldDef.required && !fieldDef.default) {
             if (genericInputKeys.has(key)) {
             result.body![key] = userInput;
@@ -364,8 +394,139 @@ export default function R1xAgentContent() {
     if (Object.keys(fieldLocations).length > 0) {
       result.fieldLocations = fieldLocations;
     }
+    if (fields.length > 0) {
+      result.fields = fields;
+    }
 
     return result;
+  };
+
+  // Complete a pending purchase using provided values from the wizard
+  const completePendingPurchaseWithValues = async (formValues: Record<string, string>) => {
+    if (!pendingPurchase || !x402Client) return;
+    try {
+      setIsLoading(true);
+
+      // Start from baseRequest
+      const body = { ...(pendingPurchase.baseRequest.body || {}) } as Record<string, any>;
+      const headers = { ...(pendingPurchase.baseRequest.headers || {}) } as Record<string, string>;
+      const queryParams = { ...(pendingPurchase.baseRequest.queryParams || {}) } as Record<string, string>;
+
+      // Apply values at correct locations
+      Object.entries(formValues).forEach(([k, v]) => {
+        const loc = pendingPurchase.fieldLocations?.[k] || 'body';
+        if (loc === 'query') {
+          queryParams[k] = v;
+        } else if (loc === 'header') {
+          headers[k] = v;
+        } else {
+          body[k] = v;
+        }
+      });
+
+      // Check remaining required
+      const remaining = pendingPurchase.missing.filter((k) => {
+        const loc = pendingPurchase.fieldLocations?.[k] || 'body';
+        const val = loc === 'query' ? queryParams[k] : loc === 'header' ? headers[k] : body[k];
+        return !val;
+      });
+
+      if (remaining.length > 0) {
+        const missingList = remaining.map((k) => {
+          const hint = pendingPurchase.hints?.[k];
+          const parts: string[] = [`- ${k}`];
+          if (hint?.options && hint.options.length > 0) {
+            parts.push(`  options: ${hint.options.slice(0, 10).join(', ')}${hint.options.length > 10 ? ', ...' : ''}`);
+          }
+          if (hint?.example) parts.push(`  example: ${hint.example}`);
+          if (hint?.description) parts.push(`  desc: ${hint.description}`);
+          return parts.join('\n');
+        }).join('\n');
+
+        setPendingPurchase({
+          ...pendingPurchase,
+          baseRequest: { body, headers, queryParams },
+          missing: remaining,
+        });
+        setMessages((prev) => ([
+          ...prev,
+          { role: 'assistant', content: `Still need:\n${missingList}`, status: 'sent' as const },
+        ]));
+        setIsLoading(false);
+        return;
+      }
+
+      // Fee first
+      const feeResponse = await x402Client.request('/api/fee', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+      if (!feeResponse.ok) {
+        const errTxt = await feeResponse.text();
+        setMessages((prev) => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          updated[updated.length - 1] = { ...last, status: 'error', content: `Failed to pay agent fee: ${errTxt || 'Payment required'}` } as any;
+          return updated;
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Execute purchase
+      const res = await x402Client.purchaseService({
+        id: pendingPurchase.service.id,
+        name: pendingPurchase.service.name,
+        endpoint: pendingPurchase.service.endpoint!,
+        price: pendingPurchase.service.price!,
+        priceWithFee: pendingPurchase.service.priceWithFee,
+        isExternal: pendingPurchase.isExternal,
+      }, body, queryParams, headers);
+
+      if (!res.ok) {
+        const t = await res.text();
+        setMessages((prev) => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          updated[updated.length - 1] = { ...last, status: 'error', content: `Purchase failed (HTTP ${res.status}): ${t}` } as any;
+          return updated;
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Render result
+      const contentType = res.headers.get('content-type') || '';
+      let result: any;
+      if (contentType.includes('application/json')) result = await res.json();
+      else if (contentType.includes('text/')) result = { text: await res.text() };
+      else {
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        result = { blob: blobUrl, filename: res.headers.get('content-disposition')?.match(/filename="(.+)"/)?.[1] || 'download', contentType };
+      }
+
+      const paymentResponseHeader = res.headers.get('x-payment-response') || res.headers.get('X-Payment-Response');
+      let paymentReceipt: any = null;
+      if (paymentResponseHeader) { try { paymentReceipt = JSON.parse(paymentResponseHeader); } catch {} }
+
+      setMessages((prev) => {
+        const updated = [...prev];
+        const last = updated[updated.length - 1];
+        updated[updated.length - 1] = {
+          ...last,
+          content: `✅ Successfully purchased "${pendingPurchase.service.name}"!`,
+          status: 'sent',
+          serviceResult: { service: pendingPurchase.service, result, paymentReceipt, contentType },
+        } as any;
+        return updated;
+      });
+
+      setPendingPurchase(null);
+      setIsLoading(false);
+    } catch (e) {
+      setIsLoading(false);
+    }
   };
 
   /**
@@ -475,6 +636,7 @@ export default function R1xAgentContent() {
           missing: requestData.missing,
           fieldLocations: requestData.fieldLocations,
           hints: requestData.hints,
+          fields: requestData.fields,
         });
         setMessages(prev => [...prev, {
           role: 'assistant',
@@ -1384,6 +1546,7 @@ export default function R1xAgentContent() {
                     headers: requestData.headers,
                   },
                   isExternal: service.isExternal ?? false,
+                  fields: requestData.fields,
                 });
               }
               
@@ -1513,6 +1676,16 @@ export default function R1xAgentContent() {
             isLoading={isLoading} 
             messagesEndRef={messagesEndRef}
           />
+
+          {pendingPurchase && pendingPurchase.fields && pendingPurchase.fields.length > 0 && (
+            <ParamWizard
+              title={`Parameters for ${pendingPurchase.service.name}`}
+              fields={pendingPurchase.fields}
+              initialValues={{}}
+              onSubmit={(values) => completePendingPurchaseWithValues(values)}
+              onCancel={() => setPendingPurchase(null)}
+            />
+          )}
 
           {messages.length === 1 && (
             <ChatSuggestions 

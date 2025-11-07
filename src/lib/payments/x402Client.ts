@@ -82,7 +82,8 @@ export class X402Client {
     },
     requestBody?: any,
     queryParams?: Record<string, string>,
-    headers?: Record<string, string>
+    headers?: Record<string, string>,
+    method?: string
   ): Promise<Response> {
     if (!service.endpoint) {
       throw new Error('Service endpoint is required');
@@ -111,6 +112,7 @@ export class X402Client {
     // For external services: call endpoint directly via x402
     // For internal services: use our proxy
     if (service.isExternal) {
+      const httpMethod = (method || 'POST').toUpperCase();
       const requestHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
         ...headers,
@@ -121,9 +123,9 @@ export class X402Client {
         method: 'POST',
         body: JSON.stringify({
           url,
-          method: 'POST',
+          method: httpMethod,
           headers: requestHeaders,
-          body: requestBody ?? undefined,
+          body: httpMethod === 'GET' ? undefined : (requestBody ?? undefined),
         }),
       });
     } else {
