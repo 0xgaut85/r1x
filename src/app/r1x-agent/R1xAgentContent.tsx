@@ -1273,6 +1273,91 @@ export default function R1xAgentContent() {
           // Remove the purchase marker from the message
           const cleanMessage = responseText.replace(/\[PURCHASE:[^\]]+\]/, '').trim();
           
+          // Preflight service to check for required parameters BEFORE purchasing
+          console.log('[Agent] Preflighting service to check required parameters...');
+          const schema = await preflightService(service.endpoint);
+          
+          if (schema?.outputSchema?.input) {
+            const requestData = buildRequestFromSchema(schema, '');
+            
+            // If service requires specific parameters, ask Claude to explain them
+            if (requestData.missing && requestData.missing.length > 0) {
+              // Build schema description for Claude
+              const schemaDesc: string[] = [];
+              schemaDesc.push(`The service "${service.name}" requires these parameters:`);
+              
+              requestData.missing.forEach(key => {
+                const hint = requestData.hints?.[key];
+                const loc = requestData.fieldLocations?.[key] || 'body';
+                const parts: string[] = [`- ${key} (${loc})`];
+                if (hint?.description) parts.push(`  Description: ${hint.description}`);
+                if (hint?.example) parts.push(`  Example: ${hint.example}`);
+                if (hint?.options && hint.options.length > 0) {
+                  parts.push(`  Options: ${hint.options.slice(0, 10).join(', ')}${hint.options.length > 10 ? ', ...' : ''}`);
+                }
+                schemaDesc.push(parts.join('\n'));
+              });
+              
+              // Ask Claude to explain what's needed
+              const schemaMessage = schemaDesc.join('\n');
+              const explanationPrompt = `The user wants to purchase "${service.name}" but it requires these parameters:\n\n${schemaMessage}\n\nPlease explain to the user EXACTLY what parameters they need to provide, using the descriptions and examples from the merchant's schema. Be clear and helpful.`;
+              
+              setMessages(prev => {
+                const updated = [...prev];
+                updated[updated.length - 1] = { ...updated[updated.length - 1], status: 'sent' };
+                return [...updated, {
+                  role: 'user',
+                  content: explanationPrompt,
+                  status: 'sending',
+                }];
+              });
+              
+              // Get Claude's explanation
+              const explanationResponse = await fetchWithPayment('/api/r1x-agent/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  messages: [
+                    ...messages.map(m => ({ role: m.role, content: m.content })),
+                    { role: 'user', content: explanationPrompt },
+                  ],
+                }),
+              });
+              
+              if (explanationResponse.ok) {
+                const explanationData = await explanationResponse.json();
+                const explanationText = explanationData.message || '';
+                
+                setMessages(prev => {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = { ...updated[updated.length - 1], status: 'sent' };
+                  return [...updated, {
+                    role: 'assistant',
+                    content: explanationText,
+                    status: 'sent',
+                  }];
+                });
+                
+                // Store pending purchase so user can provide parameters
+                setPendingPurchase({
+                  service,
+                  missing: requestData.missing,
+                  hints: requestData.hints || {},
+                  fieldLocations: requestData.fieldLocations || {},
+                  baseRequest: {
+                    body: requestData.body,
+                    queryParams: requestData.queryParams,
+                    headers: requestData.headers,
+                  },
+                  isExternal: service.isExternal ?? false,
+                });
+              }
+              
+              setIsLoading(false);
+              return;
+            }
+          }
+          
           const assistantMessage: ChatMessage = {
             role: 'assistant',
             content: cleanMessage || 'Purchasing service...',
@@ -1285,7 +1370,7 @@ export default function R1xAgentContent() {
             return [...updated, assistantMessage];
           });
 
-          // Trigger the purchase
+          // Trigger the purchase (no required fields, or all provided)
           await handleAutopurchase(service);
           return;
         } else {

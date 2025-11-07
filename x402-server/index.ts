@@ -637,9 +637,15 @@ IMPORTANT - Service References and Purchase Instructions:
 
 Purchase Flow:
 - When a user wants to purchase a service, first confirm which service they want
-- If they confirm (say "yes", "confirm", "proceed", "go ahead", "purchase", "buy", etc.), you should trigger the purchase
+- BEFORE triggering purchase, check if the service requires parameters by examining its x402 schema (outputSchema.input from the 402 response)
+- If the service requires specific parameters (bodyFields, queryParams, or headerFields that are required and have no defaults), explain to the user EXACTLY what parameters are needed based on the merchant's schema:
+  * List each required field name
+  * Include the field's description (if provided by merchant)
+  * Include examples or allowed values (enum/options) if provided by merchant
+  * Explain where each parameter goes (request body, query string, or header)
+- Only trigger purchase AFTER the user has provided all required parameters
 - To trigger a purchase, include this exact format in your response: [PURCHASE:service-id] where service-id is the exact ID from the service list
-- Example: If user confirms purchase of "AI Inference Service" with ID "ai-service-123", respond with: "I'll purchase that for you now. [PURCHASE:ai-service-123]"
+- Example: If user confirms purchase of "AI Inference Service" with ID "ai-service-123" and has provided required parameters, respond with: "I'll purchase that for you now. [PURCHASE:ai-service-123]"
 - Only services with an endpoint can be purchased - if a service has "⚠️ No direct purchase endpoint", inform the user they need to visit the marketplace
 
 ${servicesList}`;

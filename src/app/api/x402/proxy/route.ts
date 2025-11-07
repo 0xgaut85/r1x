@@ -15,11 +15,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing or invalid url' }, { status: 400 });
     }
 
+    // Forward X-Payment header if present (from x402-fetch payment proof)
+    const xPaymentHeader = request.headers.get('x-payment') || request.headers.get('X-Payment');
+    
     const requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       ...(clientHeaders || {}),
     };
+    
+    if (xPaymentHeader) {
+      requestHeaders['X-Payment'] = xPaymentHeader;
+      console.log('[x402 Proxy] Forwarding X-Payment header to external service');
+    }
 
     // Forward request to external resource with timeout
     const controller = new AbortController();
