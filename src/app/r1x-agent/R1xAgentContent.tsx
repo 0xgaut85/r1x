@@ -462,6 +462,17 @@ export default function R1xAgentContent() {
         return;
       }
 
+      // Auto-supply buyerAddress if merchant complains later
+      const ensureBuyerAddress = (m?: string) => {
+        const method = (m || pendingPurchase.method || 'POST').toUpperCase();
+        if (!address) return;
+        if (method === 'GET') {
+          if (!queryParams['buyerAddress']) queryParams['buyerAddress'] = address;
+        } else {
+          if (!body['buyerAddress']) body['buyerAddress'] = address;
+        }
+      };
+
       // Fee first
       const feeResponse = await x402Client.request('/api/fee', {
         method: 'POST',
@@ -480,7 +491,7 @@ export default function R1xAgentContent() {
       }
 
       // Execute purchase
-      const res = await x402Client.purchaseService({
+      let res = await x402Client.purchaseService({
         id: pendingPurchase.service.id,
         name: pendingPurchase.service.name,
         endpoint: pendingPurchase.service.endpoint!,
@@ -491,10 +502,26 @@ export default function R1xAgentContent() {
 
       if (!res.ok) {
         const t = await res.text();
+        // Retry once if buyerAddress missing
+        if (res.status === 400 && /buyeraddress/i.test(t)) {
+          ensureBuyerAddress((pendingPurchase as any).method as any);
+          res = await x402Client.purchaseService({
+            id: pendingPurchase.service.id,
+            name: pendingPurchase.service.name,
+            endpoint: pendingPurchase.service.endpoint!,
+            price: pendingPurchase.service.price!,
+            priceWithFee: pendingPurchase.service.priceWithFee,
+            isExternal: pendingPurchase.isExternal,
+          }, body, queryParams, headers, (pendingPurchase as any).method as any);
+        }
+      }
+
+      if (!res.ok) {
+        const t2 = await res.text();
         setMessages((prev) => {
           const updated = [...prev];
           const last = updated[updated.length - 1];
-          updated[updated.length - 1] = { ...last, status: 'error', content: `Purchase failed (HTTP ${res.status}): ${t}` } as any;
+          updated[updated.length - 1] = { ...last, status: 'error', content: `Purchase failed (HTTP ${res.status}): ${t2}` } as any;
           return updated;
         });
         setIsLoading(false);
@@ -718,7 +745,7 @@ export default function R1xAgentContent() {
         isExternal: isExternalService,
       });
 
-      const response = await x402Client.purchaseService({
+      let response = await x402Client.purchaseService({
         id: service.id,
         name: service.name,
         endpoint: service.endpoint,
@@ -792,6 +819,32 @@ export default function R1xAgentContent() {
               return updated;
             });
             return false;
+          }
+        }
+
+        // Retry once if buyerAddress missing
+        if (response.status === 400) {
+          const msg = (errorData.error || errorData.message || errorText || '').toString();
+          if (/buyeraddress/i.test(msg) && address) {
+            if ((requestData.method || 'POST').toUpperCase() === 'GET') {
+              requestData.queryParams = { ...(requestData.queryParams || {}), buyerAddress: address };
+            } else {
+              requestData.body = { ...(requestData.body || {}), buyerAddress: address };
+            }
+            response = await x402Client.purchaseService({
+              id: service.id,
+              name: service.name,
+              endpoint: service.endpoint,
+              price: service.price,
+              priceWithFee: service.priceWithFee,
+              isExternal: isExternalService,
+            }, requestData.body, requestData.queryParams, requestData.headers, requestData.method as any);
+            if (response.ok) {
+              // continue to success processing
+            } else {
+              const et = await response.text();
+              throw new Error(`Purchase failed (HTTP ${response.status}): ${et}`);
+            }
           }
         }
 
@@ -1664,7 +1717,13 @@ export default function R1xAgentContent() {
             <ParamWizard
               title={`Parameters for ${pendingPurchase.service.name}`}
               fields={pendingPurchase.fields}
-              initialValues={{}}
+              initialValues={(() => {
+                const iv: Record<string, string> = {};
+                if (address && pendingPurchase.fields?.some(f => f.name === 'buyerAddress')) {
+                  iv['buyerAddress'] = address;
+                }
+                return iv;
+              })()}
               onSubmit={(values) => completePendingPurchaseWithValues(values)}
               onCancel={() => setPendingPurchase(null)}
             />
