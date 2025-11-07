@@ -195,6 +195,9 @@ export async function GET(request: NextRequest) {
         tokenSymbol: service.tokenSymbol,
         network: service.network,
         chainId: service.chainId,
+        x402Ready: (service as any).x402Ready ?? true,
+        verified: (service as any).verified ?? false,
+        source: (service as any).source || undefined,
       };
     });
 

@@ -32,8 +32,20 @@ model Service {
   method      String?  // HTTP method: GET, POST, etc.
   inputSchema Json?    // Input schema from 402 preflight
   outputSchema Json?   // Output schema from 402 preflight
-  source      String?  // Source: payai, x402scan
+  source      String?  // Source: payai, x402scan, selfserve
   isExternal  Boolean  @default(false) // true if from external merchant
+  
+  // Self-serve merchant listing fields
+  ownerAddress String? // Wallet address of service submitter
+  approvalStatus String? @default("approved") // approved, rejected, pending
+  verified Boolean @default(false) // true if ownership verified via signature
+  x402Ready Boolean @default(true) // true if endpoint returns valid 402
+  lastPreflightAt DateTime? // Last time we checked 402 status
+  lastPreflightStatus String? // success, failed, timeout
+  facilitatorUrl String? // PayAI facilitator URL from 402
+  tokenAddress String? // Token contract address from 402
+  payTo String? // Merchant address from 402 quote
+  
   websiteUrl  String?  // Website URL for APIFLASH screenshot
   screenshotUrl String? // Cached APIFLASH screenshot URL
   
@@ -50,6 +62,9 @@ model Service {
   @@index([type])
   @@index([source])
   @@index([isExternal])
+  @@index([ownerAddress])
+  @@index([approvalStatus])
+  @@index([x402Ready])
 }
 
 model Transaction {

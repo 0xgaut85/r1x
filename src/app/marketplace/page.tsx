@@ -72,12 +72,21 @@ export default function MarketplacePage() {
             >
               r1x Marketplace
             </h1>
-            <p 
-              className="text-lg sm:text-xl mb-8 sm:mb-12 text-gray-700"
-              style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
-            >
-              Discover x402 services, tokens, and resources. Pay-per-use access to AI, APIs, compute, and more.
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 sm:mb-12">
+              <p 
+                className="text-lg sm:text-xl text-gray-700"
+                style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+              >
+                Discover x402 services, tokens, and resources. Pay-per-use access to AI, APIs, compute, and more.
+              </p>
+              <a
+                href="/marketplace/submit"
+                className="px-6 py-3 bg-[#FF4D00] text-white rounded-lg hover:opacity-90 transition-opacity inline-flex items-center justify-center"
+                style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '14px' }}
+              >
+                List your x402 service
+              </a>
+            </div>
 
             {/* Category Filter */}
             <div className="flex flex-wrap gap-3 mb-8">
@@ -329,6 +338,24 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
                 style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
               >
                 PayAI
+              </span>
+            )}
+            {service.x402Ready !== false && (
+              <span 
+                className="text-xs text-green-600 px-2 py-1 bg-green-50 rounded"
+                style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                title="x402-compatible endpoint"
+              >
+                x402 Ready
+              </span>
+            )}
+            {service.verified && (
+              <span 
+                className="text-xs text-purple-600 px-2 py-1 bg-purple-50 rounded"
+                style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                title="Ownership verified"
+              >
+                ✓ Verified
               </span>
             )}
           </div>

@@ -97,5 +97,8 @@ export interface MarketplaceService {
   tokenSymbol?: string; // Token symbol (e.g., "USDC")
   network?: string; // Network identifier (e.g., "base")
   chainId?: number; // Chain ID (e.g., 8453 for Base)
+  x402Ready?: boolean; // true if endpoint returns valid 402
+  verified?: boolean; // true if ownership verified
+  source?: string; // Source: payai, x402scan, selfserve
 }
 
