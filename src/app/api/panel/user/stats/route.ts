@@ -52,9 +52,8 @@ export async function GET(request: NextRequest) {
       .filter(tx => tx.service) // Filter out transactions with missing services
       .slice(0, 10)
       .map(tx => {
-      const isAgentOrFee = tx.service?.serviceId?.startsWith('r1x-') || tx.service?.serviceId === 'platform-fee';
       const hex = (h?: string | null) => (h && /^0x[0-9a-fA-F]{64}$/.test(h) ? h : null);
-      const bestHash = hex(tx.settlementHash) || (!isAgentOrFee ? hex(tx.transactionHash) : null);
+      const bestHash = hex(tx.settlementHash) || hex(tx.transactionHash);
       const explorerUrl = bestHash ? `https://basescan.org/tx/${bestHash}` : null;
       
       return {

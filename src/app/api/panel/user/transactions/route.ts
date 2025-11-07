@@ -61,10 +61,9 @@ export async function GET(request: NextRequest) {
     ]);
 
     const formattedTransactions = transactions.map(tx => {
-      const isAgentOrFee = tx.service?.serviceId?.startsWith('r1x-') || tx.service?.serviceId === 'platform-fee';
       const hex = (h?: string | null) => (h && /^0x[0-9a-fA-F]{64}$/.test(h) ? h : null);
-      // Prefer settlement hash (on-chain). If missing and not an agent/fee tx, fall back to transactionHash.
-      const bestHash = hex(tx.settlementHash) || (!isAgentOrFee ? hex(tx.transactionHash) : null);
+      // Prefer settlement hash; fall back to transactionHash for any tx
+      const bestHash = hex(tx.settlementHash) || hex(tx.transactionHash);
       const explorerUrl = bestHash ? `https://basescan.org/tx/${bestHash}` : null;
       
       return {

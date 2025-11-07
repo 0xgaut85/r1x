@@ -57,9 +57,8 @@ export async function GET(request: NextRequest) {
                         metadata?.url ||
                         undefined;
 
-      const isAgentOrFee = tx.service.serviceId?.startsWith('r1x-') || tx.service.serviceId === 'platform-fee';
       const hex = (h?: string | null) => (h && /^0x[0-9a-fA-F]{64}$/.test(h) ? h : null);
-      const bestHash = hex((tx as any).settlementHash) || (!isAgentOrFee ? hex(tx.transactionHash) : null);
+      const bestHash = hex((tx as any).settlementHash) || hex(tx.transactionHash);
       const blockExplorerUrl = bestHash ? `https://basescan.org/tx/${bestHash}` : null;
 
       return {
