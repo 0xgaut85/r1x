@@ -18,7 +18,7 @@ echo "✓ DATABASE_URL is configured"
 # Run database migrations
 echo ""
 echo "Running database migrations..."
-if npx prisma migrate deploy; then
+if prisma migrate deploy; then
   echo "✓ Database migrations completed successfully"
 else
   echo "⚠ Warning: Migration command failed or migrations already applied"

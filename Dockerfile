@@ -59,6 +59,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Install Prisma CLI globally for migrations (needed in standalone mode)
+RUN npm install -g prisma@latest
+
 # Copy necessary files
 # With transpilePackages, Next.js bundles everything into .next/standalone
 # No need to copy node_modules - reduces image size and build time
