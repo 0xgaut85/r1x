@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import dynamicImport from 'next/dynamic';
 import Footer from '@/components/Footer';
-import CryptoLogo from '@/components/CryptoLogo';
+import Image from 'next/image';
 
 const Header = dynamicImport(() => import('@/components/Header'), { ssr: false });
 import WalletButton from '@/components/WalletButton';
@@ -280,7 +280,7 @@ export default function UserPanelContent() {
                   <p className="text-2xl font-bold" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
                     <span className="flex items-center gap-1">
                       {parseFloat(stats.stats.totalSpent || '0').toFixed(2)} 
-                      <CryptoLogo symbol="USDC" size={16} />
+                      <Image src="/usdc.svg" alt="USDC" width={16} height={16} />
                       USDC
                     </span>
                   </p>
@@ -459,7 +459,7 @@ export default function UserPanelContent() {
                           </td>
                           <td className="py-2 px-4">
                             <span className="flex items-center gap-1">
-                              {formatUnits(BigInt(purchase.amount), 6)} <CryptoLogo symbol="USDC" size={14} /> USDC
+                              {formatUnits(BigInt(purchase.amount), 6)} <Image src="/usdc.svg" alt="USDC" width={14} height={14} /> USDC
                             </span>
                           </td>
                           <td className="py-2 px-4">
@@ -467,14 +467,14 @@ export default function UserPanelContent() {
                           </td>
                           <td className="py-2 px-4">
                             {purchase.settlementHash ? (
-                              <a
+                            <a
                                 href={`https://basescan.org/tx/${purchase.settlementHash}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[#FF4D00] hover:underline text-xs"
-                              >
-                                View on BaseScan
-                              </a>
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[#FF4D00] hover:underline text-xs"
+                            >
+                              View on BaseScan
+                            </a>
                             ) : (
                               <span className="text-gray-400 text-xs">Pending settlement</span>
                             )}
@@ -529,12 +529,12 @@ export default function UserPanelContent() {
                           <td className="py-2 px-4">{tx.serviceName}</td>
                           <td className="py-2 px-4">
                             <span className="flex items-center gap-1">
-                              {tx.amount} <CryptoLogo symbol="USDC" size={14} /> USDC
+                              {tx.amount} <Image src="/usdc.svg" alt="USDC" width={14} height={14} /> USDC
                             </span>
                           </td>
                           <td className="py-2 px-4">
                             <span className="flex items-center gap-1">
-                              {tx.fee} <CryptoLogo symbol="USDC" size={14} /> USDC
+                              {tx.fee} <Image src="/usdc.svg" alt="USDC" width={14} height={14} /> USDC
                             </span>
                           </td>
                           <td className="py-2 px-4">

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import dynamicImport from 'next/dynamic';
 import Footer from '@/components/Footer';
-import CryptoLogo from '@/components/CryptoLogo';
+import Image from 'next/image';
 
 const Header = dynamicImport(() => import('@/components/Header'), { ssr: false });
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
@@ -291,7 +291,7 @@ export default function PlatformPanelPage() {
                           {card.value}
                           {card.showLogo && (
                             <>
-                              <CryptoLogo symbol="USDC" size={16} />
+                              <Image src="/usdc.svg" alt="USDC" width={16} height={16} />
                               USDC
                             </>
                           )}
