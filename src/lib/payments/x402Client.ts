@@ -56,14 +56,14 @@ export class X402Client {
       throw new Error('X402 client not initialized');
     }
 
-    return this.fetchWithPayment(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...options.headers,
-      },
-    });
+    const baseHeaders: Record<string, string> = {
+      'Accept': 'application/json',
+      ...(options.headers as Record<string, string> | undefined),
+    };
+    if (options.body !== undefined) {
+      baseHeaders['Content-Type'] = baseHeaders['Content-Type'] || 'application/json';
+    }
+    return this.fetchWithPayment(url, { ...options, headers: baseHeaders });
   }
 
   /**
@@ -114,9 +114,12 @@ export class X402Client {
     if (service.isExternal) {
       const httpMethod = (method || 'POST').toUpperCase();
       const requestHeaders: Record<string, string> = {
-        'Content-Type': 'application/json',
-        ...headers,
+        'Accept': 'application/json',
+        ...(headers || {}),
       };
+      if (httpMethod !== 'GET') {
+        requestHeaders['Content-Type'] = requestHeaders['Content-Type'] || 'application/json';
+      }
 
       // Route external calls through Next.js proxy to avoid browser CORS
       return this.request('/api/x402/proxy', {

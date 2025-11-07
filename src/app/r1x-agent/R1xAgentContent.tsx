@@ -259,8 +259,8 @@ export default function R1xAgentContent() {
   const buildRequestFromSchema = (
     schema: any,
     userInput: string
-  ): { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string>; missing?: string[]; hints?: Record<string, { description?: string; example?: string; options?: string[] }>; fieldLocations?: Record<string, 'body' | 'query' | 'header'>; fields?: Array<{ name: string; location: 'body' | 'query' | 'header'; required: boolean; description?: string; example?: string; options?: string[]; defaultValue?: string }> } => {
-    const result: { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string>; missing?: string[]; hints?: Record<string, { description?: string; example?: string; options?: string[] }>; fieldLocations?: Record<string, 'body' | 'query' | 'header'>; fields?: Array<{ name: string; location: 'body' | 'query' | 'header'; required: boolean; description?: string; example?: string; options?: string[]; defaultValue?: string }> } = {};
+  ): { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string>; missing?: string[]; hints?: Record<string, { description?: string; example?: string; options?: string[] }>; fieldLocations?: Record<string, 'body' | 'query' | 'header'>; fields?: Array<{ name: string; location: 'body' | 'query' | 'header'; required: boolean; description?: string; example?: string; options?: string[]; defaultValue?: string }>; method?: 'GET' | 'POST'; bodyType?: string } => {
+    const result: { body?: any; queryParams?: Record<string, string>; headers?: Record<string, string>; missing?: string[]; hints?: Record<string, { description?: string; example?: string; options?: string[] }>; fieldLocations?: Record<string, 'body' | 'query' | 'header'>; fields?: Array<{ name: string; location: 'body' | 'query' | 'header'; required: boolean; description?: string; example?: string; options?: string[]; defaultValue?: string }>; method?: 'GET' | 'POST'; bodyType?: string } = {};
     const missing: string[] = [];
     const hints: Record<string, { description?: string; example?: string; options?: string[] }> = {};
     const fieldLocations: Record<string, 'body' | 'query' | 'header'> = {};
@@ -272,6 +272,11 @@ export default function R1xAgentContent() {
     }
 
     const input = schema.outputSchema.input;
+    if (input?.method) {
+      const m = String(input.method).toUpperCase();
+      if (m === 'GET' || m === 'POST') result.method = m;
+    }
+    if (input?.bodyType) result.bodyType = input.bodyType;
     const genericInputKeys = new Set(['input', 'message', 'prompt', 'query', 'text']);
     
     // Helper to extract field metadata (description, example, options/enum)
@@ -481,7 +486,7 @@ export default function R1xAgentContent() {
         price: pendingPurchase.service.price!,
         priceWithFee: pendingPurchase.service.priceWithFee,
         isExternal: pendingPurchase.isExternal,
-      }, body, queryParams, headers);
+      }, body, queryParams, headers, (pendingPurchase as any).method as any);
 
       if (!res.ok) {
         const t = await res.text();
@@ -637,6 +642,7 @@ export default function R1xAgentContent() {
           fieldLocations: requestData.fieldLocations,
           hints: requestData.hints,
           fields: requestData.fields,
+          method: requestData.method as any,
         });
         setMessages(prev => [...prev, {
           role: 'assistant',
@@ -718,7 +724,7 @@ export default function R1xAgentContent() {
         price: service.price,
         priceWithFee: service.priceWithFee,
         isExternal: isExternalService,
-      }, requestData.body, requestData.queryParams, requestData.headers);
+      }, requestData.body, requestData.queryParams, requestData.headers, requestData.method as any);
 
       console.log('[Autopurchase] Response status:', response.status);
 
@@ -767,6 +773,8 @@ export default function R1xAgentContent() {
               missing: missingKeys.length > 0 ? missingKeys : ['value'],
               fieldLocations: requestData.fieldLocations,
               hints: requestData.hints,
+              fields: requestData.fields,
+              method: requestData.method as any,
             });
 
             const fieldList = (missingKeys.length > 0 ? missingKeys : []).map(k => `- ${k}`).join('\n');
