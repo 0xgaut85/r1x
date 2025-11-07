@@ -161,7 +161,13 @@ export default function R1xAgentContent() {
         return null;
       }
 
-      const data = await response.json();
+      const raw = await response.text();
+      let data: any;
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        data = { error: raw };
+      }
       
       // Extract accepts[0] which contains the schema
       if (data.accepts && Array.isArray(data.accepts) && data.accepts.length > 0) {
@@ -174,6 +180,45 @@ export default function R1xAgentContent() {
           hasQueryParams: !!accept.outputSchema?.input?.queryParams,
         });
         return accept;
+      }
+
+      // Fallback: some merchants encode quote/schema in headers per x402
+      const getHeader = (name: string) => response.headers.get(name) || response.headers.get(name.toLowerCase()) || response.headers.get(name.toUpperCase());
+      const headerCandidates = [
+        getHeader('X-Payment-Quote'),
+        getHeader('X-Payment-Required'),
+        getHeader('WWW-Authenticate'),
+      ].filter(Boolean) as string[];
+
+      for (const h of headerCandidates) {
+        try {
+          // Try to parse JSON directly or extract JSON substring
+          let jsonStr = h;
+          const start = h.indexOf('{');
+          const end = h.lastIndexOf('}');
+          if (start !== -1 && end !== -1 && end > start) {
+            jsonStr = h.substring(start, end + 1);
+          }
+          const parsed = JSON.parse(jsonStr);
+          const accepts = parsed.accepts || (Array.isArray(parsed) ? parsed : null);
+          if (accepts && Array.isArray(accepts) && accepts.length > 0) {
+            const accept = accepts[0];
+            console.log('[Preflight] Found schema in header:', {
+              hasOutputSchema: !!accept.outputSchema,
+              method: accept.outputSchema?.input?.method,
+              bodyType: accept.outputSchema?.input?.bodyType,
+              hasBodyFields: !!accept.outputSchema?.input?.bodyFields,
+              hasQueryParams: !!accept.outputSchema?.input?.queryParams,
+            });
+            return accept;
+          }
+          // Some merchants may return single accept object
+          if (parsed.outputSchema?.input) {
+            return parsed;
+          }
+        } catch {
+          // ignore header parse errors
+        }
       }
 
       console.warn('[Preflight] No accepts array found in 402 response');
@@ -514,14 +559,16 @@ export default function R1xAgentContent() {
               hints: requestData.hints,
             });
 
-            const fieldList = (missingKeys.length > 0 ? missingKeys : ['<field>']).map(k => `- ${k}`).join('\n');
+            const fieldList = (missingKeys.length > 0 ? missingKeys : []).map(k => `- ${k}`).join('\n');
             setMessages(prev => {
               const updated = [...prev];
               const last = updated[updated.length - 1];
               updated[updated.length - 1] = {
                 ...last,
                 status: 'error',
-                content: `The selected service requires additional input:\n${fieldList}\n\nReply with key=value for each field. If there's only one field, you can reply with just the value.`,
+                content: fieldList 
+                  ? `The selected service requires additional input:\n${fieldList}\n\nReply with key=value for each field. If there's only one field, you can reply with just the value.`
+                  : `The selected service requires additional input.\n\nReply with key=value for each field the provider expects (as per their 402 quote). If there's only one field, you can reply with just the value.`,
               };
               return updated;
             });
