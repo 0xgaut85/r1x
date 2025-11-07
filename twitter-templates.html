@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>r1x Twitter Templates</title>
+    <title>r1x Twitter Templates + Community Banner</title>
     <!-- 
     NOTE: When opening this file directly (file://), logos may not load due to browser security restrictions.
     For best results, serve this file from a local web server:
@@ -1421,6 +1421,324 @@
             letter-spacing: 2px;
             text-transform: uppercase;
         }
+
+        /* Template H - X Community Banner (Light Theme) */
+        .artboard-banner {
+            width: 1500px;
+            height: 500px;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .template-h {
+            background: linear-gradient(135deg, #F8F9FA 0%, #E8EEF2 50%, #F5F7FA 100%);
+            border: 3px solid #000000;
+        }
+
+        .template-h-geometric-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 60px,
+                    rgba(255, 77, 0, 0.02) 60px,
+                    rgba(255, 77, 0, 0.02) 61px
+                ),
+                repeating-linear-gradient(
+                    -45deg,
+                    transparent,
+                    transparent 60px,
+                    rgba(0, 0, 0, 0.015) 60px,
+                    rgba(0, 0, 0, 0.015) 61px
+                );
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .template-h-accent-circle {
+            position: absolute;
+            top: -100px;
+            right: -100px;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle at center, rgba(255, 77, 0, 0.08) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .template-h-accent-circle-2 {
+            position: absolute;
+            bottom: -80px;
+            left: 30%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle at center, rgba(255, 77, 0, 0.04) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .template-h-content {
+            position: relative;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            padding: 0 60px 0 80px;
+            z-index: 10;
+        }
+
+        .template-h-left {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 80px;
+        }
+
+        .template-h-logo-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .template-h-logo-bg {
+            position: absolute;
+            inset: 0;
+            background: transparent;
+            border: 3px solid #000000;
+        }
+
+        .template-h-logo-img {
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+            position: relative;
+            z-index: 2;
+            filter: brightness(0);
+        }
+
+        .template-h-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .template-h-eyebrow {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 11px;
+            color: #FF4D00;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            font-weight: 400;
+            margin-bottom: 4px;
+        }
+
+        .template-h-headline {
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 92px;
+            line-height: 1.05;
+            color: #000000;
+            letter-spacing: -2px;
+            font-weight: 400;
+            margin-bottom: 16px;
+        }
+
+        .template-h-headline-accent {
+            color: #FF4D00;
+        }
+
+        .template-h-body {
+            font-family: 'BaselGrotesk-Regular', sans-serif;
+            font-size: 32px;
+            line-height: 1.5;
+            color: #2C3E50;
+            max-width: 600px;
+            font-weight: 400;
+        }
+
+        .template-h-tags {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .template-h-tag {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 9px;
+            color: #000000;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 6px 14px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 2px;
+            font-weight: 400;
+        }
+
+        .template-h-tag.accent {
+            background: rgba(255, 77, 0, 0.08);
+            border-color: rgba(255, 77, 0, 0.2);
+            color: #FF4D00;
+        }
+
+        .template-h-corner-accent {
+            position: absolute;
+            top: 30px;
+            right: 60px;
+            width: 60px;
+            height: 60px;
+            z-index: 10;
+        }
+
+        .template-h-corner-accent::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 40px;
+            height: 2px;
+            background: linear-gradient(to left, #FF4D00 0%, transparent 100%);
+        }
+
+        .template-h-corner-accent::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 2px;
+            height: 40px;
+            background: linear-gradient(to bottom, #FF4D00 0%, transparent 100%);
+        }
+
+        .template-h-bottom-accent {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(
+                to right,
+                transparent 0%,
+                rgba(255, 77, 0, 0.3) 35%,
+                rgba(255, 77, 0, 0.5) 50%,
+                rgba(255, 77, 0, 0.3) 65%,
+                transparent 100%
+            );
+            z-index: 10;
+        }
+
+        .template-h-brand-tag {
+            position: absolute;
+            bottom: 30px;
+            left: 80px;
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 9px;
+            color: rgba(0, 0, 0, 0.35);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            z-index: 10;
+        }
+
+        .template-h-right-decoration {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 400px;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .template-h-dot-pattern {
+            position: absolute;
+            right: 60px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 16px;
+            opacity: 0.15;
+        }
+
+        .template-h-dot {
+            width: 4px;
+            height: 4px;
+            background: #000000;
+            border-radius: 50%;
+        }
+
+        .template-h-vertical-lines {
+            position: absolute;
+            right: 40px;
+            top: 80px;
+            bottom: 80px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .template-h-vline {
+            width: 2px;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                transparent 0%,
+                rgba(255, 77, 0, 0.15) 20%,
+                rgba(0, 0, 0, 0.08) 50%,
+                rgba(255, 77, 0, 0.15) 80%,
+                transparent 100%
+            );
+        }
+
+        .template-h-corner-box {
+            position: absolute;
+            right: 50px;
+            top: 50px;
+            width: 100px;
+            height: 100px;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .template-h-corner-box-bottom {
+            position: absolute;
+            right: 80px;
+            bottom: 50px;
+            width: 80px;
+            height: 80px;
+            border: 2px solid rgba(255, 77, 0, 0.2);
+            border-left: none;
+            border-top: none;
+        }
+
+        .template-h-diagonal-lines {
+            position: absolute;
+            right: 150px;
+            top: 50%;
+            transform: translateY(-50%) rotate(45deg);
+            width: 200px;
+            height: 200px;
+            opacity: 0.06;
+        }
+
+        .template-h-diagonal-line {
+            width: 100%;
+            height: 2px;
+            background: #000000;
+            margin: 20px 0;
+        }
     </style>
 </head>
 <body>
@@ -1743,6 +2061,34 @@
         </div>
         <div class="template-g-bottom-strip">
             <div class="template-g-strip-text">Expanding agent payment capacity</div>
+        </div>
+    </div>
+
+    <!-- Template H - X Community Banner (Light Theme) -->
+    <div class="artboard-banner template-h">
+        <div class="template-h-geometric-bg"></div>
+        <div class="template-h-accent-circle"></div>
+        <div class="template-h-accent-circle-2"></div>
+        <div class="template-h-corner-accent"></div>
+        <div class="template-h-bottom-accent"></div>
+        <div class="template-h-brand-tag">R1X LABS</div>
+        
+        <div class="template-h-content">
+            <div class="template-h-left">
+                <div class="template-h-logo-container">
+                    <div class="template-h-logo-bg"></div>
+                    <img src="./public/logosvg.svg" alt="r1x Logo" class="template-h-logo-img" />
+                </div>
+            </div>
+            
+            <div class="template-h-right">
+                <div class="template-h-headline">
+                    <span class="template-h-headline-accent">r1x</span> builders
+                </div>
+                <div class="template-h-body">
+                    community
+                </div>
+            </div>
         </div>
     </div>
 </body>

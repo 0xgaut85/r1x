@@ -466,9 +466,9 @@ export default function UserPanelContent() {
                             {new Date(purchase.timestamp).toLocaleDateString()}
                           </td>
                           <td className="py-2 px-4">
-                            {purchase.settlementHash ? (
+                            {purchase.transactionHash ? (
                             <a
-                                href={`https://basescan.org/tx/${purchase.settlementHash}`}
+                                href={`https://basescan.org/tx/${purchase.transactionHash}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-[#FF4D00] hover:underline text-xs"
@@ -476,7 +476,7 @@ export default function UserPanelContent() {
                               View on BaseScan
                             </a>
                             ) : (
-                              <span className="text-gray-400 text-xs">Pending settlement</span>
+                              <span className="text-gray-400 text-xs">Pending</span>
                             )}
                           </td>
                           <td className="py-2 px-4">

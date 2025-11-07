@@ -61,9 +61,9 @@ export async function GET(request: NextRequest) {
     ]);
 
     const formattedTransactions = transactions.map(tx => {
-      // For x402 transactions, ONLY use settlementHash (actual on-chain tx)
-      const explorerUrl = tx.settlementHash 
-        ? `https://basescan.org/tx/${tx.settlementHash}`
+      // Use transactionHash (wallet approval hash) for Basescan link - this is the one that always works
+      const explorerUrl = tx.transactionHash 
+        ? `https://basescan.org/tx/${tx.transactionHash}`
         : null;
       
       return {

@@ -548,6 +548,58 @@ export default function R1xAgentContent() {
       let paymentReceipt: any = null;
       if (paymentResponseHeader) { try { paymentReceipt = JSON.parse(paymentResponseHeader); } catch {} }
 
+      // Log purchases and service results
+      const feeReceiptHeader = feeResponse.headers.get('x-payment-response') || feeResponse.headers.get('X-Payment-Response');
+      try {
+        await fetch('/api/purchases/log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            serviceId: pendingPurchase.service.id,
+            serviceName: pendingPurchase.service.name,
+            payer: address,
+            feeReceipt: feeReceiptHeader || null,
+            serviceReceipt: paymentResponseHeader || null,
+            feeAmount: '0.05',
+            servicePrice: pendingPurchase.service.price,
+            type: pendingPurchase.isExternal ? 'external' : 'internal',
+          }),
+        });
+      } catch (logErr) {
+        console.warn('[CompletePurchase] Failed to log purchase (non-blocking):', logErr);
+      }
+
+      // Log service result
+      try {
+        const resultPayload: any = {
+          serviceId: pendingPurchase.service.id,
+          payer: address,
+          serviceReceipt: paymentResponseHeader || null,
+          contentType,
+        };
+
+        if (contentType.includes('application/json')) {
+          let jsonData = result;
+          if (result?.data) jsonData = result.data;
+          else if (result?.result) jsonData = result.result;
+          else if (result?.output) jsonData = result.output;
+          resultPayload.resultJson = jsonData;
+        } else if (contentType.includes('text/')) {
+          resultPayload.resultText = result.text || result;
+        } else if (result?.filename) {
+          resultPayload.filename = result.filename;
+          resultPayload.metadata = { contentType: result.contentType };
+        }
+
+        await fetch('/api/purchases/result', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(resultPayload),
+        });
+      } catch (resultErr) {
+        console.warn('[CompletePurchase] Failed to log service result (non-blocking):', resultErr);
+      }
+
       setMessages((prev) => {
         const updated = [...prev];
         const last = updated[updated.length - 1];
