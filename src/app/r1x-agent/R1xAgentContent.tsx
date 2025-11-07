@@ -20,6 +20,7 @@ import ChatMessages from '@/components/r1x-agent/ChatMessages';
 import ChatInput from '@/components/r1x-agent/ChatInput';
 import ChatSuggestions from '@/components/r1x-agent/ChatSuggestions';
 import ErrorBanner from '@/components/r1x-agent/ErrorBanner';
+import AgentLeftSidebar from '@/components/r1x-agent/sidebar/AgentLeftSidebar';
 
 const initialWelcomeMessage: ChatMessage = {
   role: 'assistant',
@@ -659,6 +660,38 @@ export default function R1xAgentContent() {
       } catch (logErr) {
         console.warn('[Autopurchase] Failed to log purchase (non-blocking):', logErr);
       }
+
+      // Log service result (non-blocking)
+      try {
+        const resultPayload: any = {
+          serviceId: service.id,
+          payer: address,
+          serviceReceipt: paymentResponseHeader || null,
+          contentType,
+        };
+
+        if (contentType.includes('application/json')) {
+          // Extract meaningful data from JSON response
+          let jsonData = result;
+          if (result?.data) jsonData = result.data;
+          else if (result?.result) jsonData = result.result;
+          else if (result?.output) jsonData = result.output;
+          resultPayload.resultJson = jsonData;
+        } else if (contentType.includes('text/')) {
+          resultPayload.resultText = result.text || result;
+        } else if (result?.filename) {
+          resultPayload.filename = result.filename;
+          resultPayload.metadata = { contentType: result.contentType };
+        }
+
+        await fetch('/api/purchases/result', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(resultPayload),
+        });
+      } catch (resultErr) {
+        console.warn('[Autopurchase] Failed to log service result (non-blocking):', resultErr);
+      }
       
       // Update purchase message with result (will be enhanced by ServiceResultCard component later)
       setMessages(prev => {
@@ -971,6 +1004,37 @@ export default function R1xAgentContent() {
           });
         } catch (logErr) {
           console.warn('[Autopurchase] Failed to log purchase (non-blocking):', logErr);
+        }
+
+        // Log service result (non-blocking)
+        try {
+          const resultPayload: any = {
+            serviceId: pendingPurchase.service.id,
+            payer: address,
+            serviceReceipt: paymentResponseHeader || null,
+            contentType,
+          };
+
+          if (contentType.includes('application/json')) {
+            let jsonData = result;
+            if (result?.data) jsonData = result.data;
+            else if (result?.result) jsonData = result.result;
+            else if (result?.output) jsonData = result.output;
+            resultPayload.resultJson = jsonData;
+          } else if (contentType.includes('text/')) {
+            resultPayload.resultText = result.text || result;
+          } else if (result?.filename) {
+            resultPayload.filename = result.filename;
+            resultPayload.metadata = { contentType: result.contentType };
+          }
+
+          await fetch('/api/purchases/result', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(resultPayload),
+          });
+        } catch (resultErr) {
+          console.warn('[Autopurchase] Failed to log service result (non-blocking):', resultErr);
         }
 
         setMessages(prev => {
@@ -1294,12 +1358,36 @@ export default function R1xAgentContent() {
     setInput(suggestion);
   };
 
+  const handleReRunByServiceId = async (serviceId: string) => {
+    if (!x402Client) {
+      alert('Payment client not available. Please ensure your wallet is connected.');
+      return;
+    }
+
+    // Find service in catalog
+    const allServices = marketplaceCatalog.getAllServices();
+    const service = allServices.find(s => s.id === serviceId);
+
+    if (!service || !service.endpoint) {
+      alert('Service not found or not available');
+      return;
+    }
+
+    // Use existing handleAutopurchase
+    await handleAutopurchase(service);
+  };
+
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden" style={{ backgroundColor: '#0A0A0A', overflowY: 'hidden' }}>
       <AgentBackground />
       <AgentHeader address={address} isConnected={isConnected} />
+      <AgentLeftSidebar 
+        address={address} 
+        isConnected={isConnected}
+        onReRun={handleReRunByServiceId}
+      />
 
-      <main className="flex-1 flex flex-col relative z-10">
+      <main className="flex-1 flex flex-col relative z-10 lg:ml-80 xl:ml-96">
         <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-24 pb-32">
           <ChatMessages 
             messages={messages} 

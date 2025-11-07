@@ -41,6 +41,7 @@ model Service {
   updatedAt   DateTime @updatedAt
   
   transactions Transaction[]
+  serviceResults ServiceResult[]
   
   @@index([merchant])
   @@index([network, chainId])
@@ -84,6 +85,7 @@ model Transaction {
   settledAt       DateTime?
   
   fees            Fee[]
+  serviceResults  ServiceResult[]
   
   @@index([transactionHash])
   @@index([from])
@@ -109,4 +111,31 @@ model Fee {
   @@index([transactionId])
   @@index([feeRecipient])
   @@index([transferred])
+}
+
+model ServiceResult {
+  id              String   @id @default(cuid())
+  // Optional link to Transaction (we attempt to link by transactionHash; may be backfilled)
+  transactionId   String?
+  transaction     Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  // Direct lookup when link not yet created
+  transactionHash String?  @unique
+
+  serviceId       String
+  service         Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  payer           String   // lowercase wallet address
+
+  contentType     String
+  resultText      String?  // for text / JSON stringified (truncated if large)
+  resultJson      Json?    // for structured outputs
+  filename        String?  // for binary response metadata
+  metadata        Json?    // optional extra info (sizes, content-type, etc.)
+
+  createdAt       DateTime @default(now())
+
+  @@index([payer])
+  @@index([serviceId])
+  @@index([createdAt])
 }

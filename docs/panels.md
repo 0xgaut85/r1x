@@ -79,7 +79,113 @@ Get user usage statistics and charts data.
 }
 ```
 
-### Platform Panel APIs
+#### GET `/api/panel/user/results`
+Get service results/outputs for a user's purchases.
+
+**Query Parameters:**
+- `address` (required): User wallet address
+- `limit` (optional): Number of results (default: 20)
+- `offset` (optional): Pagination offset (default: 0)
+
+**Response:**
+```json
+{
+  "results": [
+    {
+      "id": "clx...",
+      "createdAt": "2025-01-07T12:00:00Z",
+      "serviceId": "service-123",
+      "serviceName": "AI Inference Service",
+      "contentType": "application/json",
+      "preview": "{\"result\": \"...\"}",
+      "transactionHash": "0x...",
+      "settlementHash": "0x..."
+    }
+  ],
+  "total": 15,
+  "limit": 20,
+  "offset": 0,
+  "hasMore": false
+}
+```
+
+#### GET `/api/panel/user/results/[id]`
+Get full details of a specific service result.
+
+**Query Parameters:**
+- `address` (optional): User wallet address (for authorization check)
+
+**Response:**
+```json
+{
+  "id": "clx...",
+  "createdAt": "2025-01-07T12:00:00Z",
+  "service": {
+    "id": "service-123",
+    "name": "AI Inference Service",
+    "description": "...",
+    "category": "AI Inference",
+    "endpoint": "https://..."
+  },
+  "contentType": "application/json",
+  "resultText": null,
+  "resultJson": { "result": "..." },
+  "filename": null,
+  "metadata": null,
+  "transactionHash": "0x...",
+  "settlementHash": "0x...",
+  "transaction": {
+    "amount": "250000",
+    "feeAmount": "5000",
+    "timestamp": "2025-01-07T12:00:00Z"
+  }
+}
+```
+
+### Purchase & Result Logging APIs
+
+#### POST `/api/purchases/log`
+Logs purchases made via x402 payments (both fee and service payments). Creates Transaction records for user panel visibility.
+
+**Request Body:**
+```json
+{
+  "serviceId": "service-123",
+  "serviceName": "AI Inference Service",
+  "payer": "0x...",
+  "feeReceipt": "...",
+  "serviceReceipt": "...",
+  "feeAmount": "0.05",
+  "servicePrice": "0.25",
+  "type": "internal" // or "external"
+}
+```
+
+#### POST `/api/purchases/result`
+Logs service results/outputs after successful purchase. Creates ServiceResult records linked to transactions.
+
+**Request Body:**
+```json
+{
+  "serviceId": "service-123",
+  "payer": "0x...",
+  "serviceReceipt": "...",
+  "contentType": "application/json",
+  "resultJson": { "result": "..." }, // for JSON responses
+  "resultText": "...", // for text responses
+  "filename": "output.pdf", // for binary responses
+  "metadata": { "contentType": "application/pdf" } // optional
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "resultId": "clx...",
+  "message": "Service result logged successfully"
+}
+```
 
 #### GET `/api/panel/platform/analytics`
 Get platform-wide analytics and metrics.
