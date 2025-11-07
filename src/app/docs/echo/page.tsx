@@ -12,7 +12,7 @@ export default function EchoPage() {
   const x402 = useMemo(() => {
     if (!walletClient) return null
     try {
-      return new X402Client({ walletClient, maxValue: BigInt(1n * 10n ** 6n) }) // 1 USDC cap
+      return new X402Client({ walletClient, maxValue: BigInt(1 * 10 ** 6) }) // 1 USDC cap
     } catch {
       return null
     }
