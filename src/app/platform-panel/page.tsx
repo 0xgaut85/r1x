@@ -291,7 +291,7 @@ export default function PlatformPanelPage() {
                           {card.value}
                           {card.showLogo && (
                             <>
-                              <Image src="/usdc.svg" alt="USDC" width={16} height={16} />
+                              <Image src="/usdc.png" alt="USDC" width={16} height={16} />
                               USDC
                             </>
                           )}

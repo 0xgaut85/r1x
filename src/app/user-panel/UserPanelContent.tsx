@@ -280,7 +280,7 @@ export default function UserPanelContent() {
                   <p className="text-2xl font-bold" style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}>
                     <span className="flex items-center gap-1">
                       {parseFloat(stats.stats.totalSpent || '0').toFixed(2)} 
-                      <Image src="/usdc.svg" alt="USDC" width={16} height={16} />
+                      <Image src="/usdc.png" alt="USDC" width={16} height={16} />
                       USDC
                     </span>
                   </p>
@@ -459,7 +459,7 @@ export default function UserPanelContent() {
                           </td>
                           <td className="py-2 px-4">
                             <span className="flex items-center gap-1">
-                              {formatUnits(BigInt(purchase.amount), 6)} <Image src="/usdc.svg" alt="USDC" width={14} height={14} /> USDC
+                              {formatUnits(BigInt(purchase.amount), 6)} <Image src="/usdc.png" alt="USDC" width={14} height={14} /> USDC
                             </span>
                           </td>
                           <td className="py-2 px-4">
@@ -529,12 +529,12 @@ export default function UserPanelContent() {
                           <td className="py-2 px-4">{tx.serviceName}</td>
                           <td className="py-2 px-4">
                             <span className="flex items-center gap-1">
-                              {tx.amount} <Image src="/usdc.svg" alt="USDC" width={14} height={14} /> USDC
+                              {tx.amount} <Image src="/usdc.png" alt="USDC" width={14} height={14} /> USDC
                             </span>
                           </td>
                           <td className="py-2 px-4">
                             <span className="flex items-center gap-1">
-                              {tx.fee} <Image src="/usdc.svg" alt="USDC" width={14} height={14} /> USDC
+                              {tx.fee} <Image src="/usdc.png" alt="USDC" width={14} height={14} /> USDC
                             </span>
                           </td>
                           <td className="py-2 px-4">
