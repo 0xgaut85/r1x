@@ -1,0 +1,29 @@
+[33mcommit ea14550370e4ea72c08cd4112c97e2b1cf67ca69[m[33m ([m[1;36mHEAD -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m
+Author: 0xLaylo <thandphalifo@gmail.com>
+Date:   Fri Nov 7 17:53:13 2025 +0100
+
+    fix(Dockerfile): remove BuildKit cache mounts (not supported by Railway); layer caching still optimizes builds
+
+ Dockerfile | 6 [32m++[m[31m----[m
+ 1 file changed, 2 insertions(+), 4 deletions(-)
+
+[33mcommit c5b995571188587041cf0f0ad73004f0548db449[m
+Author: 0xLaylo <thandphalifo@gmail.com>
+Date:   Fri Nov 7 17:50:26 2025 +0100
+
+    fix: remove duplicate code in fees/collect route; disable Turbopack in production builds (use webpack)
+
+ next.config.ts                    |   7 [32m+[m[31m-[m
+ src/app/api/fees/collect/route.ts | 172 [31m--------------------------------------[m
+ 2 files changed, 4 insertions(+), 175 deletions(-)
+
+[33mcommit acf0973670b5555023e6baa46f53bae4226b75a9[m
+Author: 0xLaylo <thandphalifo@gmail.com>
+Date:   Fri Nov 7 17:41:33 2025 +0100
+
+    fix(marketplace): avoid CORS by proxying fee via /api/fees/collect; guard missing endpoints; relax CORS on x402-server to echo request headers and expose x402 headers
+
+ src/app/api/fees/collect/route.ts | 83 [32m+++++++++++++++++++++++++++++++++++++++[m
+ src/app/marketplace/page.tsx      | 17 [32m+++++[m[31m---[m
+ x402-server/index.ts              | 47 [32m+++++++++++++++++++[m[31m---[m
+ 3 files changed, 136 insertions(+), 11 deletions(-)

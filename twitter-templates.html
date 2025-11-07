@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>r1x Twitter Templates + Community Banner + Article Banner</title>
+    <title>r1x Twitter Templates + Community Banner + Article Banner + Vision/Roadmap</title>
     <!-- 
     NOTE: When opening this file directly (file://), logos may not load due to browser security restrictions.
     For best results, serve this file from a local web server:
@@ -582,8 +582,8 @@
         }
 
         .template-c-rail-logo img {
-            width: 48px;
-            height: 48px;
+            width: 144px;
+            height: 144px;
         }
 
         .template-c-rail-guides {
@@ -664,6 +664,35 @@
             text-transform: uppercase;
         }
 
+        .template-c-ca-section {
+            position: absolute;
+            top: 60px;
+            right: 100px;
+            z-index: 10;
+            background: rgba(255, 77, 0, 0.12);
+            border: 3px solid var(--accent-orange);
+            padding: 24px 32px;
+            backdrop-filter: blur(4px);
+        }
+
+        .template-c-ca-label {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 12px;
+            color: var(--accent-orange);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .template-c-ca-address {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 18px;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            word-break: break-all;
+            font-weight: 400;
+        }
+
         .template-c-sheen {
             position: absolute;
             top: 0;
@@ -699,7 +728,7 @@
             right: 40px;
             width: 120px;
             height: 100%;
-            display: flex;
+            display: none;
             gap: 20px;
             pointer-events: none;
             z-index: 3;
@@ -1918,6 +1947,228 @@
             background: rgba(255, 255, 255, 0.05);
             z-index: 10;
         }
+
+        /* Template J - Vision/Roadmap (Premium White) */
+        .template-j {
+            background: #FFFFFF;
+            position: relative;
+            overflow: hidden;
+            border: 3px solid #000000;
+        }
+
+        .template-j-right-pattern {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 40%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 79px,
+                    rgba(0, 0, 0, 0.15) 79px,
+                    rgba(0, 0, 0, 0.15) 80px
+                ),
+                repeating-linear-gradient(
+                    -45deg,
+                    transparent,
+                    transparent 79px,
+                    rgba(0, 0, 0, 0.15) 79px,
+                    rgba(0, 0, 0, 0.15) 80px
+                );
+            mask-image: linear-gradient(to right, transparent 0%, black 15%, black 100%);
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 15%, black 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .template-j-right-pattern::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at 70% 50%, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.02) 100%);
+            pointer-events: none;
+        }
+
+        .template-j-header {
+            position: absolute;
+            top: 60px;
+            left: 80px;
+            right: 80px;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .template-j-logo-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .template-j-logo-box {
+            width: 70px;
+            height: 70px;
+            background: #FFFFFF;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .template-j-logo-box::after {
+            content: '';
+            position: absolute;
+            inset: 6px;
+            border: 1px solid rgba(255, 77, 0, 0.15);
+        }
+
+        .template-j-logo-box img {
+            width: 40px;
+            height: 40px;
+            filter: brightness(0);
+            position: relative;
+            z-index: 1;
+        }
+
+        .template-j-brand-name {
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 32px;
+            color: #000000;
+            letter-spacing: -1px;
+            font-weight: 400;
+        }
+
+        .template-j-eyebrow {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 11px;
+            color: #FF4D00;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            font-weight: 400;
+            padding: 8px 18px;
+            border: 1px solid rgba(255, 77, 0, 0.3);
+            background: rgba(255, 77, 0, 0.04);
+        }
+
+        .template-j-content {
+            position: absolute;
+            top: 50%;
+            left: 80px;
+            right: 80px;
+            transform: translateY(-50%);
+            z-index: 10;
+        }
+
+        .template-j-main-headline {
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 96px;
+            line-height: 1.05;
+            color: #000000;
+            margin-bottom: 40px;
+            letter-spacing: -4px;
+            font-weight: 400;
+            max-width: 1200px;
+        }
+
+        .template-j-headline-accent {
+            color: #FF4D00;
+            position: relative;
+        }
+
+        .template-j-headline-accent::after {
+            content: '';
+            position: absolute;
+            bottom: 8px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: rgba(255, 77, 0, 0.15);
+        }
+
+        .template-j-divider {
+            width: 120px;
+            height: 3px;
+            background: linear-gradient(to right, #FF4D00 0%, rgba(255, 77, 0, 0.3) 100%);
+            margin-bottom: 36px;
+        }
+
+        .template-j-body {
+            font-family: 'BaselGrotesk-Regular', sans-serif;
+            font-size: 22px;
+            line-height: 1.6;
+            color: #2C3E50;
+            max-width: 900px;
+            font-weight: 400;
+        }
+
+        .template-j-bottom-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(
+                to right,
+                transparent 0%,
+                rgba(255, 77, 0, 0.2) 20%,
+                #FF4D00 50%,
+                rgba(255, 77, 0, 0.2) 80%,
+                transparent 100%
+            );
+            z-index: 10;
+        }
+
+        .template-j-corner-brackets {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .template-j-bracket {
+            position: absolute;
+            border: 2px solid rgba(0, 0, 0, 0.2);
+        }
+
+        .template-j-bracket.top-left-h {
+            top: 20px;
+            left: 20px;
+            width: 50px;
+            height: 0;
+            border-bottom: none;
+        }
+
+        .template-j-bracket.top-left-v {
+            top: 20px;
+            left: 20px;
+            width: 0;
+            height: 50px;
+            border-right: none;
+        }
+
+        .template-j-bracket.bottom-right-h {
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 0;
+            border-top: none;
+        }
+
+        .template-j-bracket.bottom-right-v {
+            bottom: 20px;
+            right: 20px;
+            width: 0;
+            height: 50px;
+            border-left: none;
+        }
     </style>
 </head>
 <body>
@@ -2036,6 +2287,12 @@
             <div class="corner-mark bottom-left"></div>
             <div class="corner-mark bottom-right"></div>
         </div>
+        
+        <div class="template-c-ca-section">
+            <div class="template-c-ca-label">CONTRACT ADDRESS</div>
+            <div class="template-c-ca-address">HFaVWAuNzKc2T4EfZVwXMpSNiNJgLVk6RstS3Q9upump</div>
+        </div>
+        
         <div class="template-c-layout">
             <div class="template-c-left-rail">
                 <div class="template-c-rail-logo">
@@ -2050,12 +2307,12 @@
             <div class="template-c-right-column">
                 <div class="template-c-panel">
                     <div class="template-c-panel-number"></div>
-                    <div class="template-c-headline">Columnar Layout</div>
-                    <div class="template-c-body">This template uses an asymmetrical column structure with a narrow left rail and wide content area. Perfect for structured information, lists, or multi-section narratives.</div>
+                    <div class="template-c-headline">$R1X IS NOW LIVE</div>
+                    <div class="template-c-body">The r1x token is officially live and trading. Join the machine economy revolution as autonomous agents begin transacting on the network.</div>
                 </div>
                 <div class="template-c-panel">
                     <div class="template-c-panel-number"></div>
-                    <div class="template-c-body">Additional panels can be stacked vertically, each separated by subtle dividers. The layout supports flexible content lengths.</div>
+                    <div class="template-c-body">3% of tokens bought from dev wallet are being locked, ensuring long-term alignment and sustainable tokenomics for the ecosystem.</div>
                 </div>
             </div>
         </div>
@@ -2067,7 +2324,7 @@
         </div>
         <div class="template-c-brushed-texture"></div>
         <div class="template-c-bottom-strip">
-            <div class="template-c-strip-text">Optional CTA or Link</div>
+            <div class="template-c-strip-text">www.r1xlabs.com</div>
         </div>
     </div>
 
@@ -2296,7 +2553,7 @@
                     The <span class="template-i-headline-accent">r1x</span> playbook
                 </div>
                 <div class="template-i-body">
-                    How r1x captures value by enabling autonomous agents to transact, creating a new revenue layer in the machine economy.
+                    description
                 </div>
             </div>
             
@@ -2312,6 +2569,41 @@
             <div class="template-i-dec-line"></div>
             <div class="template-i-dec-line"></div>
             <div class="template-i-dec-line"></div>
+        </div>
+    </div>
+
+    <!-- Template J - Vision/Roadmap (Premium White) -->
+    <div class="artboard template-j">
+        <!-- Right Side Pattern (1/3rd) -->
+        <div class="template-j-right-pattern"></div>
+        
+        <div class="template-j-bottom-bar"></div>
+        
+        <div class="template-j-corner-brackets">
+            <div class="template-j-bracket top-left-h"></div>
+            <div class="template-j-bracket top-left-v"></div>
+            <div class="template-j-bracket bottom-right-h"></div>
+            <div class="template-j-bracket bottom-right-v"></div>
+        </div>
+        
+        <div class="template-j-header">
+            <div class="template-j-logo-section">
+                <div class="template-j-logo-box">
+                    <img src="./public/logosvg.svg" alt="r1x Logo" />
+                </div>
+                <div class="template-j-brand-name">r1x labs</div>
+            </div>
+            <div class="template-j-eyebrow">VISION 2025</div>
+        </div>
+        
+        <div class="template-j-content">
+            <div class="template-j-main-headline">
+                Building the <span class="template-j-headline-accent">Future</span> of Autonomous Commerce
+            </div>
+            <div class="template-j-divider"></div>
+            <div class="template-j-body">
+                A comprehensive roadmap to power the machine economy—where AI agents transact, negotiate, and create value autonomously.
+            </div>
         </div>
     </div>
 </body>

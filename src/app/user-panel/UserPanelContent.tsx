@@ -466,15 +466,15 @@ export default function UserPanelContent() {
                             {new Date(purchase.timestamp).toLocaleDateString()}
                           </td>
                           <td className="py-2 px-4">
-                            {purchase.transactionHash ? (
-                            <a
-                                href={`https://basescan.org/tx/${purchase.transactionHash}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[#FF4D00] hover:underline text-xs"
-                            >
-                              View on BaseScan
-                            </a>
+                            {('blockExplorerUrl' in purchase) && (purchase as any).blockExplorerUrl ? (
+                              <a
+                                href={(purchase as any).blockExplorerUrl as string}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[#FF4D00] hover:underline text-xs"
+                              >
+                                View on BaseScan
+                              </a>
                             ) : (
                               <span className="text-gray-400 text-xs">Pending</span>
                             )}
