@@ -1052,10 +1052,34 @@ export default function R1xAgentContent() {
         throw new Error(`HTTP ${response.status}: ${errorText || 'Unknown error'}`);
       }
 
+      // Capture payment receipt header for immediate Basescan link logging
+      const paymentResponseHeader = response.headers.get('x-payment-response') || response.headers.get('X-Payment-Response');
+
       const data = await response.json();
       console.log('[Agent] Response data:', data);
 
       const responseText = data.message || data.data?.message || '';
+
+      // Log the paid chat as a purchase so user panel shows Basescan link immediately
+      try {
+        if (paymentResponseHeader && address) {
+          await fetch('/api/purchases/log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              serviceId: 'r1x-agent-chat',
+              serviceName: 'r1x Agent Chat',
+              payer: address,
+              feeReceipt: null,
+              serviceReceipt: paymentResponseHeader,
+              servicePrice: '0.25',
+              type: 'internal',
+            }),
+          });
+        }
+      } catch (logErr) {
+        console.warn('[Agent] Failed to log chat purchase (non-blocking):', (logErr as any)?.message || logErr);
+      }
       
       // Check if agent wants to trigger a purchase
       const purchaseMatch = responseText.match(/\[PURCHASE:([^\]]+)\]/);
