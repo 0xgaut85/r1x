@@ -1504,62 +1504,35 @@ export default function R1xAgentContent() {
               });
               
               // Ask Claude to explain what's needed
-              const schemaMessage = schemaDesc.join('\n');
-              const explanationPrompt = `The user wants to purchase "${service.name}" but it requires these parameters:\n\n${schemaMessage}\n\nPlease explain to the user EXACTLY what parameters they need to provide, using the descriptions and examples from the merchant's schema. Be clear and helpful.`;
-              
-              setMessages(prev => {
-                const updated = [...prev];
-                updated[updated.length - 1] = { ...updated[updated.length - 1], status: 'sent' };
-                return [...updated, {
-                  role: 'user',
-                  content: explanationPrompt,
-                  status: 'sending',
-                }];
+              const missingList = requestData.missing.map((k) => {
+                const hint = requestData.hints?.[k];
+                const loc = requestData.fieldLocations?.[k] || 'body';
+                const parts: string[] = [`- ${k} (${loc})`];
+                if (hint?.description) parts.push(`  Description: ${hint.description}`);
+                if (hint?.example) parts.push(`  Example: ${hint.example}`);
+                if (hint?.options && hint.options.length > 0) parts.push(`  Options: ${hint.options.slice(0, 10).join(', ')}${hint.options.length > 10 ? ', ...' : ''}`);
+                return parts.join('\n');
+              }).join('\n');
+
+              setPendingPurchase({
+                service,
+                missing: requestData.missing,
+                hints: requestData.hints || {},
+                fieldLocations: requestData.fieldLocations || {},
+                baseRequest: {
+                  body: requestData.body,
+                  queryParams: requestData.queryParams,
+                  headers: requestData.headers,
+                },
+                isExternal: service.isExternal ?? false,
+                fields: requestData.fields,
+                method: requestData.method as any,
               });
-              
-              // Get Claude's explanation
-              const explanationResponse = await fetchWithPayment('/api/r1x-agent/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  messages: [
-                    ...messages.map(m => ({ role: m.role, content: m.content })),
-                    { role: 'user', content: explanationPrompt },
-                  ],
-                }),
-              });
-              
-              if (explanationResponse.ok) {
-                const explanationData = await explanationResponse.json();
-                const explanationText = explanationData.message || '';
-                
-                setMessages(prev => {
-                  const updated = [...prev];
-                  updated[updated.length - 1] = { ...updated[updated.length - 1], status: 'sent' };
-                  return [...updated, {
-                    role: 'assistant',
-                    content: explanationText,
-                    status: 'sent',
-                  }];
-                });
-                
-                // Store pending purchase so user can provide parameters
-                setPendingPurchase({
-                  service,
-                  missing: requestData.missing,
-                  hints: requestData.hints || {},
-                  fieldLocations: requestData.fieldLocations || {},
-                  baseRequest: {
-                    body: requestData.body,
-                    queryParams: requestData.queryParams,
-                    headers: requestData.headers,
-                  },
-                  isExternal: service.isExternal ?? false,
-                  fields: requestData.fields,
-                  method: requestData.method as any,
-                });
-              }
-              
+
+              setMessages((prev) => ([
+                ...prev,
+                { role: 'assistant', content: `This service requires parameters:\n${missingList}`, status: 'sent' as const },
+              ]));
               setIsLoading(false);
               return;
             }

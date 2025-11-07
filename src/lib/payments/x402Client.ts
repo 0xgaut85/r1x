@@ -122,15 +122,23 @@ export class X402Client {
       }
 
       // Route external calls through Next.js proxy to avoid browser CORS
-      return this.request('/api/x402/proxy', {
-        method: 'POST',
-        body: JSON.stringify({
-          url,
-          method: httpMethod,
-          headers: requestHeaders,
-          body: httpMethod === 'GET' ? undefined : (requestBody ?? undefined),
-        }),
-      });
+      const makeProxyCall = async (m: string) => {
+        const hdrs: Record<string, string> = { ...requestHeaders };
+        const payload: any = { url, method: m, headers: hdrs };
+        if (m !== 'GET') payload.body = requestBody ?? undefined;
+        return this.request('/api/x402/proxy', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+      };
+
+      let res = await makeProxyCall(httpMethod);
+      if (res.status === 405) {
+        // Merchant disallows this method; try the alternative per docs
+        const alt = httpMethod === 'GET' ? 'POST' : 'GET';
+        res = await makeProxyCall(alt);
+      }
+      return res;
     } else {
       // Use Next.js API proxy for our services
       const basePrice = parseFloat(service.price);
