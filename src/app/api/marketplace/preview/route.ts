@@ -88,8 +88,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Build APIFLASH URL
-    const apiUrl = `${APIFLASH_BASE_URL}?access_key=${APIFLASH_ACCESS_KEY}&url=${encodeURIComponent(normalizedUrl)}&width=${width}&height=${height}&format=png&response_type=image&wait_until=page_loaded&delay=2`;
+    // Build APIFLASH URL with stable desktop viewport to capture above-the-fold content
+    const viewportW = 1200;
+    const viewportH = 800;
+    const apiUrl = `${APIFLASH_BASE_URL}?access_key=${APIFLASH_ACCESS_KEY}`+
+      `&url=${encodeURIComponent(normalizedUrl)}`+
+      `&width=${width}&height=${height}`+
+      `&viewport_width=${viewportW}&viewport_height=${viewportH}`+
+      `&full_page=false&scroll_page=false&no_ads=true&no_cookie_banners=true`+
+      `&format=png&response_type=image&wait_until=page_loaded&delay=2`;
 
     // Update database with screenshot URL if serviceId provided
     if (serviceId) {

@@ -87,7 +87,15 @@ export default function ServiceScreenshot({
 
     // Build ApiFlash URL
     // Format: https://api.apiflash.com/v1/urltoimage?access_key={key}&url={url}&width={width}&height={height}
-    const apiUrl = `${APIFLASH_BASE_URL}?access_key=${APIFLASH_ACCESS_KEY}&url=${encodeURIComponent(normalizedUrl)}&width=${width}&height=${height}&format=png&response_type=image&wait_until=page_loaded&delay=2`;
+    // Use a stable desktop viewport and disable full-page scroll to keep the hero section centered
+    const viewportW = 1200;
+    const viewportH = 800;
+    const apiUrl = `${APIFLASH_BASE_URL}?access_key=${APIFLASH_ACCESS_KEY}`+
+      `&url=${encodeURIComponent(normalizedUrl)}`+
+      `&width=${width}&height=${height}`+
+      `&viewport_width=${viewportW}&viewport_height=${viewportH}`+
+      `&full_page=false&scroll_page=false&no_ads=true&no_cookie_banners=true`+
+      `&format=png&response_type=image&wait_until=page_loaded&delay=2`;
 
     // Preload image to check if it works
     const img = new window.Image();
@@ -139,7 +147,7 @@ export default function ServiceScreenshot({
         alt={alt}
         width={width}
         height={height}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-cover object-top"
         loading="lazy"
         onError={() => setError(true)}
       />
