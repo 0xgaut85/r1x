@@ -17,7 +17,8 @@ COPY prisma ./prisma/
 # Use --prefer-offline and --no-audit for faster installs
 # npm ci installs devDependencies by default
 # postinstall script will run prisma generate automatically
-RUN npm ci --prefer-offline --no-audit --progress=false
+# Leverage BuildKit cache for faster install on Railway
+RUN --mount=type=cache,target=/root/.npm npm ci --prefer-offline --no-audit --progress=false
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -47,7 +48,8 @@ ENV NODE_ENV=production
 
 # Build Next.js with optimizations
 # Use npx to ensure next command is found, or use npm run build
-RUN NEXT_TELEMETRY_DISABLED=1 npx next build
+# Cache Next.js build artifacts between builds to speed up rebuilds
+RUN --mount=type=cache,target=/app/.next/cache NEXT_TELEMETRY_DISABLED=1 npx next build
 
 # Production image
 FROM base AS runner
