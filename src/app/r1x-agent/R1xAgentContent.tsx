@@ -135,6 +135,7 @@ export default function R1xAgentContent() {
       }
 
       let response: Response;
+      // First try POST
       if (isExternalEndpoint) {
         response = await fetch('/api/x402/proxy', {
           method: 'POST',
@@ -147,18 +148,36 @@ export default function R1xAgentContent() {
           }),
         });
       } else {
-      // Make a plain POST request (no payment) to trigger 402
         response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}), // Empty body to trigger 402
-      });
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
+      }
+
+      // If not 402 on POST, try GET as a fallback (some merchants 402 on GET)
+      if (response.status !== 402) {
+        console.warn('[Preflight] Expected 402 on POST, got:', response.status, '- trying GET fallback');
+        if (isExternalEndpoint) {
+          response = await fetch('/api/x402/proxy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              url: endpoint,
+              method: 'GET',
+              headers: { 'Accept': 'application/json' },
+            }),
+          });
+        } else {
+          response = await fetch(endpoint, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+          });
+        }
       }
 
       if (response.status !== 402) {
-        console.warn('[Preflight] Expected 402, got:', response.status);
+        console.warn('[Preflight] No 402 on preflight (POST/GET). Got:', response.status);
         return null;
       }
 
@@ -386,8 +405,23 @@ export default function R1xAgentContent() {
         isExternal: service.isExternal,
       });
 
-      // Preflight: Get service schema
+      // Preflight: Require 402 (x402 merchant). Abort if not.
       const schema = await preflightService(service.endpoint);
+      if (!schema) {
+        console.warn('[Autopurchase] Preflight did not return 402 - not an x402 endpoint, aborting');
+        setMessages(prev => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          updated[updated.length - 1] = {
+            ...last,
+            status: 'error',
+            content: `This service endpoint does not speak x402 (no 402 preflight). Purchase cancelled.`,
+          };
+          return updated;
+        });
+        return false;
+      }
+
       const requestData = buildRequestFromSchema(schema, lastUserMessage);
 
       // If the provider requires specific fields (non-generic) ask user instead of guessing (include options/examples when available)
