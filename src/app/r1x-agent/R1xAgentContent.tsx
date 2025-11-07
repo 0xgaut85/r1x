@@ -462,15 +462,20 @@ export default function R1xAgentContent() {
         return;
       }
 
-      // Auto-supply buyerAddress if merchant complains later
-      const ensureBuyerAddress = (m?: string) => {
-        const method = (m || pendingPurchase.method || 'POST').toUpperCase();
+      // Auto-supply wallet address for address-like fields (buyerAddress/address/payFrom/sender/payer)
+      const isAddressKey = (key: string) => /buyeraddress|address|payfrom|sender|payer/i.test(key);
+      const ensureIdentityFields = (m?: string) => {
         if (!address) return;
-        if (method === 'GET') {
-          if (!queryParams['buyerAddress']) queryParams['buyerAddress'] = address;
-        } else {
-          if (!body['buyerAddress']) body['buyerAddress'] = address;
-        }
+        const method = (m || pendingPurchase.method || 'POST').toUpperCase();
+        const fieldsMeta = pendingPurchase.fields || [];
+        const targetKeys = fieldsMeta.filter(f => isAddressKey(f.name)).map(f => f.name);
+        targetKeys.forEach((key) => {
+          if (method === 'GET') {
+            if (!queryParams[key]) queryParams[key] = address;
+          } else {
+            if (!body[key]) body[key] = address;
+          }
+        });
       };
 
       // Fee first
@@ -503,8 +508,8 @@ export default function R1xAgentContent() {
       if (!res.ok) {
         const t = await res.text();
         // Retry once if buyerAddress missing
-        if (res.status === 400 && /buyeraddress/i.test(t)) {
-          ensureBuyerAddress((pendingPurchase as any).method as any);
+        if (res.status === 400 && /(buyeraddress|address|payfrom|sender|payer)/i.test(t)) {
+          ensureIdentityFields((pendingPurchase as any).method as any);
           res = await x402Client.purchaseService({
             id: pendingPurchase.service.id,
             name: pendingPurchase.service.name,
@@ -822,14 +827,20 @@ export default function R1xAgentContent() {
           }
         }
 
-        // Retry once if buyerAddress missing
+        // Retry once if address-like field missing
         if (response.status === 400) {
           const msg = (errorData.error || errorData.message || errorText || '').toString();
-          if (/buyeraddress/i.test(msg) && address) {
-            if ((requestData.method || 'POST').toUpperCase() === 'GET') {
-              requestData.queryParams = { ...(requestData.queryParams || {}), buyerAddress: address };
+          if (/(buyeraddress|address|payfrom|sender|payer)/i.test(msg) && address) {
+            // Try to fill any address-like fields from the schema
+            const fields = (requestData.fields || []) as Array<{ name: string }>;
+            const addrKeys = fields.filter(f => /(buyeraddress|address|payfrom|sender|payer)/i.test(f.name)).map(f => f.name);
+            const method = (requestData.method || 'POST').toUpperCase();
+            if (method === 'GET') {
+              requestData.queryParams = { ...(requestData.queryParams || {}) };
+              addrKeys.forEach(k => { if (!requestData.queryParams![k]) requestData.queryParams![k] = address; });
             } else {
-              requestData.body = { ...(requestData.body || {}), buyerAddress: address };
+              requestData.body = { ...(requestData.body || {}) };
+              addrKeys.forEach(k => { if (!(requestData.body as any)[k]) (requestData.body as any)[k] = address; });
             }
             response = await x402Client.purchaseService({
               id: service.id,
@@ -839,9 +850,7 @@ export default function R1xAgentContent() {
               priceWithFee: service.priceWithFee,
               isExternal: isExternalService,
             }, requestData.body, requestData.queryParams, requestData.headers, requestData.method as any);
-            if (response.ok) {
-              // continue to success processing
-            } else {
+            if (!response.ok) {
               const et = await response.text();
               throw new Error(`Purchase failed (HTTP ${response.status}): ${et}`);
             }
@@ -1719,8 +1728,12 @@ export default function R1xAgentContent() {
               fields={pendingPurchase.fields}
               initialValues={(() => {
                 const iv: Record<string, string> = {};
-                if (address && pendingPurchase.fields?.some(f => f.name === 'buyerAddress')) {
-                  iv['buyerAddress'] = address;
+                if (address) {
+                  pendingPurchase.fields.forEach((f) => {
+                    if (/(buyeraddress|address|payfrom|sender|payer)/i.test(f.name)) {
+                      iv[f.name] = iv[f.name] || address;
+                    }
+                  });
                 }
                 return iv;
               })()}
