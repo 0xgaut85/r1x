@@ -8,7 +8,7 @@ import X402ScanIcon from './icons/X402ScanIcon';
 export default function Footer() {
   const socialLinks = [
     { icon: <Twitter className="w-4 h-4 sm:w-5 sm:h-5" />, href: '#' },
-    { icon: <Github className="w-4 h-4 sm:w-5 sm:h-5" />, href: '#' },
+    { icon: <Github className="w-4 h-4 sm:w-5 sm:h-5" />, href: 'https://github.com/0xLaylo/r1x-402' },
     { icon: <TelegramIcon className="w-4 h-4 sm:w-5 sm:h-5" />, href: 'https://t.me/r1xbuilders' },
     { icon: <X402ScanIcon className="w-4 h-4 sm:w-5 sm:h-5" />, href: 'https://www.x402scan.com/server/35ea106a-e068-4e6e-9b8d-763459a84b2e' },
     { icon: <Mail className="w-4 h-4 sm:w-5 sm:h-5" />, href: '#' },

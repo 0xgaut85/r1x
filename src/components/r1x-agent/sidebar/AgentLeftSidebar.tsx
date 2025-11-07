@@ -24,7 +24,7 @@ export default function AgentLeftSidebar({ address, isConnected, onReRun }: Agen
       {/* Mobile toggle button */}
       <motion.button
         onClick={() => setIsMobileOpen(true)}
-        className="lg:hidden fixed top-20 left-4 z-40 w-10 h-10 bg-[#111111] border border-[#1A1A1A] rounded-lg flex items-center justify-center"
+        className="lg:hidden fixed bottom-6 right-6 z-40 w-10 h-10 bg-[#111111] border border-[#1A1A1A] rounded-lg flex items-center justify-center"
         style={{
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.03)',
         }}

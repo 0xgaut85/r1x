@@ -98,7 +98,7 @@ r1x Platform
 
 ```bash
 # Clone the repository
-git clone https://github.com/0xgaut85/r1x.git
+git clone https://github.com/0xLaylo/r1x-402.git
 cd x402robotics
 
 # Install dependencies

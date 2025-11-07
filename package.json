@@ -2,6 +2,10 @@
   "name": "x402robotics",
   "version": "0.1.0",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/0xLaylo/r1x-402.git"
+  },
   "scripts": {
     "dev": "next dev",
     "dev:x402": "tsx watch x402-server/index.ts",
