@@ -415,6 +415,19 @@ export default function R1xAgentContent() {
             isExternalService = true;
           }
         }
+        // Update current "Purchasing..." message to a paused state
+        setMessages(prev => {
+          const updated = [...prev];
+          const lastIdx = updated.length - 1;
+          if (lastIdx >= 0 && updated[lastIdx]?.status === 'sending') {
+            updated[lastIdx] = {
+              ...updated[lastIdx],
+              status: 'sent',
+              content: `⏸️ Awaiting required fields to proceed with "${service.name}".`,
+            };
+          }
+          return updated;
+        });
         // Persist pending purchase context to handle next user message with values
         setPendingPurchase({
           service,
@@ -728,6 +741,48 @@ export default function R1xAgentContent() {
       try {
         setIsLoading(true);
         const raw = input.trim();
+        const rawLower = raw.toLowerCase();
+
+        // Allow cancel/exit while awaiting fields
+        if (['cancel', 'stop', 'abort', 'no', 'exit', 'back'].includes(rawLower)) {
+          setPendingPurchase(null);
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: 'Purchase cancelled. You can continue chatting or choose another service.',
+            status: 'sent',
+          }]);
+          setIsLoading(false);
+          setInput('');
+          return;
+        }
+
+        // If user tries to confirm/purchase without providing fields, re-list exactly what is needed
+        if (['confirm', 'purchase', 'pay', 'proceed'].includes(rawLower) && pendingPurchase.missing.length > 0) {
+          const missingList = pendingPurchase.missing.map(k => {
+            const hint = pendingPurchase.hints?.[k];
+            const parts: string[] = [`- ${k}`];
+            if (hint?.options && hint.options.length > 0) {
+              parts.push(`  options: ${hint.options.slice(0, 10).join(', ')}${hint.options.length > 10 ? ', ...' : ''}`);
+            }
+            if (hint?.example) {
+              parts.push(`  example: ${hint.example}`);
+            }
+            if (hint?.description) {
+              parts.push(`  desc: ${hint.description}`);
+            }
+            return parts.join('\n');
+          }).join('\n');
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: missingList
+              ? `Still need these fields before payment:\n${missingList}\n\nReply with key=value for each field.`
+              : `The provider requires additional input. Reply with the expected key=value pairs.`,
+            status: 'sent',
+          }]);
+          setIsLoading(false);
+          setInput('');
+          return;
+        }
         // Prepare working copies
         const body = { ...(pendingPurchase.baseRequest.body || {}) };
         const headers = { ...(pendingPurchase.baseRequest.headers || {}) };
