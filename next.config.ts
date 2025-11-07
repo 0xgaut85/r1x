@@ -43,10 +43,11 @@ const nextConfig: NextConfig = {
   },
   
   // Turbopack configuration (Next.js 16+ uses Turbopack by default)
-  turbopack: {
-    // Set root directory to silence workspace root warning
+  // Only enable Turbopack in dev mode; production uses webpack
+  turbopack: process.env.NODE_ENV === 'development' ? {
+    // Set root directory to project root
     root: process.cwd(),
-  },
+  } : undefined,
 };
 
 export default nextConfig;
