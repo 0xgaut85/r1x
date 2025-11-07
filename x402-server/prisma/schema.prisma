@@ -26,6 +26,27 @@ model Service {
   endpoint    String?  // Service API endpoint
   available   Boolean  @default(true)
   metadata    Json?    // Additional PayAI facilitator metadata
+  
+  // Extended fields for discovery/self-serve
+  type        String?  // Service type: api, nft_mint, token, content, other
+  method      String?  // HTTP method: GET, POST, etc.
+  inputSchema Json?    // Input schema from 402 preflight
+  outputSchema Json?   // Output schema from 402 preflight
+  source      String?  // Source: payai, x402scan, selfserve
+  isExternal  Boolean? // true if from external merchant
+  
+  // Self-serve merchant listing fields
+  ownerAddress String? // Wallet address of service submitter
+  approvalStatus String? // approved, rejected, pending
+  verified Boolean? // true if ownership verified via signature
+  x402Ready Boolean? // true if endpoint returns valid 402
+  lastPreflightAt DateTime?
+  lastPreflightStatus String?
+  facilitatorUrl String?
+  tokenAddress String?
+  payTo String?
+  websiteUrl  String?
+  screenshotUrl String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
@@ -35,6 +56,9 @@ model Service {
   @@index([network, chainId])
   @@index([category])
   @@index([available])
+  @@index([ownerAddress])
+  @@index([approvalStatus])
+  @@index([x402Ready])
 }
 
 model Transaction {
