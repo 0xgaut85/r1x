@@ -175,10 +175,7 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
       return;
     }
 
-    if (!x402ServerUrl) {
-      alert('x402 server URL not configured. Please try again.');
-      return;
-    }
+    // We primarily use same-origin proxies; x402 server URL is not strictly required here
 
     setIsProcessing(true);
     try {
@@ -194,7 +191,11 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
       // For external services: pay fee then service
       // For our services: just pay service (no separate fee)
       if (service.isExternal && parseFloat(feeAmount) > 0) {
-        const feeEndpoint = `${x402ServerUrl}/api/fees/collect`;
+        if (!service.endpoint) {
+          alert('This service does not expose a direct purchase endpoint. Please open the service page.');
+          return;
+        }
+        const feeEndpoint = `/api/fees/collect`; // same-origin proxy to avoid CORS
         
         // Dual x402 payments: fee then service
         const { feeResponse, serviceResponse } = await x402Client.payFeeThenPurchase({
@@ -238,11 +239,15 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
         const serviceData = await serviceResponse.json();
         alert(`✅ Purchase successful! ${serviceData.message || 'Service accessed.'}`);
       } else {
+        if (!service.endpoint) {
+          alert('This service does not expose a direct purchase endpoint. Please open the service page.');
+          return;
+        }
         // Our services: single x402 payment (no fee)
         const response = await x402Client.purchaseService({
           id: service.id,
           name: service.name,
-          endpoint: service.endpoint || '',
+          endpoint: service.endpoint,
           price: service.price,
           isExternal: false,
         });

@@ -68,7 +68,20 @@ app.use((req, res, next) => {
   }
   
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Payment, Authorization, Accept');
+  const requestedHeaders = (req.headers['access-control-request-headers'] as string | undefined);
+  if (requestedHeaders && requestedHeaders.length > 0) {
+    res.setHeader('Access-Control-Allow-Headers', requestedHeaders);
+  } else {
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Authorization, Accept, Access-Control-Expose-Headers'
+    );
+  }
+  // Expose x402 headers so browser clients can read them
+  res.setHeader(
+    'Access-Control-Expose-Headers',
+    'X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Content-Type'
+  );
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
   
@@ -93,7 +106,9 @@ app.options('/api/r1x-agent/chat', (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Payment, Authorization, Accept');
+  const requestedHeaders = (req.headers['access-control-request-headers'] as string | undefined);
+  res.setHeader('Access-Control-Allow-Headers', requestedHeaders || 'Content-Type, X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Authorization, Accept, Access-Control-Expose-Headers');
+  res.setHeader('Access-Control-Expose-Headers', 'X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Content-Type');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Max-Age', '86400');
   console.log('[CORS] OPTIONS /api/r1x-agent/chat from:', origin);
@@ -106,7 +121,9 @@ app.options('/api/x402/pay', (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Payment, Authorization, Accept');
+  const requestedHeaders = (req.headers['access-control-request-headers'] as string | undefined);
+  res.setHeader('Access-Control-Allow-Headers', requestedHeaders || 'Content-Type, X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Authorization, Accept, Access-Control-Expose-Headers');
+  res.setHeader('Access-Control-Expose-Headers', 'X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Content-Type');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Max-Age', '86400');
   console.log('[CORS] OPTIONS /api/x402/pay from:', origin);
@@ -119,7 +136,9 @@ app.options('/api/r1x-agent/plan', (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Payment, Authorization, Accept');
+  const requestedHeaders = (req.headers['access-control-request-headers'] as string | undefined);
+  res.setHeader('Access-Control-Allow-Headers', requestedHeaders || 'Content-Type, X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Authorization, Accept, Access-Control-Expose-Headers');
+  res.setHeader('Access-Control-Expose-Headers', 'X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Content-Type');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Max-Age', '86400');
   console.log('[CORS] OPTIONS /api/r1x-agent/plan from:', origin);
@@ -132,10 +151,28 @@ app.options('/api/fee', (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Payment, Authorization, Accept');
+  const requestedHeaders = (req.headers['access-control-request-headers'] as string | undefined);
+  res.setHeader('Access-Control-Allow-Headers', requestedHeaders || 'Content-Type, X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Authorization, Accept, Access-Control-Expose-Headers');
+  res.setHeader('Access-Control-Expose-Headers', 'X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Content-Type');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Max-Age', '86400');
   console.log('[CORS] OPTIONS /api/fee from:', origin);
+  res.status(200).end();
+});
+
+// Explicit OPTIONS for marketplace fee collection
+app.options('/api/fees/collect', (req, res) => {
+  const origin = req.headers.origin;
+  if (origin && (origin.includes('r1xlabs.com') || origin.includes('railway.app') || origin.includes('vercel.app'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  const requestedHeaders = (req.headers['access-control-request-headers'] as string | undefined);
+  res.setHeader('Access-Control-Allow-Headers', requestedHeaders || 'Content-Type, X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Authorization, Accept, Access-Control-Expose-Headers');
+  res.setHeader('Access-Control-Expose-Headers', 'X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Content-Type');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  console.log('[CORS] OPTIONS /api/fees/collect from:', origin);
   res.status(200).end();
 });
 
