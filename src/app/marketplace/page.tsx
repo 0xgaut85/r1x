@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamicImport from 'next/dynamic';
 import Footer from '@/components/Footer';
@@ -25,6 +25,10 @@ export default function MarketplacePage() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [network, setNetwork] = useState<string>('base');
+  // Get wallet info once at page-level to avoid per-card subscriptions
+  const wallet = useWallet();
+  const { isConnected: wagmiConnected } = useAccount();
+  const chainId = useChainId();
 
   useEffect(() => {
     fetchServices();
@@ -61,11 +65,15 @@ export default function MarketplacePage() {
     }
   };
 
-  const categories = ['all', ...Array.from(new Set(services.map(s => s.category)))];
+  const categories = useMemo(
+    () => ['all', ...Array.from(new Set(services.map(s => s.category)))],
+    [services]
+  );
 
-  const filteredServices = selectedCategory === 'all' 
-    ? services 
-    : services.filter(s => s.category === selectedCategory);
+  const filteredServices = useMemo(
+    () => (selectedCategory === 'all' ? services : services.filter(s => s.category === selectedCategory)),
+    [services, selectedCategory]
+  );
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F7F7F7' }}>
@@ -147,7 +155,17 @@ export default function MarketplacePage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredServices.map((service, index) => (
-                  <ServiceCard key={service.id} service={service} index={index} currentNetwork={network} />
+                  <ServiceCard 
+                    key={service.id} 
+                    service={service} 
+                    index={index} 
+                    currentNetwork={network}
+                    // Pass wallet data once instead of subscribing per card
+                    walletAddress={wallet.address || undefined}
+                    walletClient={wallet.walletClient as any}
+                    wagmiConnected={wagmiConnected}
+                    chainId={chainId}
+                  />
                 ))}
               </div>
             )}
@@ -159,10 +177,25 @@ export default function MarketplacePage() {
   );
 }
 
-function ServiceCard({ service, index, currentNetwork }: { service: MarketplaceService; index: number; currentNetwork: string }) {
-  const { walletClient, address, isConnected } = useWallet();
-  const { isConnected: wagmiConnected } = useAccount();
-  const chainId = useChainId();
+const ServiceCard = memo(function ServiceCard({ 
+  service, 
+  index, 
+  currentNetwork,
+  walletAddress,
+  walletClient,
+  wagmiConnected,
+  chainId,
+}: { 
+  service: MarketplaceService; 
+  index: number; 
+  currentNetwork: string;
+  walletAddress?: string;
+  walletClient: any | null;
+  wagmiConnected: boolean;
+  chainId: number;
+}) {
+  // Use parent-provided wallet details to avoid per-card subscriptions
+  const address = walletAddress;
   const [isProcessing, setIsProcessing] = useState(false);
   const [x402ServerUrl, setX402ServerUrl] = useState<string | null>(null);
 

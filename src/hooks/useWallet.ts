@@ -32,11 +32,12 @@ function useSolanaWallet() {
       const wallet = phantom || solflare;
       
       if (wallet && wallet.isConnected && wallet.publicKey) {
-        setSolanaAddress(wallet.publicKey.toString());
-        setIsSolanaConnected(true);
+        const addr = wallet.publicKey.toString();
+        setSolanaAddress(prev => (prev === addr ? prev : addr));
+        setIsSolanaConnected(prev => (prev === true ? prev : true));
       } else {
-        setSolanaAddress(null);
-        setIsSolanaConnected(false);
+        setSolanaAddress(prev => (prev === null ? prev : null));
+        setIsSolanaConnected(prev => (prev === false ? prev : false));
       }
     };
 
@@ -44,8 +45,11 @@ function useSolanaWallet() {
     checkSolanaWallet();
 
     // Listen for wallet events
-    const handleAccountsChanged = () => {
-      checkSolanaWallet();
+    const handleAccountsChanged = () => { checkSolanaWallet(); };
+    const handleConnect = () => { checkSolanaWallet(); };
+    const handleDisconnect = () => {
+      setSolanaAddress(prev => (prev === null ? prev : null));
+      setIsSolanaConnected(prev => (prev === false ? prev : false));
     };
 
     const phantom = (window as any).phantom?.solana;
@@ -53,36 +57,30 @@ function useSolanaWallet() {
 
     if (phantom) {
       phantom.on('accountChanged', handleAccountsChanged);
-      phantom.on('connect', handleAccountsChanged);
-      phantom.on('disconnect', () => {
-        setSolanaAddress(null);
-        setIsSolanaConnected(false);
-      });
+      phantom.on('connect', handleConnect);
+      phantom.on('disconnect', handleDisconnect);
     }
 
     if (solflare) {
       solflare.on('accountChanged', handleAccountsChanged);
-      solflare.on('connect', handleAccountsChanged);
-      solflare.on('disconnect', () => {
-        setSolanaAddress(null);
-        setIsSolanaConnected(false);
-      });
+      solflare.on('connect', handleConnect);
+      solflare.on('disconnect', handleDisconnect);
     }
 
     // Poll for wallet connection (in case events don't fire)
-    const interval = setInterval(checkSolanaWallet, 1000);
+    const interval = setInterval(checkSolanaWallet, 5000);
 
     return () => {
       clearInterval(interval);
       if (phantom) {
         phantom.off('accountChanged', handleAccountsChanged);
-        phantom.off('connect', handleAccountsChanged);
-        phantom.off('disconnect');
+        phantom.off('connect', handleConnect);
+        phantom.off('disconnect', handleDisconnect);
       }
       if (solflare) {
         solflare.off('accountChanged', handleAccountsChanged);
-        solflare.off('connect', handleAccountsChanged);
-        solflare.off('disconnect');
+        solflare.off('connect', handleConnect);
+        solflare.off('disconnect', handleDisconnect);
       }
     };
   }, []);
