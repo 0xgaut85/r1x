@@ -51,9 +51,9 @@ async function fetchWithRetry(url: string, init: RequestInit, attempts = 2, time
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { serviceId, serviceName, proof, verifyPayload, settlePayload } = body;
+    const { serviceId, serviceName, proof, verifyPayload, settlePayload, routerSettled } = body;
 
-    if (!serviceId || !serviceName || !proof || !verifyPayload || !settlePayload) {
+    if (!serviceId || !serviceName || !proof) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -65,39 +65,39 @@ export async function POST(request: NextRequest) {
 
     const facilitatorUrl = process.env.DAYDREAMS_FACILITATOR_URL || 'https://facilitator.daydreams.systems';
 
-    // Enforce recipient matches env
-    const solanaFeeRecipient = process.env.SOLANA_FEE_RECIPIENT_ADDRESS;
-    if (solanaFeeRecipient && validProof.to !== solanaFeeRecipient) {
-      return NextResponse.json({ error: 'Recipient mismatch' }, { status: 400 });
+    // If not routerSettled, perform verify/settle
+    let verifyJson: any = undefined;
+    let settleJson: any = undefined;
+
+    if (!routerSettled) {
+      if (!verifyPayload || !settlePayload) {
+        return NextResponse.json({ error: 'Missing verify/settle payloads' }, { status: 400 });
+      }
+
+      const verifyRes = await fetchWithRetry(`${facilitatorUrl}/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(verifyPayload),
+      });
+
+      if (!verifyRes.ok) {
+        const text = await verifyRes.text().catch(() => '');
+        return NextResponse.json({ error: 'Verification failed', details: text }, { status: 400 });
+      }
+      verifyJson = await verifyRes.json().catch(() => ({}));
+
+      const settleRes = await fetchWithRetry(`${facilitatorUrl}/settle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(settlePayload),
+      });
+
+      if (!settleRes.ok) {
+        const text = await settleRes.text().catch(() => '');
+        return NextResponse.json({ error: 'Settlement failed', details: text }, { status: 400 });
+      }
+      settleJson = await settleRes.json().catch(() => ({}));
     }
-
-    // Verify via Daydreams facilitator (pass-through payload)
-    const verifyRes = await fetchWithRetry(`${facilitatorUrl}/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify(verifyPayload),
-    });
-
-    if (!verifyRes.ok) {
-      const text = await verifyRes.text().catch(() => '');
-      return NextResponse.json({ error: 'Verification failed', details: text }, { status: 400 });
-    }
-
-    const verifyJson: any = await verifyRes.json().catch(() => ({}));
-
-    // Settle via Daydreams facilitator (pass-through)
-    const settleRes = await fetchWithRetry(`${facilitatorUrl}/settle`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify(settlePayload),
-    });
-
-    if (!settleRes.ok) {
-      const text = await settleRes.text().catch(() => '');
-      return NextResponse.json({ error: 'Settlement failed', details: text }, { status: 400 });
-    }
-
-    const settleJson: any = await settleRes.json().catch(() => ({}));
 
     const tokenSymbol: string = validProof.tokenSymbol || 'USDC';
     const tokenString: string = validProof.token || tokenSymbol;
@@ -129,7 +129,9 @@ export async function POST(request: NextRequest) {
     const feePct = parseFloat(process.env.PLATFORM_FEE_PERCENTAGE || '5');
     const { feeAmount, merchantAmount } = calculateFees(amount, isFinite(feePct) ? feePct : 5);
 
-    const settlementHash = settleJson.settlementHash || settleJson.transactionHash || settleJson.hash || null;
+    const settlementHash = routerSettled
+      ? null
+      : (settleJson?.settlementHash || settleJson?.transactionHash || settleJson?.hash || null);
 
     await prisma.transaction.create({
       data: {
@@ -144,8 +146,8 @@ export async function POST(request: NextRequest) {
         chainId: 0,
         feeAmount,
         merchantAmount,
-        status: 'settled',
-        verificationStatus: 'verified',
+        status: routerSettled ? 'settled' : 'settled',
+        verificationStatus: routerSettled ? 'verified' : 'verified',
         verifiedAt: new Date(),
         settledAt: new Date(),
         timestamp: new Date(),
