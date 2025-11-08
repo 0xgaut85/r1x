@@ -20,7 +20,15 @@ const metadata = {
   icons: ['/logosvg.svg'],
 };
 
-const networks = [base, mainnet, solana];
+// Ensure Solana network has a valid RPC URL to avoid "Endpoint URL must start with http/https"
+const solanaRpcFromEnv = (process.env.NEXT_PUBLIC_SOLANA_RPC_URL || '').trim();
+const validSolanaRpc = solanaRpcFromEnv.startsWith('http://') || solanaRpcFromEnv.startsWith('https://')
+  ? solanaRpcFromEnv
+  : 'https://api.mainnet-beta.solana.com'; // fallback to valid URL (will require Helius allowlist for browser)
+
+const solanaNetwork = { ...solana, rpcUrl: validSolanaRpc } as any;
+
+const networks = [base, mainnet, solanaNetwork];
 
 const wagmiAdapter = new WagmiAdapter({
   networks: networks as any,

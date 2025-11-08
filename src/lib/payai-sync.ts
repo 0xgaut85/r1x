@@ -43,10 +43,8 @@ export async function fetchPayAIServices(): Promise<PayAIService[]> {
     console.log(`[PayAI] Fetching services from facilitator: ${PAYAI_FACILITATOR_URL}`);
     
     // PayAI facilitator service discovery endpoints
-    // Only use /list endpoint (official PayAI API per docs)
-    const endpoints = [
-      '/list',              // Official PayAI endpoint per documentation
-    ];
+    // Prefer /resources (per docs), fallback to /list if present
+    const endpoints = ['/resources', '/list'];
 
     let lastError: any = null;
     
