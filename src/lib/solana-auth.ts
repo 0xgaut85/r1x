@@ -1,6 +1,7 @@
 'use client';
 
 import { createSolanaAuthFromPublicKey } from '@daydreamsai/ai-sdk-provider';
+import { getSolanaRpcUrl } from './solana-rpc-config';
 
 /**
  * Initializes Daydreams Solana auth using a wallet provider that supports
@@ -13,9 +14,8 @@ export async function createDaydreamsSolanaAuth(params: {
   publicKeyBase58: string;
   signMessage: (message: string) => Promise<Uint8Array | string>;
 }) {
-  const rpcUrl =
-    process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
-    'https://api.mainnet-beta.solana.com';
+  // Fetch RPC URL from Railway at runtime
+  const rpcUrl = await getSolanaRpcUrl();
 
   // Daydreams SDK expects a signer that receives a string message
   // and returns a signature. Wallet adapters (e.g., Phantom) typically

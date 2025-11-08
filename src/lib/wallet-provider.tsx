@@ -5,6 +5,8 @@ import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 import { SolanaAdapter } from '@reown/appkit-adapter-solana';
 import { mainnet, base, solana } from '@reown/appkit/networks';
 import { QueryClient } from '@tanstack/react-query';
+import { getSolanaRpcUrl } from '@/lib/solana-rpc-config';
+import { useEffect, useState } from 'react';
 
 const projectId = process.env.NEXT_PUBLIC_PROJECT_ID || 'ac7a5e22564f2698c80f05dbf4811d6a';
 
@@ -20,36 +22,15 @@ const metadata = {
   icons: ['/logosvg.svg'],
 };
 
-// Ensure Solana network has a valid RPC URL to avoid "Endpoint URL must start with http/https"
-const solanaRpcFromEnv = (process.env.NEXT_PUBLIC_SOLANA_RPC_URL || '').trim();
-// Remove trailing slash if present (can cause issues)
-const cleanedRpc = solanaRpcFromEnv.endsWith('/') ? solanaRpcFromEnv.slice(0, -1) : solanaRpcFromEnv;
-// Ensure we always have a valid URL string (never empty or undefined)
-const validSolanaRpc = cleanedRpc && (cleanedRpc.startsWith('http://') || cleanedRpc.startsWith('https://'))
-  ? cleanedRpc
-  : 'https://api.mainnet-beta.solana.com'; // fallback (will fail in browser - needs QuickNode)
+// Initialize with default RPC (will be updated at runtime)
+const defaultSolanaRpc = 'https://api.mainnet-beta.solana.com';
+let solanaRpcUrl = defaultSolanaRpc;
+let appKitInitialized = false;
 
-// Log RPC being used (for debugging) - ALWAYS log to help debug build-time issues
-if (typeof window !== 'undefined') {
-  const maskedRpc = validSolanaRpc.includes('quiknode')
-    ? validSolanaRpc.replace(/\/[^\/]+\/[^\/]+\//, '/***/***/')
-    : validSolanaRpc.includes('api-key')
-    ? validSolanaRpc.replace(/api-key=[^&]+/, 'api-key=***')
-    : validSolanaRpc;
-  console.log('[WalletProvider] Solana RPC from env:', process.env.NEXT_PUBLIC_SOLANA_RPC_URL ? 'SET (masked)' : 'NOT SET');
-  console.log('[WalletProvider] Solana RPC being used:', maskedRpc);
-  
-  if (validSolanaRpc === 'https://api.mainnet-beta.solana.com') {
-    console.error('[WalletProvider] ERROR: Using public Solana RPC (will fail). NEXT_PUBLIC_SOLANA_RPC_URL is not set or invalid. Set it in Railway and trigger a rebuild.');
-  } else if (validSolanaRpc.includes('quiknode')) {
-    console.log('[WalletProvider] ✅ Using QuickNode RPC');
-  }
-}
-
-// Configure Solana network with RPC URL
+// Configure Solana network with RPC URL (will be updated at runtime)
 const solanaNetwork = { 
   ...solana, 
-  rpcUrl: validSolanaRpc 
+  rpcUrl: solanaRpcUrl 
 } as any;
 
 const networks = [base, mainnet, solanaNetwork];
@@ -59,8 +40,6 @@ const wagmiAdapter = new WagmiAdapter({
   projectId,
 });
 
-// SolanaAdapter reads RPC from the network object passed to createAppKit
-// Ensure the network has rpcUrl set (which we do above)
 const solanaAdapter = new SolanaAdapter();
 
 // Create QueryClient with SSR-safe defaults
@@ -73,6 +52,7 @@ const queryClient = new QueryClient({
   },
 });
 
+// Initialize AppKit (will use default RPC initially, updated below)
 export const modal = createAppKit({
   adapters: [wagmiAdapter, solanaAdapter],
   networks: networks as any,
@@ -87,8 +67,50 @@ export const modal = createAppKit({
   },
 });
 
+appKitInitialized = true;
+
+// Fetch RPC URL from Railway at runtime and update network config
+if (typeof window !== 'undefined') {
+  getSolanaRpcUrl()
+    .then((rpcUrl) => {
+      solanaRpcUrl = rpcUrl;
+      
+      // Update the network config
+      solanaNetwork.rpcUrl = rpcUrl;
+      
+      // Log which RPC is being used
+      const maskedRpc = rpcUrl.includes('quiknode')
+        ? rpcUrl.replace(/\/[^\/]+\/[^\/]+\//, '/***/***/')
+        : rpcUrl.includes('api-key')
+        ? rpcUrl.replace(/api-key=[^&]+/, 'api-key=***')
+        : rpcUrl;
+      
+      console.log('[WalletProvider] ✅ Solana RPC fetched from Railway:', maskedRpc);
+      
+      if (rpcUrl === defaultSolanaRpc) {
+        console.error('[WalletProvider] ERROR: Using public Solana RPC (will fail). Set SOLANA_RPC_URL in Railway.');
+      } else if (rpcUrl.includes('quiknode')) {
+        console.log('[WalletProvider] ✅ Using QuickNode RPC from Railway');
+      }
+      
+      // Update AppKit networks if possible (Reown might not support this, but try)
+      // Note: Reown might require re-initialization, but this is the best we can do
+      if (modal && (modal as any).setNetworks) {
+        (modal as any).setNetworks([base, mainnet, solanaNetwork]);
+      }
+    })
+    .catch((error) => {
+      console.error('[WalletProvider] Failed to fetch Solana RPC URL:', error);
+      console.warn('[WalletProvider] Using default RPC (will fail in browser)');
+    });
+}
+
 // Export wagmiConfig directly from adapter (per Reown docs)
 export const wagmiConfig = wagmiAdapter.wagmiConfig;
 
 export { wagmiAdapter, queryClient };
 
+// Export function to get current RPC URL
+export async function getCurrentSolanaRpcUrl(): Promise<string> {
+  return await getSolanaRpcUrl();
+}

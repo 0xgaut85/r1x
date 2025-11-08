@@ -3,6 +3,7 @@
 import { Connection, PublicKey, Transaction } from '@solana/web3.js';
 import { getAssociatedTokenAddress, createTransferInstruction, getAccount } from '@solana/spl-token';
 import { usdcToAtomic } from './solana-payment';
+import { getSolanaRpcUrl } from './solana-rpc-config';
 
 // USDC mint address on Solana mainnet
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
@@ -10,20 +11,38 @@ const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 /**
  * Solana USDC payment client
  * Creates and signs Solana USDC transfer transactions using @solana/web3.js
+ * Uses Railway env vars at runtime (not build time)
  */
 export class SolanaPaymentClient {
   private wallet: any; // Phantom or Solflare wallet adapter
   private rpcUrl: string;
   private connection: Connection;
-  private didFallbackToPublicRpc: boolean = false;
+  private rpcUrlPromise: Promise<string> | null = null;
 
   constructor(wallet: any, rpcUrl?: string) {
     this.wallet = wallet;
-    // Use provided RPC URL, or env var, or fallback to public (which will fail in browser)
-    this.rpcUrl = rpcUrl || process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
-    this.connection = new Connection(this.rpcUrl, 'confirmed');
     
-    // Log which RPC is being used (for debugging)
+    // If RPC URL provided, use it; otherwise fetch from Railway at runtime
+    if (rpcUrl) {
+      this.rpcUrl = rpcUrl;
+      this.connection = new Connection(this.rpcUrl, 'confirmed');
+      this.logRpcUrl();
+    } else {
+      // Fetch from Railway runtime config
+      this.rpcUrlPromise = getSolanaRpcUrl().then((url) => {
+        this.rpcUrl = url;
+        this.connection = new Connection(this.rpcUrl, 'confirmed');
+        this.logRpcUrl();
+        return url;
+      });
+      
+      // Initialize with placeholder (will be updated when promise resolves)
+      this.rpcUrl = 'https://api.mainnet-beta.solana.com';
+      this.connection = new Connection(this.rpcUrl, 'confirmed');
+    }
+  }
+
+  private logRpcUrl() {
     const maskedUrl = this.rpcUrl.includes('api-key') 
       ? this.rpcUrl.replace(/api-key=[^&]+/, 'api-key=***')
       : this.rpcUrl.includes('quiknode')
@@ -31,9 +50,19 @@ export class SolanaPaymentClient {
       : this.rpcUrl;
     console.log('[SolanaPaymentClient] Using RPC:', maskedUrl);
     
-    // Warn if using fallback public RPC (won't work in browser)
     if (this.rpcUrl === 'https://api.mainnet-beta.solana.com') {
-      console.warn('[SolanaPaymentClient] WARNING: Using public Solana RPC (will fail in browser). Set NEXT_PUBLIC_SOLANA_RPC_URL with QuickNode URL.');
+      console.warn('[SolanaPaymentClient] WARNING: Using public Solana RPC (will fail in browser). Set SOLANA_RPC_URL in Railway.');
+    } else if (this.rpcUrl.includes('quiknode')) {
+      console.log('[SolanaPaymentClient] ✅ Using QuickNode RPC from Railway');
+    }
+  }
+
+  /**
+   * Ensure RPC URL is loaded from Railway before making requests
+   */
+  private async ensureRpcUrl(): Promise<void> {
+    if (this.rpcUrlPromise) {
+      await this.rpcUrlPromise;
     }
   }
 
@@ -55,6 +84,9 @@ export class SolanaPaymentClient {
       token: string;
     };
   }> {
+    // Ensure RPC URL is loaded from Railway before making requests
+    await this.ensureRpcUrl();
+
     if (!this.wallet || !this.wallet.isConnected) {
       throw new Error('Solana wallet not connected');
     }
@@ -95,9 +127,8 @@ export class SolanaPaymentClient {
           errorString.includes('"code": 403') ||
           errorString.includes('"code":403');
         
-        if (!this.didFallbackToPublicRpc && isRpcError) {
-          // Public Solana RPC doesn't support browser requests (CORS), so don't fallback
-          // Instead, provide a helpful error message
+        if (isRpcError) {
+          // Provide helpful error message
           if (this.rpcUrl.includes('helius-rpc.com')) {
             throw new Error(
               'Helius RPC returned 403. Please ensure your domain is allowlisted in Helius dashboard. ' +
@@ -111,7 +142,7 @@ export class SolanaPaymentClient {
                               'public Solana RPC';
             throw new Error(
               `Solana RPC error (403). Current RPC: ${currentRpc}. ` +
-              `Please ensure NEXT_PUBLIC_SOLANA_RPC_URL is set with a QuickNode RPC URL in Railway and redeploy. ` +
+              `Please ensure SOLANA_RPC_URL is set with a QuickNode RPC URL in Railway. ` +
               `QuickNode URL format: https://YOUR-ENDPOINT.solana-mainnet.quiknode.pro/YOUR-API-KEY/`
             );
           }
@@ -151,7 +182,7 @@ export class SolanaPaymentClient {
           errorString.includes('"code": 403') ||
           errorString.includes('"code":403');
         
-        if (!this.didFallbackToPublicRpc && isRpcError) {
+        if (isRpcError) {
           // Same error handling as above
           if (this.rpcUrl.includes('helius-rpc.com')) {
             throw new Error(
@@ -164,7 +195,7 @@ export class SolanaPaymentClient {
                               'public Solana RPC';
             throw new Error(
               `Solana RPC error (403). Current RPC: ${currentRpc}. ` +
-              `Please ensure NEXT_PUBLIC_SOLANA_RPC_URL is set with QuickNode URL in Railway and redeploy.`
+              `Please ensure SOLANA_RPC_URL is set with QuickNode URL in Railway.`
             );
           }
         } else {
@@ -195,7 +226,7 @@ export class SolanaPaymentClient {
           errorString.includes('"code": 403') ||
           errorString.includes('"code":403');
         
-        if (!this.didFallbackToPublicRpc && isRpcError) {
+        if (isRpcError) {
           // Same error handling as above
           if (this.rpcUrl.includes('helius-rpc.com')) {
             throw new Error(
@@ -208,7 +239,7 @@ export class SolanaPaymentClient {
                               'public Solana RPC';
             throw new Error(
               `Solana RPC error (403). Current RPC: ${currentRpc}. ` +
-              `Please ensure NEXT_PUBLIC_SOLANA_RPC_URL is set with QuickNode URL in Railway and redeploy.`
+              `Please ensure SOLANA_RPC_URL is set with QuickNode URL in Railway.`
             );
           }
         } else {
