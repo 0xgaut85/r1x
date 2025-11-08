@@ -11,6 +11,7 @@
 - `PLATFORM_FEE_PERCENTAGE` - Platform fee percentage (default: 5, meaning 5%)
 - `FACILITATOR_URL` - PayAI facilitator URL for EVM networks (default: https://facilitator.payai.network)
 - `DAYDREAMS_FACILITATOR_URL` - Daydreams facilitator URL for Solana network (default: https://facilitator.daydreams.systems)
+- `SOLANA_FEE_RECIPIENT_ADDRESS` - Solana address (base58) that receives platform fees on Solana
 - `NETWORK` - Network identifier (set to `base` for Base mainnet, `solana` for Solana)
 - `CDP_API_KEY_ID` - Coinbase Developer Platform API Key ID (required for Base mainnet)
 - `CDP_API_KEY_SECRET` - Coinbase Developer Platform API Key Secret (required for Base mainnet)
@@ -43,6 +44,7 @@
 3. **Configure Wallet Addresses:**
    - Set `MERCHANT_ADDRESS` to your merchant wallet (Base network)
    - Set `FEE_RECIPIENT_ADDRESS` to your fee collection wallet (Base network)
+   - Set `SOLANA_FEE_RECIPIENT_ADDRESS` to your Solana fee collection address (Solana network)
 
 4. **Set AI Agent API Key:**
    - Get your Anthropic API key from [Anthropic Console](https://console.anthropic.com/)
@@ -67,6 +69,7 @@ Create a `.env.local` file with:
 DATABASE_URL="postgresql://..."
 MERCHANT_ADDRESS="0x..."
 FEE_RECIPIENT_ADDRESS="0x..."
+SOLANA_FEE_RECIPIENT_ADDRESS="F..."
 PLATFORM_FEE_PERCENTAGE=5
 NETWORK=base
 ANTHROPIC_API_KEY="sk-ant-..."
@@ -74,6 +77,7 @@ CDP_API_KEY_ID="your-cdp-api-key-id"
 CDP_API_KEY_SECRET="your-cdp-api-key-secret"
 NEXT_PUBLIC_BASE_URL="http://localhost:3000"
 FACILITATOR_URL="https://facilitator.payai.network"
+DAYDREAMS_FACILITATOR_URL="https://facilitator.daydreams.systems"
 ```
 
 Then run:

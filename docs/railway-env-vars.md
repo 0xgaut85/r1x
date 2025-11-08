@@ -28,7 +28,7 @@ DATABASE_URL=postgresql://... # Généré automatiquement par Railway DB
 
 # x402 Payment
 MERCHANT_ADDRESS=0x... # Ton adresse wallet merchant (Base network)
-FEE_RECIPIENT_ADDRESS=0x... # r1x wallet pour recevoir les fees
+FEE_RECIPIENT_ADDRESS=0x... # r1x wallet pour recevoir les fees (Base)
 PLATFORM_FEE_PERCENTAGE=5
 
 # PayAI Facilitator (EVM networks: Base, Polygon, etc.)
@@ -40,6 +40,7 @@ PAYAI_FACILITATOR_ADDRESS=... # Optionnel
 
 # Daydreams Facilitator (Solana network)
 DAYDREAMS_FACILITATOR_URL=https://facilitator.daydreams.systems
+SOLANA_FEE_RECIPIENT_ADDRESS=F... # Adresse Solana (public key base58) pour recevoir les fees
 
 # AI Agent
 ANTHROPIC_API_KEY=sk-ant-... # Anthropic API key
@@ -50,7 +51,7 @@ X402_SERVER_URL=https://ton-x402-url.up.railway.app # URL du service Express Rai
 # NOTE: NEXT_PUBLIC_X402_SERVER_URL no longer needed - client uses Next.js API routes (/api/...)
 
 # Optional
-SERVER_WALLET_PRIVATE_KEY=0x... # Pour transfer fees automatique
+SERVER_WALLET_PRIVATE_KEY=0x... # Pour transfer fees automatique (EVM)
 SYNC_SECRET=... # Secret pour protéger /api/sync/payai
 
 # Third-party APIs (optional - fallback to hardcoded values if not set)
@@ -83,6 +84,10 @@ ANTHROPIC_API_KEY=sk-ant-... # Anthropic API key
 ### MERCHANT_ADDRESS & FEE_RECIPIENT_ADDRESS
 - Adresses wallet sur Base network (commencent par `0x...`)
 - Utilise MetaMask ou ton wallet pour obtenir ces adresses
+
+### SOLANA_FEE_RECIPIENT_ADDRESS
+- Adresse Solana (base58) qui recevra les fees (ex: Phantom → Copy Address)
+- Doit correspondre au destinataire (`to`) dans la preuve de paiement pour /api/x402/solana/fee
 
 ### CDP_API_KEY_ID & CDP_API_KEY_SECRET
 1. Va sur https://portal.cdp.coinbase.com/
