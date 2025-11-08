@@ -2,6 +2,11 @@
  * Solana payment verification middleware for Express server
  * Verifies Solana USDC payments via Daydreams facilitator
  * Runs before PayAI middleware - if Solana payment verified, skips PayAI
+ * 
+ * NOTE: Daydreams facilitator API structure needs verification:
+ * - Endpoints: /verify, /settle (confirmed to exist)
+ * - Request/response formats: Need to verify from official Daydreams docs
+ * - Current implementation uses minimal payload structure - may need adjustment
  */
 
 import { Request, Response, NextFunction } from 'express';
@@ -11,6 +16,7 @@ const SOLANA_FEE_RECIPIENT_ADDRESS = process.env.SOLANA_FEE_RECIPIENT_ADDRESS;
 
 /**
  * Verify Solana payment via Daydreams facilitator
+ * TODO: Verify exact request/response format from Daydreams facilitator API docs
  */
 async function verifySolanaPayment(proof: {
   signature: string;
@@ -21,6 +27,8 @@ async function verifySolanaPayment(proof: {
   token?: string;
 }, verifyPayload: any): Promise<{ verified: boolean; error?: string }> {
   try {
+    // TODO: Verify correct payload structure from Daydreams facilitator API docs
+    // Current implementation uses payload from client or constructs minimal payload
     const verifyRes = await fetch(`${DAYDREAMS_FACILITATOR_URL}/verify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -41,9 +49,12 @@ async function verifySolanaPayment(proof: {
 
 /**
  * Settle Solana payment via Daydreams facilitator
+ * TODO: Verify exact request/response format from Daydreams facilitator API docs
  */
 async function settleSolanaPayment(settlePayload: any): Promise<{ settled: boolean; settlementHash?: string; error?: string }> {
   try {
+    // TODO: Verify correct payload structure from Daydreams facilitator API docs
+    // Current implementation uses payload from client or constructs minimal payload
     const settleRes = await fetch(`${DAYDREAMS_FACILITATOR_URL}/settle`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -56,6 +67,7 @@ async function settleSolanaPayment(settlePayload: any): Promise<{ settled: boole
     }
 
     const settleJson = await settleRes.json().catch(() => ({}));
+    // TODO: Verify correct response field name for settlement hash
     const settlementHash = settleJson.settlementHash || settleJson.transactionHash || settleJson.hash || null;
     return { settled: true, settlementHash: settlementHash || undefined };
   } catch (error: any) {
