@@ -9,7 +9,8 @@
 
 import { PaymentProof } from './types/x402';
 
-const DAYDREAMS_FACILITATOR_URL = process.env.DAYDREAMS_FACILITATOR_URL || 'https://facilitator.daydreams.systems';
+// Railway env vars only - no hardcoded fallbacks
+const DAYDREAMS_FACILITATOR_URL = process.env.DAYDREAMS_FACILITATOR_URL;
 const SOLANA_CHAIN_ID = 0; // Solana uses chainId 0
 const USDC_SOLANA_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'; // USDC on Solana
 
@@ -54,6 +55,14 @@ export async function verifyPaymentWithDaydreams(
   proof: PaymentProof & { signature?: string }, // Solana proof includes signature
   merchantAddress: string
 ): Promise<DaydreamsVerifyResponse> {
+  if (!DAYDREAMS_FACILITATOR_URL) {
+    console.error('[Daydreams] DAYDREAMS_FACILITATOR_URL not set in Railway');
+    return {
+      verified: false,
+      reason: 'DAYDREAMS_FACILITATOR_URL not configured',
+    };
+  }
+  
   // Validate that payer and merchant are different
   if (proof.from.toLowerCase() === merchantAddress.toLowerCase()) {
     console.error('[Daydreams] Invalid payment: payer and merchant are the same address');
@@ -179,6 +188,14 @@ export async function settlePaymentWithDaydreams(
   proof: PaymentProof & { signature?: string },
   merchantAddress: string
 ): Promise<DaydreamsSettleResponse> {
+  if (!DAYDREAMS_FACILITATOR_URL) {
+    console.error('[Daydreams] DAYDREAMS_FACILITATOR_URL not set in Railway');
+    return {
+      settled: false,
+      reason: 'DAYDREAMS_FACILITATOR_URL not configured',
+    };
+  }
+  
   const signature = proof.signature || proof.transactionHash;
   if (!signature) {
     return {

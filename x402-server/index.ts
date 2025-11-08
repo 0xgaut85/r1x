@@ -23,15 +23,17 @@ config();
 // Facilitator configuration - PayAI for EVM networks (Base)
 // Note: x402-express middleware currently supports PayAI facilitator for EVM networks
 // Solana/Daydreams support will be added separately
-const facilitatorUrl = (process.env.FACILITATOR_URL || 'https://facilitator.payai.network') as Resource;
-const daydreamsFacilitatorUrl = process.env.DAYDREAMS_FACILITATOR_URL || 'https://facilitator.daydreams.systems';
-const payTo = process.env.MERCHANT_ADDRESS as `0x${string}`;
+// Railway env vars only - no hardcoded fallbacks
+const facilitatorUrl = process.env.FACILITATOR_URL as Resource | undefined;
+const daydreamsFacilitatorUrl = process.env.DAYDREAMS_FACILITATOR_URL;
+const payTo = process.env.MERCHANT_ADDRESS as `0x${string}` | undefined;
 const cdpApiKeyId = process.env.CDP_API_KEY_ID;
 const cdpApiKeySecret = process.env.CDP_API_KEY_SECRET;
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 4021;
 
 if (!facilitatorUrl || !payTo) {
-  console.error('Missing required environment variables: FACILITATOR_URL or MERCHANT_ADDRESS');
+  console.error('Missing required Railway environment variables: FACILITATOR_URL or MERCHANT_ADDRESS');
+  console.error('Please set these in Railway environment variables');
   process.exit(1);
 }
 
@@ -46,10 +48,9 @@ app.set('trust proxy', true);
 
 // CORS configuration - Allow requests from Next.js frontend
 // IMPORTANT: CORS must be configured BEFORE paymentMiddleware to handle OPTIONS preflight
+// Railway env vars only - no hardcoded fallbacks
 const allowedOrigins = [
-  process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
+  process.env.NEXT_PUBLIC_BASE_URL,
   'https://www.r1xlabs.com',
   'https://r1xlabs.com',
   'https://api.r1xlabs.com', // Allow API subdomain
@@ -636,6 +637,7 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
         } else {
           console.warn(`[x402-server] PayAI facilitator returned ${response.status}: ${response.statusText}`);
         }
+        } // Close else block
       } catch (payaiError: any) {
         if (payaiError.name === 'AbortError') {
           console.warn('[x402-server] PayAI facilitator request timed out');
@@ -939,8 +941,12 @@ app.post('/api/x402/pay', async (req, res) => {
       // For external services, fee is calculated on base price, not total price
       // For our services, fee is calculated on total price (we receive full amount)
       const priceForFeeCalculation = isExternal ? basePrice : totalPrice;
+      const platformFeePercentageEnv = process.env.PLATFORM_FEE_PERCENTAGE;
       const platformFeePercentage = isExternal
-        ? parseFloat(process.env.PLATFORM_FEE_PERCENTAGE || '5')
+        ? (platformFeePercentageEnv ? parseFloat(platformFeePercentageEnv) : (() => {
+            console.warn('[x402-server] PLATFORM_FEE_PERCENTAGE not set in Railway, defaulting to 5%');
+            return 5;
+          })())
         : 100;
       
       // Wrap in Promise.race with timeout to prevent hanging
@@ -1305,7 +1311,11 @@ function fetchImage(url: string): Promise<Buffer> {
 // Logo endpoint - proxy to Next.js app logo (more reliable)
 app.get('/logo.png', async (req, res) => {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.r1xlabs.com';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    if (!baseUrl) {
+      console.error('[x402-server] NEXT_PUBLIC_BASE_URL not set in Railway');
+      return res.status(500).json({ error: 'NEXT_PUBLIC_BASE_URL not configured' });
+    }
     const logoUrl = `${baseUrl}/tg2.png`;
     
     console.log('[x402-server] Fetching logo from:', logoUrl);
@@ -1323,7 +1333,11 @@ app.get('/logo.png', async (req, res) => {
 // Favicon endpoint - proxy to Next.js app logo
 app.get('/favicon.ico', async (req, res) => {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.r1xlabs.com';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    if (!baseUrl) {
+      console.error('[x402-server] NEXT_PUBLIC_BASE_URL not set in Railway');
+      return res.status(500).end();
+    }
     const logoUrl = `${baseUrl}/tg2.png`;
     
     const buffer = await fetchImage(logoUrl);
@@ -1337,9 +1351,10 @@ app.get('/favicon.ico', async (req, res) => {
 });
 
 // Friendly root with basic metadata so visiting the domain doesn't show "Cannot GET /"
-const serverUrl = process.env.X402_SERVER_URL || 'https://server.r1xlabs.com';
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.r1xlabs.com';
-const logoUrl = `${baseUrl}/tg2.png`; // Use Next.js app logo directly (more reliable)
+// Railway env vars only - no hardcoded fallbacks
+const serverUrl = process.env.X402_SERVER_URL;
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+const logoUrl = baseUrl ? `${baseUrl}/tg2.png` : undefined; // Use Next.js app logo directly (more reliable)
 
 app.get('/', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -1477,8 +1492,13 @@ app.get('/api/discovery/resources', async (req, res) => {
     
     const network = (req.query.network as string) || 'base';
     const chainId = req.query.chainId ? parseInt(req.query.chainId as string) : 8453;
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.r1xlabs.com';
-    const serverUrl = process.env.X402_SERVER_URL || 'https://server.r1xlabs.com';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    const serverUrl = process.env.X402_SERVER_URL;
+    
+    if (!baseUrl || !serverUrl) {
+      console.error('[x402-server] Missing Railway env vars: NEXT_PUBLIC_BASE_URL or X402_SERVER_URL');
+      return res.status(500).json({ error: 'Server configuration incomplete' });
+    }
 
     // Fetch marketplace services
     const dbServices = await prisma.service.findMany({

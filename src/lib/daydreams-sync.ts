@@ -30,6 +30,11 @@ export interface DaydreamsService {
  * We do not rely on an undocumented catalog endpoint.
  */
 export async function fetchDaydreamsServices(): Promise<DaydreamsService[]> {
+  if (!DAYDREAMS_FACILITATOR_URL) {
+    console.warn('[Daydreams] DAYDREAMS_FACILITATOR_URL not set in Railway. Skipping Daydreams sync.');
+    return [];
+  }
+  
   try {
     console.log(`[Daydreams] Checking supported networks/tokens: ${DAYDREAMS_FACILITATOR_URL}/supported`);
 

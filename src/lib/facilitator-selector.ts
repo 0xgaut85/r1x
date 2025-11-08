@@ -33,7 +33,10 @@ export interface FacilitatorConfig {
 export function getFacilitatorConfig(network: Network): FacilitatorConfig {
   // Solana network uses Daydreams facilitator
   if (network === 'solana') {
-    const daydreamsUrl = process.env.DAYDREAMS_FACILITATOR_URL || 'https://facilitator.daydreams.systems';
+    const daydreamsUrl = process.env.DAYDREAMS_FACILITATOR_URL;
+    if (!daydreamsUrl) {
+      throw new Error('DAYDREAMS_FACILITATOR_URL not set in Railway. Required for Solana network.');
+    }
     return {
       type: 'daydreams',
       url: daydreamsUrl,
@@ -42,7 +45,10 @@ export function getFacilitatorConfig(network: Network): FacilitatorConfig {
   }
 
   // EVM networks (Base, Polygon, etc.) use PayAI facilitator
-  const payaiUrl = process.env.FACILITATOR_URL || 'https://facilitator.payai.network';
+  const payaiUrl = process.env.FACILITATOR_URL;
+  if (!payaiUrl) {
+    throw new Error('FACILITATOR_URL not set in Railway. Required for EVM networks.');
+  }
   const config: FacilitatorConfig = {
     type: 'payai',
     url: payaiUrl,

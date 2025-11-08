@@ -7,12 +7,27 @@ import { mainnet, base, solana } from '@reown/appkit/networks';
 import { QueryClient } from '@tanstack/react-query';
 import { getSolanaRpcUrl } from '@/lib/solana-rpc-config';
 
-const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
+// Railway env vars are case-sensitive; use exact case
+// During build time, env vars may not be available - handle gracefully
+const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string | undefined;
 
-// Use NEXT_PUBLIC_BASE_URL or default to production URL
+if (!projectId) {
+  // During build time, this is expected - don't throw, just log
+  if (typeof window === 'undefined') {
+    // Server-side (build time) - log warning but don't throw
+    console.warn('[WalletProvider] NEXT_PUBLIC_PROJECT_ID not set. This is expected during build. Set it in Railway for runtime.');
+  } else {
+    // Client-side runtime - throw error
+    console.error('[WalletProvider] NEXT_PUBLIC_PROJECT_ID not set in Railway. Reown AppKit will not work.');
+    throw new Error('NEXT_PUBLIC_PROJECT_ID is required. Set it in Railway (case-sensitive).');
+  }
+}
+
+// Use NEXT_PUBLIC_BASE_URL from Railway - no hardcoded fallback
+// During build time, use placeholder if not set
 const baseUrl = typeof window !== 'undefined' 
   ? window.location.origin 
-  : process.env.NEXT_PUBLIC_BASE_URL || 'https://r1xlabs.com';
+  : (process.env.NEXT_PUBLIC_BASE_URL || 'https://placeholder.build');
 
 const metadata = {
   name: 'r1x',
@@ -65,7 +80,7 @@ if (solanaNetwork) {
 
 const wagmiAdapter = new WagmiAdapter({
   networks: networks as any,
-  projectId,
+  projectId: projectId || 'placeholder', // Use placeholder during build if not set
 });
 
 const solanaAdapter = new SolanaAdapter();
@@ -80,11 +95,11 @@ const queryClient = new QueryClient({
   },
 });
 
-// Initialize AppKit
+// Initialize AppKit - use placeholder projectId during build if needed
 export const modal = createAppKit({
   adapters: [wagmiAdapter, solanaAdapter],
   networks: networks as any,
-  projectId,
+  projectId: projectId || 'placeholder', // Use placeholder during build if not set
   metadata,
   features: {
     analytics: true,

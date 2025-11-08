@@ -99,6 +99,12 @@ function generateNonce(): string {
 
 /**
  * Verify payment with PayAI facilitator
+ * 
+ * @deprecated This function is deprecated. The x402-express middleware handles verification automatically.
+ * This function is kept for reference/documentation purposes only.
+ * 
+ * Note: x402-express paymentMiddleware automatically verifies payments via PayAI facilitator.
+ * Custom verification is not needed when using the middleware.
  */
 export async function verifyPaymentWithFacilitator(
   proof: PaymentProof,
@@ -246,6 +252,12 @@ export async function verifyPaymentWithFacilitator(
 
 /**
  * Settle payment with PayAI facilitator
+ * 
+ * @deprecated This function is deprecated. The x402-express middleware handles settlement automatically.
+ * This function is kept for reference/documentation purposes only.
+ * 
+ * Note: x402-express paymentMiddleware automatically settles payments via PayAI facilitator.
+ * Custom settlement is not needed when using the middleware.
  */
 export async function settlePaymentWithFacilitator(
   proof: PaymentProof,
