@@ -64,7 +64,11 @@ if (!solanaNetwork.rpcUrl || (!solanaNetwork.rpcUrl.startsWith('http://') && !so
   solanaNetwork.rpcUrl = 'https://api.mainnet-beta.solana.com';
 }
 
-const networks = [base, mainnet, solanaNetwork];
+// Build networks array - only include Solana if we have RPC URL
+const networks: any[] = [base, mainnet];
+if (solanaNetwork) {
+  networks.push(solanaNetwork);
+}
 
 const wagmiAdapter = new WagmiAdapter({
   networks: networks as any,
@@ -98,19 +102,22 @@ export const modal = createAppKit({
   },
 });
 
-// Update RPC URL after initialization (Reown might re-read it on connection)
+// Client-side: Fetch RPC URL from Railway and add Solana network if not already added
 if (typeof window !== 'undefined') {
-  getSolanaRpcUrl()
-    .then((rpcUrl) => {
-      // Validate fetched RPC URL
-      if (!rpcUrl || (!rpcUrl.startsWith('http://') && !rpcUrl.startsWith('https://'))) {
-        console.error('[WalletProvider] Invalid RPC URL fetched:', rpcUrl);
-        return; // Don't update if invalid
-      }
-      
-      if (rpcUrl !== solanaRpcUrl) {
+  // If Solana network wasn't added initially, fetch RPC URL and add it
+  if (!solanaNetwork) {
+    getSolanaRpcUrl()
+      .then((rpcUrl) => {
+        if (!rpcUrl || !rpcUrl.startsWith('http')) {
+          console.error('[WalletProvider] Invalid RPC URL from Railway:', rpcUrl);
+          return;
+        }
+        
         solanaRpcUrl = rpcUrl.trim();
-        solanaNetwork.rpcUrl = solanaRpcUrl;
+        const newSolanaNetwork = { 
+          ...solana, 
+          rpcUrl: solanaRpcUrl
+        } as any;
         
         const maskedRpc = rpcUrl.includes('quiknode')
           ? rpcUrl.replace(/\/[^\/]+\/[^\/]+\//, '/***/***/')
@@ -118,18 +125,45 @@ if (typeof window !== 'undefined') {
           ? rpcUrl.replace(/api-key=[^&]+/, 'api-key=***')
           : rpcUrl;
         
-        console.log('[WalletProvider] ✅ Solana RPC updated from Railway:', maskedRpc);
+        console.log('[WalletProvider] ✅ Solana RPC fetched from Railway:', maskedRpc);
         
-        // Try to update AppKit networks (may not work, but worth trying)
+        // Try to update AppKit networks
         if ((modal as any).setNetworks) {
-          (modal as any).setNetworks([base, mainnet, solanaNetwork]);
+          (modal as any).setNetworks([base, mainnet, newSolanaNetwork]);
         }
-      }
-    })
-    .catch((error) => {
-      console.error('[WalletProvider] Failed to fetch Solana RPC URL:', error);
-      // Keep using fallback RPC URL
-    });
+      })
+      .catch((error) => {
+        console.error('[WalletProvider] Failed to fetch Solana RPC URL from Railway:', error);
+        console.error('[WalletProvider] Make sure SOLANA_RPC_URL is set in Railway');
+      });
+  } else {
+    // Solana network already added, but verify RPC URL is correct
+    getSolanaRpcUrl()
+      .then((rpcUrl) => {
+        if (rpcUrl && rpcUrl.startsWith('http') && rpcUrl !== solanaRpcUrl) {
+          solanaRpcUrl = rpcUrl.trim();
+          if (solanaNetwork) {
+            solanaNetwork.rpcUrl = solanaRpcUrl;
+            
+            const maskedRpc = rpcUrl.includes('quiknode')
+              ? rpcUrl.replace(/\/[^\/]+\/[^\/]+\//, '/***/***/')
+              : rpcUrl.includes('api-key')
+              ? rpcUrl.replace(/api-key=[^&]+/, 'api-key=***')
+              : rpcUrl;
+            
+            console.log('[WalletProvider] ✅ Solana RPC updated from Railway:', maskedRpc);
+            
+            // Try to update AppKit networks
+            if ((modal as any).setNetworks) {
+              (modal as any).setNetworks([base, mainnet, solanaNetwork]);
+            }
+          }
+        }
+      })
+      .catch((error) => {
+        console.error('[WalletProvider] Failed to fetch Solana RPC URL from Railway:', error);
+      });
+  }
 }
 
 // Export wagmiConfig directly from adapter (per Reown docs)
