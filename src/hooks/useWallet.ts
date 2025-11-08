@@ -4,6 +4,7 @@ import { useAccount, useWalletClient, usePublicClient, useChainId } from 'wagmi'
 import { parseUnits, formatUnits } from 'viem';
 import { base } from 'viem/chains';
 import { parseAbi } from 'viem';
+import { useEffect, useState } from 'react';
 
 const USDC_BASE_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as `0x${string}`;
 const USDC_DECIMALS = 6;
@@ -14,11 +15,92 @@ const USDC_ABI = parseAbi([
   'function balanceOf(address account) view returns (uint256)',
 ]);
 
+/**
+ * Detect Solana wallet connection (Phantom or Solflare)
+ */
+function useSolanaWallet() {
+  const [solanaAddress, setSolanaAddress] = useState<string | null>(null);
+  const [isSolanaConnected, setIsSolanaConnected] = useState(false);
+
+  useEffect(() => {
+    const checkSolanaWallet = () => {
+      if (typeof window === 'undefined') return;
+
+      const phantom = (window as any).phantom?.solana;
+      const solflare = (window as any).solflare;
+
+      const wallet = phantom || solflare;
+      
+      if (wallet && wallet.isConnected && wallet.publicKey) {
+        setSolanaAddress(wallet.publicKey.toString());
+        setIsSolanaConnected(true);
+      } else {
+        setSolanaAddress(null);
+        setIsSolanaConnected(false);
+      }
+    };
+
+    // Check immediately
+    checkSolanaWallet();
+
+    // Listen for wallet events
+    const handleAccountsChanged = () => {
+      checkSolanaWallet();
+    };
+
+    const phantom = (window as any).phantom?.solana;
+    const solflare = (window as any).solflare;
+
+    if (phantom) {
+      phantom.on('accountChanged', handleAccountsChanged);
+      phantom.on('connect', handleAccountsChanged);
+      phantom.on('disconnect', () => {
+        setSolanaAddress(null);
+        setIsSolanaConnected(false);
+      });
+    }
+
+    if (solflare) {
+      solflare.on('accountChanged', handleAccountsChanged);
+      solflare.on('connect', handleAccountsChanged);
+      solflare.on('disconnect', () => {
+        setSolanaAddress(null);
+        setIsSolanaConnected(false);
+      });
+    }
+
+    // Poll for wallet connection (in case events don't fire)
+    const interval = setInterval(checkSolanaWallet, 1000);
+
+    return () => {
+      clearInterval(interval);
+      if (phantom) {
+        phantom.off('accountChanged', handleAccountsChanged);
+        phantom.off('connect', handleAccountsChanged);
+        phantom.off('disconnect');
+      }
+      if (solflare) {
+        solflare.off('accountChanged', handleAccountsChanged);
+        solflare.off('connect', handleAccountsChanged);
+        solflare.off('disconnect');
+      }
+    };
+  }, []);
+
+  return { solanaAddress, isSolanaConnected };
+}
+
 export function useWallet() {
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
   const chainId = useChainId();
+  const { solanaAddress, isSolanaConnected } = useSolanaWallet();
+
+  // Combined connection status: EVM OR Solana
+  const isAnyWalletConnected = isConnected || isSolanaConnected;
+  // Prefer Solana address if connected, otherwise EVM address
+  const displayAddress = solanaAddress || address;
 
   const transferUSDC = async (to: string, amount: string): Promise<string> => {
     if (!walletClient || !address) {
@@ -75,12 +157,17 @@ export function useWallet() {
   };
 
   return {
-    address,
-    isConnected,
+    address: displayAddress, // Return Solana address if connected, otherwise EVM address
+    isConnected: isAnyWalletConnected, // Return true if either EVM or Solana is connected
     chainId,
     walletClient, // Expose walletClient for x402-fetch
     transferUSDC,
     getUSDCBalance,
     formatUSDC,
+    // Expose Solana-specific info
+    solanaAddress,
+    isSolanaConnected,
+    isEVMConnected: isConnected,
+    evmAddress: address,
   };
 }

@@ -66,7 +66,30 @@ export class SolanaPaymentClient {
       const toTokenAccount = await getAssociatedTokenAddress(mintPubkey, toPubkey);
 
       // Check if sender has sufficient balance
-      const fromAccount = await getAccount(this.connection, fromTokenAccount);
+      // Wrap in try-catch to handle RPC errors (e.g., Helius 403)
+      let fromAccount;
+      try {
+        fromAccount = await getAccount(this.connection, fromTokenAccount);
+      } catch (rpcError: any) {
+        const errorMsg = rpcError?.message || '';
+        // If RPC error (403, invalid endpoint, etc.), fallback to public RPC
+        if (
+          !this.didFallbackToPublicRpc &&
+          (errorMsg.includes('403') ||
+            errorMsg.toLowerCase().includes('access forbidden') ||
+            errorMsg.includes('Endpoint URL must start'))
+        ) {
+          console.warn('[SolanaPaymentClient] RPC error detected, falling back to public RPC:', errorMsg);
+          this.didFallbackToPublicRpc = true;
+          this.rpcUrl = 'https://api.mainnet-beta.solana.com';
+          this.connection = new Connection(this.rpcUrl, 'confirmed');
+          // Retry with public RPC
+          fromAccount = await getAccount(this.connection, fromTokenAccount);
+        } else {
+          throw rpcError;
+        }
+      }
+
       if (fromAccount.amount < amountAtomic) {
         throw new Error(`Insufficient USDC balance. Required: ${amount}, Available: ${Number(fromAccount.amount) / 1e6}`);
       }
@@ -83,19 +106,63 @@ export class SolanaPaymentClient {
       // Create transaction
       const transaction = new Transaction().add(transferInstruction);
 
-      // Get recent blockhash
-      const { blockhash } = await this.connection.getLatestBlockhash('confirmed');
+      // Get recent blockhash (may also fail with RPC errors)
+      let blockhash;
+      try {
+        const blockhashResult = await this.connection.getLatestBlockhash('confirmed');
+        blockhash = blockhashResult.blockhash;
+      } catch (blockhashError: any) {
+        const errorMsg = blockhashError?.message || '';
+        if (
+          !this.didFallbackToPublicRpc &&
+          (errorMsg.includes('403') ||
+            errorMsg.toLowerCase().includes('access forbidden') ||
+            errorMsg.includes('Endpoint URL must start'))
+        ) {
+          console.warn('[SolanaPaymentClient] Blockhash RPC error, falling back to public RPC');
+          this.didFallbackToPublicRpc = true;
+          this.rpcUrl = 'https://api.mainnet-beta.solana.com';
+          this.connection = new Connection(this.rpcUrl, 'confirmed');
+          const blockhashResult = await this.connection.getLatestBlockhash('confirmed');
+          blockhash = blockhashResult.blockhash;
+        } else {
+          throw blockhashError;
+        }
+      }
+
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = fromPubkey;
 
       // Sign transaction with wallet
       const signedTransaction = await this.wallet.signTransaction(transaction);
 
-      // Send transaction
-      const signature = await this.connection.sendRawTransaction(signedTransaction.serialize(), {
-        skipPreflight: false,
-        maxRetries: 3,
-      });
+      // Send transaction (may also fail with RPC errors)
+      let signature;
+      try {
+        signature = await this.connection.sendRawTransaction(signedTransaction.serialize(), {
+          skipPreflight: false,
+          maxRetries: 3,
+        });
+      } catch (sendError: any) {
+        const errorMsg = sendError?.message || '';
+        if (
+          !this.didFallbackToPublicRpc &&
+          (errorMsg.includes('403') ||
+            errorMsg.toLowerCase().includes('access forbidden') ||
+            errorMsg.includes('Endpoint URL must start'))
+        ) {
+          console.warn('[SolanaPaymentClient] Send RPC error, falling back to public RPC');
+          this.didFallbackToPublicRpc = true;
+          this.rpcUrl = 'https://api.mainnet-beta.solana.com';
+          this.connection = new Connection(this.rpcUrl, 'confirmed');
+          signature = await this.connection.sendRawTransaction(signedTransaction.serialize(), {
+            skipPreflight: false,
+            maxRetries: 3,
+          });
+        } else {
+          throw sendError;
+        }
+      }
 
       // Wait for confirmation
       await this.connection.confirmTransaction(signature, 'confirmed');
@@ -113,28 +180,6 @@ export class SolanaPaymentClient {
       };
     } catch (error: any) {
       console.error('[SolanaPaymentClient] Transfer error:', error);
-      // Fallback: some RPC providers (e.g., Helius) may block browser requests (403).
-      // Retry once via public Solana RPC to complete the user flow.
-      const message: string = error?.message || '';
-      const needsFallback =
-        !this.didFallbackToPublicRpc &&
-        (message.includes('403') ||
-          message.toLowerCase().includes('access forbidden') ||
-          message.includes('Endpoint URL must start'));
-
-      if (needsFallback) {
-        try {
-          this.didFallbackToPublicRpc = true;
-          this.rpcUrl = 'https://api.mainnet-beta.solana.com';
-          this.connection = new Connection(this.rpcUrl, 'confirmed');
-          // Retry once
-          return await this.transferUSDC(params);
-        } catch (retryErr: any) {
-          console.error('[SolanaPaymentClient] Fallback transfer error:', retryErr);
-          throw new Error(`Solana USDC transfer failed: ${retryErr?.message || 'Unknown error'}`);
-        }
-      }
-
       throw new Error(`Solana USDC transfer failed: ${error.message}`);
     }
   }
