@@ -1,0 +1,101 @@
+/**
+ * User Panel API Routes
+ * 
+ * Endpoints for user-facing panel data
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { formatUnits } from 'viem';
+
+const USDC_DECIMALS = 6;
+
+/**
+ * GET /api/panel/user/stats
+ * Get user statistics (balance, transaction count, etc.)
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const userAddress = searchParams.get('address');
+
+    if (!userAddress) {
+      return NextResponse.json(
+        { error: 'User address is required' },
+        { status: 400 }
+      );
+    }
+
+    // Get user's transactions (include pending, verified, and settled)
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        from: userAddress.toLowerCase(),
+        status: { in: ['pending', 'verified', 'settled'] },
+      },
+      include: {
+        service: true,
+      },
+      orderBy: { timestamp: 'desc' },
+    });
+
+    // Calculate total spent (only from verified and settled transactions)
+    const verifiedTransactions = transactions.filter(tx => ['verified', 'settled'].includes(tx.status));
+    const totalSpent = verifiedTransactions.reduce((sum, tx) => {
+      return sum + BigInt(tx.amount);
+    }, BigInt(0));
+
+    // Get unique services used (from verified and settled transactions)
+    const uniqueServices = new Set(verifiedTransactions.map(tx => tx.serviceId));
+    
+    // Get recent transactions (last 10)
+    const recentTransactions = transactions
+      .filter(tx => tx.service) // Filter out transactions with missing services
+      .slice(0, 10)
+      .map(tx => {
+      const hex = (h?: string | null) => (h && /^0x[0-9a-fA-F]{64}$/.test(h) ? h : null);
+      const bestHash = hex(tx.settlementHash) || hex(tx.transactionHash);
+      const explorerUrl = bestHash ? `https://basescan.org/tx/${bestHash}` : null;
+      
+      return {
+        id: tx.id,
+        transactionHash: tx.transactionHash,
+        settlementHash: tx.settlementHash,
+          serviceName: tx.service!.name,
+          serviceId: tx.service!.serviceId,
+        amount: formatUnits(BigInt(tx.amount), USDC_DECIMALS),
+        fee: formatUnits(BigInt(tx.feeAmount), USDC_DECIMALS),
+        status: tx.status,
+        timestamp: tx.timestamp,
+        blockNumber: tx.blockNumber,
+        blockExplorerUrl: explorerUrl,
+      };
+    });
+
+    // Get transactions by category (from verified and settled transactions)
+    const transactionsByCategory = verifiedTransactions
+      .filter(tx => tx.service) // Filter out transactions with missing services
+      .reduce((acc, tx) => {
+        const category = tx.service!.category || 'Other';
+      acc[category] = (acc[category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return NextResponse.json({
+      address: userAddress,
+      stats: {
+        totalTransactions: transactions.length,
+        totalSpent: formatUnits(totalSpent, USDC_DECIMALS),
+        uniqueServicesUsed: uniqueServices.size,
+        transactionsByCategory,
+      },
+      recentTransactions,
+    });
+  } catch (error: any) {
+    console.error('User panel API error:', error);
+    return NextResponse.json(
+      { error: error.message || 'An error occurred' },
+      { status: 500 }
+    );
+  }
+}
+

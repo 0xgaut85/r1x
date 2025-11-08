@@ -1,0 +1,1535 @@
+/**
+ * PayAI x402 Express Server
+ * 
+ * Server suivant exactement la documentation PayAI
+ * https://docs.payai.network/x402/servers/typescript/express
+ */
+
+import { config } from 'dotenv';
+import express from 'express';
+import cors from 'cors';
+import { paymentMiddleware, Resource } from 'x402-express';
+import Anthropic from '@anthropic-ai/sdk';
+import { parsePaymentProof, saveTransaction } from './save-transaction';
+import { x402scanResponseTransformer } from './x402scan-response';
+import fs from 'fs';
+import path from 'path';
+import https from 'https';
+import { URL } from 'url';
+
+config();
+
+// Facilitator configuration - PayAI for EVM networks (Base)
+// Note: x402-express middleware currently supports PayAI facilitator for EVM networks
+// Solana/Daydreams support will be added separately
+const facilitatorUrl = (process.env.FACILITATOR_URL || 'https://facilitator.payai.network') as Resource;
+const daydreamsFacilitatorUrl = process.env.DAYDREAMS_FACILITATOR_URL || 'https://facilitator.daydreams.systems';
+const payTo = process.env.MERCHANT_ADDRESS as `0x${string}`;
+const cdpApiKeyId = process.env.CDP_API_KEY_ID;
+const cdpApiKeySecret = process.env.CDP_API_KEY_SECRET;
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 4021;
+
+if (!facilitatorUrl || !payTo) {
+  console.error('Missing required environment variables: FACILITATOR_URL or MERCHANT_ADDRESS');
+  process.exit(1);
+}
+
+console.log('[x402-server] Facilitator configuration:');
+console.log(`  PayAI (EVM): ${facilitatorUrl}`);
+console.log(`  Daydreams (Solana): ${daydreamsFacilitatorUrl}`);
+
+const app = express();
+
+// Behind Railway/Proxies: trust proxy so protocol/host are correct for x402 resource
+app.set('trust proxy', true);
+
+// CORS configuration - Allow requests from Next.js frontend
+// IMPORTANT: CORS must be configured BEFORE paymentMiddleware to handle OPTIONS preflight
+const allowedOrigins = [
+  process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'https://www.r1xlabs.com',
+  'https://r1xlabs.com',
+  'https://api.r1xlabs.com', // Allow API subdomain
+].filter(Boolean);
+
+// Handle CORS with explicit OPTIONS support
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+    
+  // More permissive CORS for production - allow any r1xlabs.com subdomain
+  const isAllowed = !origin || 
+      allowedOrigins.includes(origin) || 
+      origin.includes('railway.app') ||
+    origin.includes('r1xlabs.com') ||
+    origin.includes('vercel.app') ||
+    (process.env.NODE_ENV === 'production' && origin && origin.includes('r1xlabs.com'));
+  
+  if (isAllowed && origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    console.log('[CORS] Allowing origin:', origin);
+  } else if (isAllowed) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    } else {
+    console.warn('[CORS] Blocked origin:', origin);
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  const requestedHeaders = (req.headers['access-control-request-headers'] as string | undefined);
+  if (requestedHeaders && requestedHeaders.length > 0) {
+    res.setHeader('Access-Control-Allow-Headers', requestedHeaders);
+  } else {
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Authorization, Accept, Access-Control-Expose-Headers'
+    );
+  }
+  // Expose x402 headers so browser clients can read them
+  res.setHeader(
+    'Access-Control-Expose-Headers',
+    'X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Content-Type'
+  );
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
+  
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    console.log('[CORS] Handling OPTIONS preflight request from:', origin);
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
+app.use(express.json());
+
+// DISABLED: x402scan transformer - following PayAI docs exactly
+// app.use(x402scanResponseTransformer);
+
+// Explicit OPTIONS handlers for all protected routes (must be before paymentMiddleware)
+app.options('/api/r1x-agent/chat', (req, res) => {
+  const origin = req.headers.origin;
+  if (origin && (origin.includes('r1xlabs.com') || origin.includes('railway.app') || origin.includes('vercel.app'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  const requestedHeaders = (req.headers['access-control-request-headers'] as string | undefined);
+  res.setHeader('Access-Control-Allow-Headers', requestedHeaders || 'Content-Type, X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Authorization, Accept, Access-Control-Expose-Headers');
+  res.setHeader('Access-Control-Expose-Headers', 'X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Content-Type');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  console.log('[CORS] OPTIONS /api/r1x-agent/chat from:', origin);
+  res.status(200).end();
+});
+
+app.options('/api/x402/pay', (req, res) => {
+  const origin = req.headers.origin;
+  if (origin && (origin.includes('r1xlabs.com') || origin.includes('railway.app') || origin.includes('vercel.app'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  const requestedHeaders = (req.headers['access-control-request-headers'] as string | undefined);
+  res.setHeader('Access-Control-Allow-Headers', requestedHeaders || 'Content-Type, X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Authorization, Accept, Access-Control-Expose-Headers');
+  res.setHeader('Access-Control-Expose-Headers', 'X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Content-Type');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  console.log('[CORS] OPTIONS /api/x402/pay from:', origin);
+  res.status(200).end();
+});
+
+app.options('/api/r1x-agent/plan', (req, res) => {
+  const origin = req.headers.origin;
+  if (origin && (origin.includes('r1xlabs.com') || origin.includes('railway.app') || origin.includes('vercel.app'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  const requestedHeaders = (req.headers['access-control-request-headers'] as string | undefined);
+  res.setHeader('Access-Control-Allow-Headers', requestedHeaders || 'Content-Type, X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Authorization, Accept, Access-Control-Expose-Headers');
+  res.setHeader('Access-Control-Expose-Headers', 'X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Content-Type');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  console.log('[CORS] OPTIONS /api/r1x-agent/plan from:', origin);
+  res.status(200).end();
+});
+
+app.options('/api/fee', (req, res) => {
+  const origin = req.headers.origin;
+  if (origin && (origin.includes('r1xlabs.com') || origin.includes('railway.app') || origin.includes('vercel.app'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  const requestedHeaders = (req.headers['access-control-request-headers'] as string | undefined);
+  res.setHeader('Access-Control-Allow-Headers', requestedHeaders || 'Content-Type, X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Authorization, Accept, Access-Control-Expose-Headers');
+  res.setHeader('Access-Control-Expose-Headers', 'X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Content-Type');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  console.log('[CORS] OPTIONS /api/fee from:', origin);
+  res.status(200).end();
+});
+
+// Explicit OPTIONS for marketplace fee collection
+app.options('/api/fees/collect', (req, res) => {
+  const origin = req.headers.origin;
+  if (origin && (origin.includes('r1xlabs.com') || origin.includes('railway.app') || origin.includes('vercel.app'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  const requestedHeaders = (req.headers['access-control-request-headers'] as string | undefined);
+  res.setHeader('Access-Control-Allow-Headers', requestedHeaders || 'Content-Type, X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Authorization, Accept, Access-Control-Expose-Headers');
+  res.setHeader('Access-Control-Expose-Headers', 'X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Content-Type');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  console.log('[CORS] OPTIONS /api/fees/collect from:', origin);
+  res.status(200).end();
+});
+
+const facilitatorConfig: Parameters<typeof paymentMiddleware>[2] = {
+  url: facilitatorUrl,
+};
+
+if (cdpApiKeyId && cdpApiKeySecret) {
+  facilitatorConfig.createAuthHeaders = async () => {
+    const basicAuth = Buffer.from(`${cdpApiKeyId}:${cdpApiKeySecret}`).toString('base64');
+    const header = { Authorization: `Basic ${basicAuth}` };
+    return {
+      verify: header,
+      settle: header,
+      supported: header,
+      list: header,
+    };
+  };
+  console.log('[x402-server] Facilitator authentication configured with CDP API keys');
+} else {
+  console.warn('[x402-server] CDP_API_KEY_ID or CDP_API_KEY_SECRET missing - facilitator requests may fail on Base mainnet');
+}
+
+app.use(paymentMiddleware(
+  payTo,
+  {
+    'POST /api/r1x-agent/chat': {
+      price: '$0.25',
+      network: 'base',
+    },
+    'POST /api/x402/pay': {
+      price: '$0.01',
+      network: 'base',
+    },
+    'POST /api/r1x-agent/plan': {
+      price: '$0.01',
+      network: 'base',
+    },
+    'POST /api/fees/collect': {
+      price: '$1.00', // Max fee (validates actual amount in handler: 0.05 for free services, 5% for paid up to $20)
+      network: 'base',
+    },
+    'POST /api/fee': {
+      price: '$0.05', // Fixed $0.05 USDC fee for agent service calls
+      network: 'base',
+    },
+  },
+  facilitatorConfig,
+));
+
+// Transform 402 responses to x402scan-compliant format (must be AFTER paymentMiddleware)
+app.use(x402scanResponseTransformer);
+
+// Error handler - only catches errors that middleware doesn't handle
+// Payment middleware handles settlement errors internally, but may throw if something goes wrong
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  // If headers already sent, middleware already handled the error
+  if (res.headersSent) {
+    console.error('[Express] Error after response sent (likely async settlement error):', err.message);
+    return;
+  }
+  
+  // Log the error for debugging
+  console.error('[Express] Unhandled error:', {
+    message: err.message,
+    stack: err.stack,
+    path: req.path,
+  });
+  
+  // Only send response if middleware didn't already handle it
+  if (!res.headersSent) {
+    res.status(500).json({
+      error: 'Internal server error',
+      message: process.env.NODE_ENV === 'development' ? err.message : 'An error occurred',
+    });
+  }
+});
+
+// Routes réelles - le middleware vérifie le paiement avant d'arriver ici
+app.post('/api/r1x-agent/chat', async (req, res) => {
+  // Le paiement est déjà vérifié par le middleware PayAI
+  // Si le middleware a déjà envoyé une réponse (erreur de settlement, etc.), on ne fait rien
+  if (res.headersSent) {
+    console.log('[x402-server] Response already sent by middleware, skipping route handler');
+    return;
+  }
+
+  // On peut maintenant traiter la requête chat
+  try {
+    console.log('[x402-server] Chat request received:', {
+      hasMessages: !!req.body.messages,
+      messageCount: req.body.messages?.length || 0,
+      hasPayment: !!req.headers['x-payment'],
+    });
+
+    // Parse and save transaction to database (non-blocking, with timeout)
+    const xPaymentHeader = typeof req.headers['x-payment'] === 'string' ? req.headers['x-payment'] as string : undefined;
+    if (xPaymentHeader) {
+      console.log('[x402-server] X-Payment header present, saving transaction...');
+      const paymentProof = parsePaymentProof(xPaymentHeader);
+      
+      if (paymentProof) {
+        // Try to get settlement hash from res.locals (if PayAI middleware exposes it)
+        // The PayAI middleware might expose settlement info in res.locals
+        const settlementHash = (res.locals as any)?.settlement?.transactionHash || 
+                               (res.locals as any)?.settlementHash ||
+                               (req.headers['x-settlement-hash'] as string | undefined);
+        
+        // Create proof object with settlement hash if available
+        const proofWithSettlement: any = {
+          ...paymentProof,
+          settlementHash: settlementHash || undefined,
+        };
+        
+        if (settlementHash) {
+          console.log('[x402-server] Found settlement hash:', settlementHash.substring(0, 20) + '...');
+        } else {
+          console.log('[x402-server] No settlement hash available yet (settlement may be async)');
+        }
+        
+        // Save transaction asynchronously (don't wait for it)
+        // Wrap in Promise.race with timeout to prevent hanging
+        Promise.race([
+          saveTransaction({
+            proof: proofWithSettlement,
+            serviceId: 'r1x-agent-chat',
+            serviceName: 'r1x Agent Chat',
+            price: '0.25', // $0.25 per message
+            // Count full ticket price as platform fees for first-party service
+            feePercentage: 100,
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Transaction save timeout (5s)')), 5000)
+          ),
+        ]).catch((error) => {
+          console.error('[x402-server] Failed to save transaction (non-blocking):', {
+            message: error?.message || String(error),
+            // Don't log full stack in production
+            stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined,
+          });
+        });
+      } else {
+        console.warn('[x402-server] Could not parse payment proof from X-Payment header');
+      }
+    }
+
+    // Import Anthropic depuis le chemin relatif ou via API
+    const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+    if (!ANTHROPIC_API_KEY) {
+      console.error('[x402-server] ANTHROPIC_API_KEY not configured');
+      if (!res.headersSent) {
+      return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
+      }
+      return;
+    }
+
+    if (!req.body.messages || !Array.isArray(req.body.messages)) {
+      console.error('[x402-server] Invalid messages format:', req.body);
+      if (!res.headersSent) {
+      return res.status(400).json({ error: 'Invalid messages format' });
+      }
+      return;
+    }
+
+    // Fetch real marketplace services to include in system prompt
+    // Fetch from database AND PayAI facilitator (same as marketplace API)
+    let availableServices: any[] = [];
+    try {
+      const { PrismaClient } = await import('@prisma/client');
+      const prisma = new PrismaClient();
+      const { formatUnits } = await import('viem');
+      
+      // Fetch database services
+      const dbServices = await prisma.service.findMany({
+        where: {
+          available: true,
+          network: 'base',
+          chainId: 8453,
+        },
+        select: {
+          serviceId: true,
+          name: true,
+          description: true,
+          category: true,
+          priceDisplay: true,
+          endpoint: true,
+          merchant: true,
+          tokenSymbol: true,
+          metadata: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 50, // Limit to 50 most recent services
+      });
+      
+      // Format database services with full details
+      const dbServicesFormatted = dbServices.map(s => {
+        // Extract website URL from metadata if available
+        // Type-check metadata as object before accessing properties
+        const metadata = s.metadata && typeof s.metadata === 'object' && !Array.isArray(s.metadata) 
+          ? s.metadata as Record<string, any>
+          : null;
+        
+        const websiteUrl = metadata?.website || 
+                          metadata?.websiteUrl ||
+                          metadata?.homepage ||
+                          metadata?.url ||
+                          undefined;
+        
+        return {
+          id: s.serviceId,
+          name: s.name,
+          description: s.description || '',
+          category: s.category || 'Other',
+          price: s.priceDisplay,
+          endpoint: s.endpoint || null,
+          merchant: s.merchant || null,
+          tokenSymbol: s.tokenSymbol || 'USDC',
+          websiteUrl: websiteUrl,
+        };
+      });
+      
+      // Fetch PayAI services in real-time (same as marketplace API)
+      let payaiServices: any[] = [];
+      try {
+        const { parseUnits } = await import('viem');
+        const facilitatorUrl = process.env.FACILITATOR_URL || 'https://facilitator.payai.network';
+        const url = `${facilitatorUrl}/list`;
+        
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'User-Agent': 'r1x-agent/1.0',
+        };
+        
+        const cdpApiKeyId = process.env.CDP_API_KEY_ID;
+        const cdpApiKeySecret = process.env.CDP_API_KEY_SECRET;
+        
+        if (cdpApiKeyId && cdpApiKeySecret) {
+          const auth = Buffer.from(`${cdpApiKeyId}:${cdpApiKeySecret}`).toString('base64');
+          headers['Authorization'] = `Basic ${auth}`;
+        }
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers,
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const data = await response.json() as any;
+          let services: any[] = [];
+          
+          // Handle different response formats from PayAI facilitator
+          if (Array.isArray(data)) {
+            services = data;
+          } else if (data?.resources && Array.isArray(data.resources)) {
+            services = data.resources;
+          } else if (data?.list && Array.isArray(data.list)) {
+            services = data.list;
+          } else if (data?.data && Array.isArray(data.data)) {
+            services = data.data;
+          } else if (typeof data === 'object' && !Array.isArray(data)) {
+            // Try to find any array property
+            for (const key in data) {
+              if (Array.isArray(data[key])) {
+                services = data[key];
+                break;
+              }
+            }
+            // If still no array found, wrap single object
+            if (services.length === 0 && Object.keys(data).length > 0) {
+              services = [data];
+            }
+          }
+          
+          if (services.length > 0) {
+            // Normalize PayAI services (same logic as marketplace)
+            payaiServices = services.map((s: any) => {
+              const accepts = Array.isArray(s.accepts) ? s.accepts : [];
+              const firstAccept = accepts.length > 0 ? accepts[0] : {};
+              const metadata = s.metadata || {};
+              
+              // Extract name
+              const name = metadata.name || 
+                          metadata.title ||
+                          metadata.label ||
+                          firstAccept.description ||
+                          firstAccept.name ||
+                          s.name ||
+                          s.serviceName ||
+                          s.title ||
+                          (s.resource ? (() => {
+                            try {
+                              const url = new URL(s.resource);
+                              return url.pathname.split('/').filter(Boolean).pop() || 'Service';
+                            } catch {
+                              return s.resource.split('/').filter(Boolean).pop() || 'Service';
+                            }
+                          })() : 'Unnamed Service');
+              
+              // Extract description
+              const description = firstAccept.description ||
+                                 metadata.description ||
+                                 metadata.desc ||
+                                 s.description ||
+                                 s.desc ||
+                                 '';
+              
+              // Extract token symbol
+              let tokenSymbol = firstAccept.extra?.name ||
+                              metadata.tokenSymbol ||
+                              s.tokenSymbol ||
+                              s.token_symbol ||
+                              '';
+              
+              if (!tokenSymbol) {
+                const token = firstAccept.asset || s.token || '';
+                if (token.toLowerCase() === '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'.toLowerCase() ||
+                    token.toLowerCase() === '0x036CbD53842c5426634e7929541eC2318f3dCF7e'.toLowerCase()) {
+                  tokenSymbol = 'USDC';
+                } else {
+                  tokenSymbol = 'USDC'; // Default
+                }
+              }
+              
+              // Extract price
+              let priceValue = firstAccept.amount ||
+                              firstAccept.value ||
+                              firstAccept.price ||
+                              firstAccept.maxAmountRequired ||
+                              s.price ||
+                              metadata.price ||
+                              '0';
+              
+              // Ensure price is in wei format
+              let priceWei = priceValue;
+              if (typeof priceValue === 'string') {
+                if (priceValue.startsWith('$')) {
+                  const decimals = tokenSymbol === 'USDC' ? 6 : 18;
+                  try {
+                    const numericPrice = priceValue.replace('$', '').trim();
+                    priceWei = parseUnits(numericPrice, decimals).toString();
+                  } catch {
+                    priceWei = '0';
+                  }
+                } else if (priceValue.includes('.')) {
+                  const decimals = tokenSymbol === 'USDC' ? 6 : 18;
+                  try {
+                    priceWei = parseUnits(priceValue, decimals).toString();
+                  } catch {
+                    priceWei = '0';
+                  }
+                }
+              } else if (typeof priceValue === 'number') {
+                const decimals = tokenSymbol === 'USDC' ? 6 : 18;
+                priceWei = parseUnits(priceValue.toString(), decimals).toString();
+              }
+              
+              // Default to 0.001 USDC if no price
+              if (!priceWei || priceWei === '0') {
+                const decimals = tokenSymbol === 'USDC' ? 6 : 18;
+                priceWei = parseUnits('0.001', decimals).toString();
+              }
+              
+              // Format price display
+              const decimals = tokenSymbol === 'USDC' ? 6 : 18;
+              const basePrice = formatUnits(BigInt(priceWei), decimals);
+              const priceWithFee = (parseFloat(basePrice) * 1.05).toFixed(6); // 5% platform fee
+              
+              // Extract endpoint
+              const endpoint = s.resource ||
+                              firstAccept.resource ||
+                              s.endpoint ||
+                              s.apiEndpoint ||
+                              null;
+              
+              // Extract service ID
+              const serviceId = s.id ||
+                              s.resourceId ||
+                              (s.resource ? 
+                                s.resource.replace(/[^a-z0-9-]/gi, '-').substring(0, 100) :
+                                `payai-${Date.now()}-${Math.random().toString(36).substring(7)}`
+                              );
+              
+              return {
+                id: serviceId,
+                name: name,
+                description: description,
+                category: extractCategory(name, description) || 'Other',
+                price: priceWithFee, // Price with fee
+                endpoint: endpoint,
+                merchant: firstAccept.payTo || s.merchant || null,
+                tokenSymbol: tokenSymbol,
+                websiteUrl: s.websiteUrl || metadata.website || metadata.websiteUrl || null,
+              };
+            });
+            
+            console.log(`[x402-server] Fetched ${payaiServices.length} services from PayAI facilitator`);
+          } else {
+            console.warn('[x402-server] No services found in PayAI facilitator response');
+          }
+        } else {
+          console.warn(`[x402-server] PayAI facilitator returned ${response.status}: ${response.statusText}`);
+        }
+      } catch (payaiError: any) {
+        if (payaiError.name === 'AbortError') {
+          console.warn('[x402-server] PayAI facilitator request timed out');
+        } else {
+          console.error('[x402-server] Error fetching PayAI services for system prompt:', payaiError?.message || payaiError);
+        }
+        // Continue with database services only
+      }
+      
+      // Combine services (database first, then PayAI)
+      // Remove duplicates by ID
+      const servicesMap = new Map<string, any>();
+      dbServicesFormatted.forEach(s => servicesMap.set(s.id, s));
+      payaiServices.forEach(s => {
+        if (!servicesMap.has(s.id)) {
+          servicesMap.set(s.id, s);
+        }
+      });
+      
+      availableServices = Array.from(servicesMap.values()).slice(0, 50);
+      
+      await prisma.$disconnect();
+      console.log(`[x402-server] Loaded ${availableServices.length} services for system prompt (${dbServicesFormatted.length} from DB, ${payaiServices.length} from PayAI)`);
+    } catch (error) {
+      console.error('[x402-server] Error fetching services for system prompt:', error);
+      // Continue without services - Claude will still work
+    }
+
+    // Appel direct à Anthropic API
+    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    
+    // Build services list for system prompt with detailed information
+    const servicesList = availableServices.length > 0
+      ? `\n\nAvailable Marketplace Services (use these when users ask about services):\n${availableServices.map((s, i) => {
+          const parts = [
+            `${i + 1}. **${s.name}**`,
+            `ID: ${s.id} (use this exact ID for [PURCHASE:${s.id}])`,
+            `Category: ${s.category}`,
+            `Price: ${s.price} USDC`,
+            s.description ? `Description: ${s.description}` : '',
+            s.endpoint ? `Endpoint: ${s.endpoint} (purchasable)` : '⚠️ No direct purchase endpoint (check marketplace for details)',
+            s.merchant ? `Merchant: ${s.merchant.substring(0, 10)}...${s.merchant.substring(s.merchant.length - 8)}` : '',
+            s.tokenSymbol ? `Token: ${s.tokenSymbol}` : '',
+            s.websiteUrl ? `Website: ${s.websiteUrl}` : '',
+          ].filter(Boolean);
+          return parts.join('\n   ');
+        }).join('\n\n')}`
+      : '\n\nNote: No marketplace services are currently available. When users ask about services, let them know the marketplace is being populated.';
+
+    // System prompt to make Claude act as r1x Agent (grounded to live features only)
+    const systemPrompt = `You are r1x Agent, an AI assistant for r1x Labs. Speak concisely, factually, and ONLY about live, documented features. Never invent features, integrations, or code. If unsure, say you don't know and suggest checking the marketplace or docs.
+
+About r1x:
+- r1x enables autonomous machine-to-machine transactions on Base (chainId 8453)
+- r1x uses the x402 HTTP payments protocol (HTTP 402) with USDC on Base
+- PayAI facilitator verifies payments and settles on-chain
+
+LIVE TODAY (allowed to mention and use):
+- Marketplace browsing (from "Available Marketplace Services" list below)
+- x402 USDC payments on Base via PayAI facilitator
+- r1x Agent Chat (paid chat), user panel (/user-panel), platform panel (/platform-panel)
+- Basescan links for on-chain payments (use settlement hashes only)
+
+OUT OF SCOPE / DO NOT CLAIM UNLESS IN THE SERVICE LIST:
+- NFTs/tokens/mints, staking, bridging, airdrops, multi-chain features
+- Any third-party integrations not in the service list
+- Any undocumented APIs or endpoints
+
+Interaction and Safety:
+- Factual, skimmable answers. No code unless explicitly asked.
+- If the user asks for something not in the service list, respond that it is not available yet.
+- For external services that require specific inputs (e.g., agent name), ask for missing fields instead of guessing.
+- When describing payments: “USDC on Base via x402; you approve in wallet; settlement posted to Basescan.”
+
+Response constraints:
+- Do NOT suggest features, prices, or endpoints beyond what’s in the list.
+- Do NOT produce example credentials, API keys, or fabricated endpoints.
+- If you cite an explorer link, ONLY use the settlement hash from the payment receipt.
+
+Always respond as r1x Agent with expertise in r1x and x402. Be helpful, accurate, grounded to the list and docs.
+
+IMPORTANT - Service References and Purchase Instructions:
+- When users ask about services or want to purchase something, ONLY mention services from the "Available Marketplace Services" list below
+- Do NOT make up, invent, or hallucinate services that are not in the list
+- Do NOT mention NFTs, tokens, minting, or bridging unless a service in the list explicitly provides that functionality
+- If a user asks for a service that doesn't exist in the list, politely inform them that it's not currently available and suggest checking the marketplace for updates
+- Always use the exact service names, prices, descriptions, categories, and endpoints from the list below
+- Study each service carefully - read the description, category, and endpoint to understand what it actually does
+- If a service has no endpoint listed, it cannot be purchased directly - inform the user they need to check the marketplace
+
+Purchase Flow:
+- When a user wants to purchase a service, first confirm which service they want
+- BEFORE triggering purchase, check if the service requires parameters by examining its x402 schema (outputSchema.input from the 402 response)
+- If the service requires specific parameters (bodyFields, queryParams, or headerFields that are required and have no defaults), explain to the user EXACTLY what parameters are needed based on the merchant's schema:
+  * List each required field name
+  * Include the field's description (if provided by merchant)
+  * Include examples or allowed values (enum/options) if provided by merchant
+  * Explain where each parameter goes (request body, query string, or header)
+- Only trigger purchase AFTER the user has provided all required parameters
+- To trigger a purchase, include this exact format in your response: [PURCHASE:service-id] where service-id is the exact ID from the service list
+- Example: If user confirms purchase of "AI Inference Service" with ID "ai-service-123" and has provided required parameters, respond with: "I'll purchase that for you now. [PURCHASE:ai-service-123]"
+- Only services with an endpoint can be purchased - if a service has "⚠️ No direct purchase endpoint", inform the user they need to visit the marketplace
+
+${servicesList}`;
+
+    const response = await anthropic.messages.create({
+      model: 'claude-3-opus-20240229',
+      max_tokens: 4096,
+      system: systemPrompt,
+      messages: req.body.messages.map((msg: any) => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content,
+      })),
+    });
+
+    const content = response.content[0];
+    if (content.type === 'text') {
+      console.log('[x402-server] Chat response sent successfully');
+      if (!res.headersSent) {
+      res.json({ message: content.text });
+      }
+    } else {
+      console.error('[x402-server] Unexpected response format:', content);
+      if (!res.headersSent) {
+      res.status(500).json({ error: 'Unexpected response format' });
+      }
+    }
+  } catch (error: any) {
+    console.error('[x402-server] Chat error:', error);
+    // Ne pas envoyer de réponse si le middleware l'a déjà fait
+    if (!res.headersSent) {
+    res.status(500).json({ 
+      error: error.message || 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    });
+    }
+  }
+});
+
+app.post('/api/x402/pay', async (req, res) => {
+  // Le paiement est déjà vérifié par le middleware PayAI
+  // Si le middleware a déjà envoyé une réponse (erreur de settlement, etc.), on ne fait rien
+  if (res.headersSent) {
+    console.log('[x402-server] Response already sent by middleware, skipping route handler');
+    return;
+  }
+
+  // Parse and save transaction to database (non-blocking, with timeout)
+  const xPaymentHeader = typeof req.headers['x-payment'] === 'string' ? req.headers['x-payment'] as string : undefined;
+  if (xPaymentHeader) {
+    console.log('[x402-server] Payment verified, saving transaction...');
+    const paymentProof = parsePaymentProof(xPaymentHeader);
+    
+    if (paymentProof) {
+      // Try to get settlement hash from res.locals (if PayAI middleware exposes it)
+      const settlementHash = (res.locals as any)?.settlement?.transactionHash || 
+                             (res.locals as any)?.settlementHash ||
+                             (req.headers['x-settlement-hash'] as string | undefined);
+      
+      // Create proof object with settlement hash if available
+      const proofWithSettlement: any = {
+        ...paymentProof,
+        settlementHash: settlementHash || undefined,
+      };
+      
+      if (settlementHash) {
+        console.log('[x402-server] Found settlement hash:', settlementHash.substring(0, 20) + '...');
+      } else {
+        console.log('[x402-server] No settlement hash available yet (settlement may be async)');
+      }
+      
+      const serviceId = req.body.serviceId || 'unknown-service';
+      const serviceName = req.body.serviceName || 'Unknown Service';
+      const totalPrice = req.body.price || '0.01'; // Total price paid (includes fee for external services)
+      const basePrice = req.body.basePrice || totalPrice; // Base price before fee (for external services)
+      const isExternal = req.body.isExternal === true;
+      
+      // For external services, fee is calculated on base price, not total price
+      // For our services, fee is calculated on total price (we receive full amount)
+      const priceForFeeCalculation = isExternal ? basePrice : totalPrice;
+      const platformFeePercentage = isExternal
+        ? parseFloat(process.env.PLATFORM_FEE_PERCENTAGE || '5')
+        : 100;
+      
+      // Wrap in Promise.race with timeout to prevent hanging
+      Promise.race([
+        saveTransaction({
+          proof: proofWithSettlement,
+          serviceId,
+          serviceName,
+          price: priceForFeeCalculation, // Use base price for external, total for our services
+          // Count full ticket price as fees for first-party services
+          feePercentage: platformFeePercentage,
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Transaction save timeout (5s)')), 5000)
+        ),
+      ]).catch((error) => {
+        console.error('[x402-server] Failed to save transaction (non-blocking):', {
+          message: error?.message || String(error),
+          stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined,
+        });
+      });
+    }
+  }
+
+  // On peut maintenant donner accès au service
+  console.log('[x402-server] Payment verified, granting access:', {
+    serviceId: req.body.serviceId,
+    hasPayment: !!req.headers['x-payment'],
+  });
+  
+  if (!res.headersSent) {
+  res.json({ 
+    success: true,
+    message: 'Payment verified, service access granted',
+    data: req.body,
+  });
+  }
+});
+
+// Fee collection endpoint - x402 payment to our platform address
+app.post('/api/fees/collect', async (req, res) => {
+  // Payment is already verified by PayAI middleware
+  if (res.headersSent) {
+    console.log('[x402-server] Response already sent by middleware, skipping fee handler');
+    return;
+  }
+
+  try {
+    const { feeAmount } = req.body; // Fee amount in USDC (decimal string, e.g., "0.05")
+    
+    if (!feeAmount || isNaN(parseFloat(feeAmount))) {
+      if (!res.headersSent) {
+        return res.status(400).json({ error: 'Invalid feeAmount. Must be a valid number.' });
+      }
+      return;
+    }
+
+    // Parse and save transaction to database (non-blocking)
+    const xPaymentHeader = typeof req.headers['x-payment'] === 'string' ? req.headers['x-payment'] as string : undefined;
+    if (xPaymentHeader) {
+      console.log('[x402-server] Fee payment verified, saving transaction...');
+      const paymentProof = parsePaymentProof(xPaymentHeader);
+      
+      if (paymentProof) {
+        // Validate that paid amount matches requested fee
+        const paidAmountUSDC = parseFloat((BigInt(paymentProof.amount) / BigInt(10 ** 6)).toString());
+        const requestedFee = parseFloat(feeAmount);
+        
+        // Validate fee payment: user pays up to $1.00 (middleware max), but we validate against requested fee
+        // For free services: requestedFee = 0.05, user should pay 0.05 (but middleware allows up to 1.00)
+        // For paid services: requestedFee = 5% of price (capped at 1.00), user should pay requestedFee
+        const maxAllowedFee = 1.00; // Middleware max
+        const tolerance = 0.001; // Small tolerance for rounding
+        
+        if (paidAmountUSDC > maxAllowedFee + tolerance) {
+          console.warn('[x402-server] Fee amount exceeds max allowed:', {
+            requested: requestedFee,
+            paid: paidAmountUSDC,
+            maxAllowed: maxAllowedFee,
+          });
+        } else if (paidAmountUSDC < requestedFee - tolerance) {
+          // User paid less than requested - this is an error
+          console.warn('[x402-server] Fee amount less than requested:', {
+            requested: requestedFee,
+            paid: paidAmountUSDC,
+          });
+        } else {
+          console.log('[x402-server] Fee payment validated:', {
+            requested: requestedFee,
+            paid: paidAmountUSDC,
+          });
+        }
+
+        // Save fee transaction (100% goes to platform)
+        Promise.race([
+          saveTransaction({
+            proof: paymentProof,
+            serviceId: 'platform-fee',
+            serviceName: 'Platform Fee',
+            price: feeAmount,
+            feePercentage: 100, // 100% fee (all goes to platform)
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Transaction save timeout (5s)')), 5000)
+          ),
+        ]).catch((error) => {
+          console.error('[x402-server] Failed to save fee transaction (non-blocking):', {
+            message: error?.message || String(error),
+          });
+        });
+      }
+    }
+
+    if (!res.headersSent) {
+      res.json({
+        success: true,
+        message: 'Fee payment verified',
+        feeAmount: feeAmount,
+      });
+    }
+  } catch (error: any) {
+    console.error('[x402-server] Fee collection error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: error.message || 'Internal server error',
+      });
+    }
+  }
+});
+
+// Fixed $0.05 USDC agent fee endpoint - first transaction before service calls
+app.post('/api/fee', async (req, res) => {
+  // Payment is already verified by PayAI middleware
+  if (res.headersSent) {
+    console.log('[x402-server] Response already sent by middleware, skipping fee handler');
+    return;
+  }
+
+  try {
+    // Parse and save transaction to database (non-blocking)
+    const xPaymentHeader = typeof req.headers['x-payment'] === 'string' ? req.headers['x-payment'] as string : undefined;
+    if (xPaymentHeader) {
+      console.log('[x402-server] Agent fee payment verified, saving transaction...');
+      const paymentProof = parsePaymentProof(xPaymentHeader);
+      
+      if (paymentProof) {
+        // Validate that paid amount is exactly $0.05 USDC
+        const paidAmountUSDC = parseFloat((BigInt(paymentProof.amount) / BigInt(10 ** 6)).toString());
+        const expectedFee = 0.05;
+        const tolerance = 0.001; // Small tolerance for rounding
+        
+        if (Math.abs(paidAmountUSDC - expectedFee) > tolerance) {
+          console.warn('[x402-server] Agent fee amount mismatch:', {
+            expected: expectedFee,
+            paid: paidAmountUSDC,
+          });
+        } else {
+          console.log('[x402-server] Agent fee payment validated:', {
+            expected: expectedFee,
+            paid: paidAmountUSDC,
+          });
+        }
+
+        // Save transaction (non-blocking)
+        Promise.race([
+          saveTransaction({
+            proof: paymentProof,
+            serviceId: 'r1x-agent-fee',
+            serviceName: 'r1x Agent Service Fee',
+            price: '0.05',
+            feePercentage: 100, // 100% of payment is platform fee
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Transaction save timeout (5s)')), 5000)
+          ),
+        ]).catch((error) => {
+          console.error('[x402-server] Failed to save agent fee transaction (non-blocking):', error?.message);
+        });
+      }
+    }
+
+    // Return success - payment verified by middleware
+    if (!res.headersSent) {
+      res.json({
+        success: true,
+        message: 'Agent fee payment verified',
+        feeAmount: '0.05',
+      });
+    }
+  } catch (error: any) {
+    console.error('[x402-server] Agent fee error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: error.message || 'Internal server error',
+      });
+    }
+  }
+});
+
+app.post('/api/r1x-agent/plan', async (req, res) => {
+  // Le paiement est déjà vérifié par le middleware PayAI
+  if (res.headersSent) {
+    console.log('[x402-server] Response already sent by middleware, skipping route handler');
+    return;
+  }
+
+  try {
+    console.log('[x402-server] Plan request received:', {
+      query: req.body.query,
+      category: req.body.category,
+      budgetMax: req.body.budgetMax,
+    });
+
+    // Parse and save transaction to database (non-blocking)
+    const xPaymentHeader = typeof req.headers['x-payment'] === 'string' ? req.headers['x-payment'] as string : undefined;
+    if (xPaymentHeader) {
+      const paymentProof = parsePaymentProof(xPaymentHeader);
+      if (paymentProof) {
+        Promise.race([
+          saveTransaction({
+            proof: paymentProof,
+            serviceId: 'r1x-agent-plan',
+            serviceName: 'r1x Agent Plan',
+            price: '0.01',
+            // Count full ticket price as platform fees for first-party service
+            feePercentage: 100,
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Transaction save timeout (5s)')), 5000)
+          ),
+        ]).catch((error) => {
+          console.error('[x402-server] Failed to save transaction (non-blocking):', error?.message);
+        });
+      }
+    }
+
+    // Fetch marketplace services from database only
+    // PayAI services are synced to database via /api/sync/payai endpoint (same as marketplace)
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+
+    const query = req.body.query || '';
+    const category = req.body.category;
+    const budgetMax = req.body.budgetMax ? parseFloat(req.body.budgetMax) : undefined;
+    const network = (req.body.network as string) || 'base';
+    const chainId = network === 'base' ? 8453 : 0;
+
+    // Build database query
+    const where: any = {
+      available: true,
+      network,
+      chainId,
+    };
+
+    if (category) {
+      where.category = { equals: category, mode: 'insensitive' };
+    }
+
+    // Fetch from database
+    let dbServices = await prisma.service.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Format database services (includes PayAI services synced via /api/sync/payai)
+    // Same approach as marketplace - all services are in database
+    const allServices = dbServices
+      .filter(service => {
+        const price = parseFloat(service.priceDisplay || '0');
+        return !budgetMax || price <= budgetMax;
+      })
+      .map(service => ({
+        serviceId: service.serviceId,
+        name: service.name,
+        category: service.category || 'Other',
+        price: service.priceDisplay,
+        merchant: service.merchant,
+        network: service.network,
+        chainId: service.chainId,
+        resource: service.endpoint,
+        schemaSummary: {
+          method: 'POST',
+          contentType: 'application/json',
+        },
+      }));
+
+    // Rank: Base network first, then by price
+    const ranked = allServices
+      .filter(s => s.network === 'base' && (!s.chainId || s.chainId === chainId))
+      .sort((a, b) => {
+        const priceA = parseFloat(a.price || '999999');
+        const priceB = parseFloat(b.price || '999999');
+        return priceA - priceB;
+      })
+      .slice(0, 10); // Top 10 proposals
+
+    await prisma.$disconnect();
+
+    if (!res.headersSent) {
+      res.json({
+        proposals: ranked,
+        total: ranked.length,
+        query,
+        category,
+      });
+    }
+  } catch (error: any) {
+    console.error('[x402-server] Plan error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: error.message || 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      });
+    }
+  }
+});
+
+// Helper function to extract category
+function extractCategory(name?: string, description?: string): string {
+  const text = `${name || ''} ${description || ''}`.toLowerCase();
+  
+  if (text.includes('api') || text.includes('claude') || text.includes('gpt') || text.includes('ai inference') || text.includes('llm') || text.includes('chat')) {
+    return 'AI';
+  }
+  if (text.includes('data') || text.includes('feed') || text.includes('stream')) {
+    return 'Data';
+  }
+  if (text.includes('compute') || text.includes('gpu') || text.includes('processing')) {
+    return 'Compute';
+  }
+  if (text.includes('content') || text.includes('digital') || text.includes('asset')) {
+    return 'Content';
+  }
+  if (text.includes('robot') || text.includes('agent') || text.includes('autonomous')) {
+    return 'Robot Services';
+  }
+  if (text.includes('token') || text.includes('mint') || text.includes('nft')) {
+    return 'Mint';
+  }
+  
+  return 'Other';
+}
+
+// Helper function to fetch image via HTTPS
+function fetchImage(url: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const parsedUrl = new URL(url);
+    https.get(parsedUrl, (response) => {
+      if (response.statusCode !== 200) {
+        reject(new Error(`Failed to fetch: ${response.statusCode}`));
+        return;
+      }
+      
+      const chunks: Buffer[] = [];
+      response.on('data', (chunk) => chunks.push(chunk));
+      response.on('end', () => resolve(Buffer.concat(chunks)));
+      response.on('error', reject);
+    }).on('error', reject);
+  });
+}
+
+// Logo endpoint - proxy to Next.js app logo (more reliable)
+app.get('/logo.png', async (req, res) => {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.r1xlabs.com';
+    const logoUrl = `${baseUrl}/tg2.png`;
+    
+    console.log('[x402-server] Fetching logo from:', logoUrl);
+    
+    const buffer = await fetchImage(logoUrl);
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.send(buffer);
+  } catch (error: any) {
+    console.error('[x402-server] Error serving logo:', error);
+    res.status(500).json({ error: 'Failed to serve logo' });
+  }
+});
+
+// Favicon endpoint - proxy to Next.js app logo
+app.get('/favicon.ico', async (req, res) => {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.r1xlabs.com';
+    const logoUrl = `${baseUrl}/tg2.png`;
+    
+    const buffer = await fetchImage(logoUrl);
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.send(buffer);
+  } catch (error: any) {
+    console.error('[x402-server] Error serving favicon:', error);
+    res.status(500).end();
+  }
+});
+
+// Friendly root with basic metadata so visiting the domain doesn't show "Cannot GET /"
+const serverUrl = process.env.X402_SERVER_URL || 'https://server.r1xlabs.com';
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.r1xlabs.com';
+const logoUrl = `${baseUrl}/tg2.png`; // Use Next.js app logo directly (more reliable)
+
+app.get('/', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.status(200).send(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>r1x Labs — x402 Server</title>
+    <meta name="description" content="From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy." />
+    <link rel="icon" type="image/png" href="${logoUrl}" />
+    <link rel="shortcut icon" type="image/png" href="${logoUrl}" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="r1x Labs — x402 Server" />
+    <meta property="og:description" content="From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy." />
+    <meta property="og:url" content="${serverUrl}/" />
+    <meta property="og:image" content="${logoUrl}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="r1x Labs — x402 Server" />
+    <meta name="twitter:description" content="From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy." />
+    <meta name="twitter:image" content="${logoUrl}" />
+    <style>
+      body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; line-height: 1.5; padding: 2rem; color: #111827; background: #F7F7F7; }
+      .card { max-width: 720px; margin: 0 auto; background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
+      .logo { width: 64px; height: 64px; border-radius: 12px; object-fit: cover; display: block; margin-bottom: 16px; }
+      h1 { margin: 0 0 12px 0; font-size: 24px; font-weight: 600; color: #111827; }
+      p { margin: 0 0 24px 0; color: #6B7280; }
+      .links { display: flex; gap: 16px; flex-wrap: wrap; }
+      .links a { display: inline-block; color: #2563EB; text-decoration: none; font-weight: 500; }
+      .links a:hover { text-decoration: underline; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <img class="logo" src="${logoUrl}" alt="r1x Labs" onerror="this.style.display='none'" />
+      <h1>r1x Labs — x402 Server</h1>
+      <p>From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.</p>
+      <div class="links">
+        <a href="/health">Health</a>
+        <a href="/api/discovery/resources">Discovery</a>
+        <a href="/api/panel/public/services">Services</a>
+      </div>
+    </div>
+  </body>
+</html>`);
+});
+
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    server: 'x402-express',
+    facilitator: facilitatorUrl,
+    merchant: payTo,
+  });
+});
+
+// Public API endpoints for x402scan
+app.get('/api/panel/public/services', async (req, res) => {
+  try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+    
+    const category = req.query.category as string | undefined;
+    const network = (req.query.network as string) || 'base';
+    const chainId = req.query.chainId ? parseInt(req.query.chainId as string) : 8453;
+
+    const where: any = {
+      available: true,
+      network,
+      chainId,
+    };
+
+    if (category) {
+      where.category = { equals: category, mode: 'insensitive' };
+    }
+
+    const services = await prisma.service.findMany({
+      where,
+      include: {
+        _count: {
+          select: {
+            transactions: {
+              where: {
+                status: { in: ['verified', 'settled'] },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const { formatUnits } = await import('viem');
+    const USDC_DECIMALS = 6;
+
+    const publicServices = services.map(service => ({
+      id: service.serviceId,
+      name: service.name,
+      description: service.description,
+      category: service.category || 'Other',
+      merchant: service.merchant,
+      network: service.network,
+      chainId: service.chainId,
+      token: service.token,
+      tokenSymbol: service.tokenSymbol,
+      price: service.priceDisplay,
+      priceWei: service.price,
+      endpoint: service.endpoint,
+      totalPurchases: service._count.transactions,
+      createdAt: service.createdAt,
+      updatedAt: service.updatedAt,
+    }));
+
+    await prisma.$disconnect();
+    
+    res.json({
+      services: publicServices,
+      total: publicServices.length,
+      network,
+      chainId,
+    });
+  } catch (error: any) {
+    console.error('[x402-server] Public services API error:', error);
+    res.status(500).json({
+      error: error.message || 'An error occurred',
+    });
+  }
+});
+
+app.get('/api/discovery/resources', async (req, res) => {
+  try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+    
+    const network = (req.query.network as string) || 'base';
+    const chainId = req.query.chainId ? parseInt(req.query.chainId as string) : 8453;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.r1xlabs.com';
+    const serverUrl = process.env.X402_SERVER_URL || 'https://server.r1xlabs.com';
+
+    // Fetch marketplace services
+    const dbServices = await prisma.service.findMany({
+      where: {
+        available: true,
+        network,
+        chainId,
+      },
+      include: {
+        _count: {
+          select: {
+            transactions: {
+              where: {
+                status: { in: ['verified', 'settled'] },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Format marketplace services
+    const marketplaceResources = dbServices.map(service => ({
+      id: service.serviceId,
+      name: service.name,
+      description: service.description,
+      category: service.category || 'Other',
+      resource: service.endpoint || `${serverUrl}/api/x402/pay`,
+      method: 'POST',
+      price: service.priceDisplay,
+      priceWei: service.price,
+      merchant: service.merchant,
+      network: service.network,
+      chainId: service.chainId,
+      token: service.token,
+      tokenSymbol: service.tokenSymbol,
+      totalPurchases: service._count.transactions,
+    }));
+
+    // Add r1x Agent endpoints
+    const agentResources = [
+      {
+        id: 'r1x-agent-chat',
+        name: 'r1x Agent Chat',
+        description: 'AI Agent chat service powered by Claude 3 Opus. Specialized in r1x infrastructure, x402 protocol, and machine economy.',
+        category: 'AI',
+        resource: `${serverUrl}/api/r1x-agent/chat`,
+        resourceAlt: `${baseUrl}/api/r1x-agent/chat`,
+        method: 'POST',
+        price: '0.25',
+        priceWei: '250000',
+        merchant: payTo,
+        network: 'base',
+        chainId: 8453,
+        token: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+        tokenSymbol: 'USDC',
+      },
+      {
+        id: 'r1x-agent-plan',
+        name: 'r1x Agent Plan',
+        description: 'AI agent service discovery and planning. Get ranked proposals for marketplace services based on query and category.',
+        category: 'Discovery',
+        resource: `${serverUrl}/api/r1x-agent/plan`,
+        resourceAlt: `${baseUrl}/api/r1x-agent/plan`,
+        method: 'POST',
+        price: '0.01',
+        priceWei: '10000',
+        merchant: payTo,
+        network: 'base',
+        chainId: 8453,
+        token: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+        tokenSymbol: 'USDC',
+      },
+    ];
+
+    const allResources = [...agentResources, ...marketplaceResources];
+
+    await prisma.$disconnect();
+    
+    res.json({
+      resources: allResources,
+      total: allResources.length,
+      agentResources: agentResources.length,
+      marketplaceResources: marketplaceResources.length,
+      network,
+      chainId,
+      version: '1.0',
+    });
+  } catch (error: any) {
+    console.error('[x402-server] Discovery API error:', error);
+    res.status(500).json({
+      error: error.message || 'An error occurred',
+    });
+  }
+});
+
+app.get('/api/panel/public/transactions', async (req, res) => {
+  try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+    
+    const limit = parseInt((req.query.limit as string) || '100');
+    const offset = parseInt((req.query.offset as string) || '0');
+    const serviceId = req.query.serviceId as string | undefined;
+    const status = req.query.status as string | undefined;
+
+    const where: any = {
+      status: { in: ['verified', 'settled'] },
+    };
+
+    if (serviceId) {
+      const service = await prisma.service.findUnique({
+        where: { serviceId },
+      });
+      if (service) {
+        where.serviceId = service.id;
+      } else {
+        await prisma.$disconnect();
+        return res.json({
+          transactions: [],
+          pagination: { total: 0, limit, offset, hasMore: false },
+        });
+      }
+    }
+
+    if (status) {
+      where.status = status;
+    }
+
+    const { formatUnits } = await import('viem');
+    const USDC_DECIMALS = 6;
+
+    const [transactions, total] = await Promise.all([
+      prisma.transaction.findMany({
+        where,
+        include: {
+          service: {
+            select: {
+              serviceId: true,
+              name: true,
+              category: true,
+            },
+          },
+        },
+        orderBy: { timestamp: 'desc' },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.transaction.count({ where }),
+    ]);
+
+    const publicTransactions = transactions.map(tx => {
+      // For x402 transactions, settlementHash is the actual on-chain transaction hash
+      // transactionHash is the authorization hash (not on-chain)
+      const explorerHash = tx.settlementHash || tx.transactionHash;
+      const explorerUrl = explorerHash 
+        ? `https://basescan.org/tx/${explorerHash}`
+        : null;
+      
+      return {
+        transactionHash: tx.transactionHash,
+        settlementHash: tx.settlementHash,
+        blockNumber: tx.blockNumber,
+        service: {
+          id: tx.service.serviceId,
+          name: tx.service.name,
+          category: tx.service.category,
+        },
+        amount: formatUnits(BigInt(tx.amount), USDC_DECIMALS),
+        fee: formatUnits(BigInt(tx.feeAmount), USDC_DECIMALS),
+        status: tx.status,
+        timestamp: tx.timestamp,
+        blockExplorerUrl: explorerUrl,
+      };
+    });
+
+    await prisma.$disconnect();
+
+    res.json({
+      transactions: publicTransactions,
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + limit < total,
+      },
+    });
+  } catch (error: any) {
+    console.error('[x402-server] Public transactions API error:', error);
+    res.status(500).json({
+      error: error.message || 'An error occurred',
+    });
+  }
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server listening at http://0.0.0.0:${PORT}`);
+  console.log(`Facilitator: ${facilitatorUrl}`);
+  console.log(`Merchant: ${payTo}`);
+  
+  // Check if DATABASE_URL is configured for transaction saving
+  if (process.env.DATABASE_URL) {
+    console.log('[x402-server] Transaction saving enabled (DATABASE_URL configured)');
+  } else {
+    console.warn('[x402-server] Transaction saving disabled (DATABASE_URL not set)');
+  }
+});
+
+// Graceful shutdown - close database connections
+process.on('SIGTERM', async () => {
+  console.log('[x402-server] SIGTERM received, closing connections...');
+  const { closeConnection } = await import('./save-transaction.js');
+  await closeConnection();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('[x402-server] SIGINT received, closing connections...');
+  const { closeConnection } = await import('./save-transaction.js');
+  await closeConnection();
+  process.exit(0);
+});

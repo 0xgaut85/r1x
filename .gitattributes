@@ -1,0 +1,4 @@
+scripts/*.sh text eol=lf
+x402-server/scripts/*.sh text eol=lf
+
+

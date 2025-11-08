@@ -1,0 +1,2 @@
+# Railway will use Node.js 20 from nixpacks.toml
+# This file is just for reference - Railway detects Node.js version from nixpacks.toml

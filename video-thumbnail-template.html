@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>r1x Video Thumbnail Template - 1920x1080</title>
+    <style>
+        @font-face {
+            font-family: 'BaselGrotesk-Regular';
+            src: url('https://nillion.com/wp-content/themes/nillion/assets/fonts/BaselGrotesk-Regular.woff') format('woff'),
+                 url('https://nillion.com/wp-content/themes/nillion/assets/fonts/BaselGrotesk-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'TWKEverett-Regular';
+            src: url('https://nillion.com/wp-content/themes/nillion/assets/fonts/TWKEverett-Regular.woff') format('woff'),
+                 url('https://nillion.com/wp-content/themes/nillion/assets/fonts/TWKEverett-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'TWKEverettMono-Regular';
+            src: url('https://nillion.com/wp-content/themes/nillion/assets/fonts/TWKEverettMono-Regular.woff') format('woff'),
+                 url('https://nillion.com/wp-content/themes/nillion/assets/fonts/TWKEverettMono-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        :root {
+            --black-000: #000000;
+            --black-050: #050505;
+            --black-0A: #0A0A0A;
+            --black-12: #121212;
+            --black-1F: #1F1F1F;
+            --neutral-F7: #F7F7F7;
+            --accent-orange: #FF4D00;
+            --white-08: rgba(255, 255, 255, 0.08);
+            --white-15: rgba(255, 255, 255, 0.15);
+            --white-25: rgba(255, 255, 255, 0.25);
+            --white-40: rgba(255, 255, 255, 0.4);
+            --white-60: rgba(255, 255, 255, 0.6);
+            --white-85: rgba(255, 255, 255, 0.85);
+            --white-90: rgba(255, 255, 255, 0.9);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            padding: 40px;
+        }
+
+        /* Shared utilities */
+        .grain-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 2px 2px, rgba(255,255,255,0.4) 0.8px, transparent 0.8px),
+                radial-gradient(circle at 8px 5px, rgba(255,255,255,0.35) 0.7px, transparent 0.7px),
+                radial-gradient(circle at 15px 12px, rgba(255,255,255,0.3) 0.9px, transparent 0.9px),
+                radial-gradient(circle at 22px 8px, rgba(255,255,255,0.38) 0.6px, transparent 0.6px),
+                radial-gradient(circle at 28px 18px, rgba(255,255,255,0.32) 0.85px, transparent 0.85px),
+                radial-gradient(circle at 35px 14px, rgba(255,255,255,0.36) 0.75px, transparent 0.75px),
+                radial-gradient(circle at 42px 25px, rgba(255,255,255,0.33) 0.8px, transparent 0.8px),
+                radial-gradient(circle at 48px 19px, rgba(255,255,255,0.37) 0.7px, transparent 0.7px),
+                radial-gradient(circle at 55px 31px, rgba(255,255,255,0.31) 0.9px, transparent 0.9px),
+                radial-gradient(circle at 62px 24px, rgba(255,255,255,0.34) 0.65px, transparent 0.65px),
+                radial-gradient(circle at 68px 38px, rgba(255,255,255,0.32) 0.8px, transparent 0.8px),
+                radial-gradient(circle at 75px 29px, rgba(255,255,255,0.35) 0.75px, transparent 0.75px),
+                radial-gradient(circle at 82px 42px, rgba(255,255,255,0.33) 0.7px, transparent 0.7px),
+                radial-gradient(circle at 88px 35px, rgba(255,255,255,0.36) 0.85px, transparent 0.85px),
+                radial-gradient(circle at 95px 47px, rgba(255,255,255,0.3) 0.8px, transparent 0.8px);
+            background-size: 
+                8px 8px, 9px 9px, 10px 10px, 8px 8px, 9px 9px, 10px 10px,
+                8px 8px, 9px 9px, 10px 10px, 8px 8px, 9px 9px, 10px 10px,
+                8px 8px, 9px 9px, 10px 10px;
+            opacity: 0.4;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .corner-marks {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .corner-mark {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border: 1.5px solid var(--white-40);
+        }
+
+        .corner-mark.top-left {
+            top: 24px;
+            left: 24px;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .corner-mark.top-right {
+            top: 24px;
+            right: 24px;
+            border-left: none;
+            border-bottom: none;
+        }
+
+        .corner-mark.bottom-left {
+            bottom: 24px;
+            left: 24px;
+            border-right: none;
+            border-top: none;
+        }
+
+        .corner-mark.bottom-right {
+            bottom: 24px;
+            right: 24px;
+            border-left: none;
+            border-top: none;
+        }
+
+        /* Video Thumbnail Template - 1920x1080 */
+        .thumbnail {
+            width: 1920px;
+            height: 1080px;
+            position: relative;
+            background: 
+                radial-gradient(ellipse at 50% 50%, rgba(255, 77, 0, 0.08) 0%, transparent 60%),
+                radial-gradient(circle at 80% 20%, rgba(255, 77, 0, 0.06) 0%, transparent 50%),
+                radial-gradient(circle at 20% 80%, rgba(255, 77, 0, 0.05) 0%, transparent 40%),
+                var(--black-000);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .thumbnail-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 99px,
+                    var(--white-08) 99px,
+                    var(--white-08) 100px
+                ),
+                repeating-linear-gradient(
+                    -45deg,
+                    transparent,
+                    transparent 99px,
+                    var(--white-08) 99px,
+                    var(--white-08) 100px
+                );
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .thumbnail-vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, transparent 0%, transparent 35%, rgba(0,0,0,0.3) 65%, rgba(0,0,0,0.7) 100%);
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .thumbnail-radial-grid {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 1400px;
+            height: 1400px;
+            background-image: 
+                repeating-radial-gradient(
+                    circle at center,
+                    transparent 0px,
+                    transparent 99px,
+                    var(--white-08) 99px,
+                    var(--white-08) 100px
+                );
+            pointer-events: none;
+            z-index: 2;
+            opacity: 0.6;
+        }
+
+        .thumbnail-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+        }
+
+        .thumbnail-logo-container {
+            position: relative;
+            width: 550px;
+            height: 550px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+
+        .thumbnail-logo-frame {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.03);
+            border: 3px solid var(--white-25);
+            backdrop-filter: blur(12px);
+        }
+
+        .thumbnail-logo-frame::before {
+            content: '';
+            position: absolute;
+            inset: 16px;
+            border: 1.5px solid var(--white-15);
+        }
+
+        .thumbnail-logo-frame::after {
+            content: '';
+            position: absolute;
+            top: -12px;
+            right: -12px;
+            width: 80px;
+            height: 80px;
+            background: var(--accent-orange);
+            clip-path: polygon(100% 0, 100% 100%, 0 0);
+        }
+
+        .thumbnail-logo-img {
+            width: 400px;
+            height: 400px;
+            object-fit: contain;
+            position: relative;
+            z-index: 2;
+            filter: brightness(0) invert(1);
+            transition: all 0.3s ease;
+        }
+
+        .thumbnail-brand-text {
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 72px;
+            color: #ffffff;
+            letter-spacing: -2px;
+            line-height: 1.2;
+            font-weight: 400;
+            text-align: center;
+            position: relative;
+        }
+
+        .thumbnail-brand-accent {
+            color: var(--accent-orange);
+        }
+
+        .thumbnail-corner-glow {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .thumbnail-corner-glow.top-left {
+            top: -200px;
+            left: -200px;
+            background: radial-gradient(circle at center, rgba(255, 77, 0, 0.12) 0%, transparent 70%);
+        }
+
+        .thumbnail-corner-glow.top-right {
+            top: -200px;
+            right: -200px;
+            background: radial-gradient(circle at center, rgba(255, 77, 0, 0.10) 0%, transparent 70%);
+        }
+
+        .thumbnail-corner-glow.bottom-left {
+            bottom: -200px;
+            left: -200px;
+            background: radial-gradient(circle at center, rgba(255, 77, 0, 0.10) 0%, transparent 70%);
+        }
+
+        .thumbnail-corner-glow.bottom-right {
+            bottom: -200px;
+            right: -200px;
+            background: radial-gradient(circle at center, rgba(255, 77, 0, 0.12) 0%, transparent 70%);
+        }
+
+        .thumbnail-accent-bars-top {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(
+                to right,
+                transparent 0%,
+                var(--accent-orange) 25%,
+                var(--accent-orange) 75%,
+                transparent 100%
+            );
+            z-index: 10;
+        }
+
+        .thumbnail-accent-bars-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(
+                to right,
+                transparent 0%,
+                var(--accent-orange) 25%,
+                var(--accent-orange) 75%,
+                transparent 100%
+            );
+            z-index: 10;
+        }
+
+        .thumbnail-decorative-lines {
+            position: absolute;
+            top: 50%;
+            left: 24px;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .thumbnail-decorative-lines.right {
+            left: auto;
+            right: 24px;
+        }
+
+        .thumbnail-dec-line {
+            width: 60px;
+            height: 3px;
+            background: var(--white-25);
+        }
+
+        .thumbnail-dec-line.accent {
+            background: var(--accent-orange);
+        }
+
+        .thumbnail-side-ornament {
+            position: absolute;
+            top: 100px;
+            left: 80px;
+            z-index: 10;
+        }
+
+        .thumbnail-side-ornament.right {
+            left: auto;
+            right: 80px;
+        }
+
+        .thumbnail-ornament-tag {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 12px;
+            color: var(--white-60);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            padding: 20px 8px;
+            border: 1px solid var(--white-25);
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(4px);
+        }
+
+        .thumbnail-center-crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 800px;
+            height: 800px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .thumbnail-crosshair-line {
+            position: absolute;
+            background: var(--white-08);
+        }
+
+        .thumbnail-crosshair-line.horizontal {
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 1px;
+        }
+
+        .thumbnail-crosshair-line.vertical {
+            top: 0;
+            left: 50%;
+            width: 1px;
+            height: 100%;
+        }
+
+        .thumbnail-bottom-badge {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 13px;
+            color: var(--accent-orange);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            padding: 14px 32px;
+            border: 1.5px solid var(--accent-orange);
+            background: rgba(255, 77, 0, 0.08);
+            backdrop-filter: blur(6px);
+            z-index: 10;
+        }
+
+        .thumbnail-surface-reflection {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 300px;
+            background: linear-gradient(to top, rgba(255, 255, 255, 0.04) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+    <!-- Video Thumbnail Template - 1920x1080 -->
+    <div class="thumbnail">
+        <!-- Background layers -->
+        <div class="grain-overlay"></div>
+        <div class="thumbnail-grid"></div>
+        <div class="thumbnail-radial-grid"></div>
+        <div class="thumbnail-vignette"></div>
+        <div class="thumbnail-surface-reflection"></div>
+        
+        <!-- Corner glows -->
+        <div class="thumbnail-corner-glow top-left"></div>
+        <div class="thumbnail-corner-glow top-right"></div>
+        <div class="thumbnail-corner-glow bottom-left"></div>
+        <div class="thumbnail-corner-glow bottom-right"></div>
+        
+        <!-- Corner marks -->
+        <div class="corner-marks">
+            <div class="corner-mark top-left"></div>
+            <div class="corner-mark top-right"></div>
+            <div class="corner-mark bottom-left"></div>
+            <div class="corner-mark bottom-right"></div>
+        </div>
+        
+        <!-- Top and bottom accent bars -->
+        <div class="thumbnail-accent-bars-top"></div>
+        <div class="thumbnail-accent-bars-bottom"></div>
+        
+        <!-- Crosshair guide -->
+        <div class="thumbnail-center-crosshair">
+            <div class="thumbnail-crosshair-line horizontal"></div>
+            <div class="thumbnail-crosshair-line vertical"></div>
+        </div>
+        
+        <!-- Side decorative lines -->
+        <div class="thumbnail-decorative-lines">
+            <div class="thumbnail-dec-line"></div>
+            <div class="thumbnail-dec-line accent"></div>
+            <div class="thumbnail-dec-line"></div>
+        </div>
+        <div class="thumbnail-decorative-lines right">
+            <div class="thumbnail-dec-line"></div>
+            <div class="thumbnail-dec-line accent"></div>
+            <div class="thumbnail-dec-line"></div>
+        </div>
+        
+        <!-- Side ornaments -->
+        <div class="thumbnail-side-ornament">
+            <div class="thumbnail-ornament-tag">R1X LABS</div>
+        </div>
+        <div class="thumbnail-side-ornament right">
+            <div class="thumbnail-ornament-tag">2025</div>
+        </div>
+        
+        <!-- Main content - Logo centered -->
+        <div class="thumbnail-content">
+            <div class="thumbnail-logo-container">
+                <div class="thumbnail-logo-frame"></div>
+                <img src="./public/logosvg.svg" alt="r1x Logo" class="thumbnail-logo-img" />
+            </div>
+            <div class="thumbnail-brand-text">
+                <span class="thumbnail-brand-accent">r1x</span> labs
+            </div>
+        </div>
+        
+        <!-- Bottom badge (optional - can be removed or customized) -->
+        <div class="thumbnail-bottom-badge">THE MACHINE ECONOMY</div>
+    </div>
+</body>
+</html>
+

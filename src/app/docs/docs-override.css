@@ -1,0 +1,73 @@
+/* Ultra-aggressive CSS to force visibility of all docs content */
+/* This file ensures all titles and content are visible */
+
+.docs-page-hero,
+.docs-page-hero *,
+.docs-section-content,
+.docs-section-content *,
+section[class*="docs"] *,
+main[class*="docs"] * {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Disable all animations and transforms in docs */
+.docs-page-hero *,
+.docs-section-content * {
+  transform: none !important;
+  animation: none !important;
+  transition: opacity 0.2s ease !important;
+}
+
+/* Ensure all h1, h2, h3 are visible */
+h1, h2, h3, h4, h5, h6 {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Force visibility on all DocsPageHero and DocsSection children */
+.docs-page-hero h1,
+.docs-page-hero p,
+.docs-section-content h2,
+.docs-section-content h3,
+.docs-section-content p,
+.docs-section-content div {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Ensure proper z-index */
+.docs-page-hero {
+  z-index: 1;
+  position: relative;
+}
+
+.docs-section-content {
+  z-index: 1;
+  position: relative;
+}
+
+/* Make horizontal nav scrollbars hidden but scrollable */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
+/* Basic responsive media defaults inside docs content */
+.docs-section-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Prevent long tokens/URLs from breaking layout */
+.docs-section-content p,
+.docs-section-content li,
+.docs-section-content code,
+.docs-section-content pre {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+

@@ -1,0 +1,2883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>r1x Twitter Templates + Community Banner + Article Banner + Vision/Roadmap</title>
+    <!-- 
+    NOTE: When opening this file directly (file://), logos may not load due to browser security restrictions.
+    For best results, serve this file from a local web server:
+    - Python: python -m http.server 8000 (then open http://localhost:8000/twitter-templates.html)
+    - Node: npx serve (then open the provided URL)
+    - VS Code: Use Live Server extension
+    -->
+    <style>
+        @font-face {
+            font-family: 'BaselGrotesk-Regular';
+            src: url('https://nillion.com/wp-content/themes/nillion/assets/fonts/BaselGrotesk-Regular.woff') format('woff'),
+                 url('https://nillion.com/wp-content/themes/nillion/assets/fonts/BaselGrotesk-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'TWKEverett-Regular';
+            src: url('https://nillion.com/wp-content/themes/nillion/assets/fonts/TWKEverett-Regular.woff') format('woff'),
+                 url('https://nillion.com/wp-content/themes/nillion/assets/fonts/TWKEverett-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'TWKEverettMono-Regular';
+            src: url('https://nillion.com/wp-content/themes/nillion/assets/fonts/TWKEverettMono-Regular.woff') format('woff'),
+                 url('https://nillion.com/wp-content/themes/nillion/assets/fonts/TWKEverettMono-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        :root {
+            --black-000: #000000;
+            --black-050: #050505;
+            --black-0A: #0A0A0A;
+            --black-12: #121212;
+            --black-1F: #1F1F1F;
+            --neutral-F7: #F7F7F7;
+            --accent-orange: #FF4D00;
+            --white-08: rgba(255, 255, 255, 0.08);
+            --white-15: rgba(255, 255, 255, 0.15);
+            --white-25: rgba(255, 255, 255, 0.25);
+            --white-40: rgba(255, 255, 255, 0.4);
+            --white-60: rgba(255, 255, 255, 0.6);
+            --white-85: rgba(255, 255, 255, 0.85);
+            --white-90: rgba(255, 255, 255, 0.9);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            min-height: 100vh;
+            background: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            gap: 120px;
+            padding: 60px 40px;
+        }
+
+        /* Shared utilities */
+        .grain-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 2px 2px, rgba(255,255,255,0.4) 0.8px, transparent 0.8px),
+                radial-gradient(circle at 8px 5px, rgba(255,255,255,0.35) 0.7px, transparent 0.7px),
+                radial-gradient(circle at 15px 12px, rgba(255,255,255,0.3) 0.9px, transparent 0.9px),
+                radial-gradient(circle at 22px 8px, rgba(255,255,255,0.38) 0.6px, transparent 0.6px),
+                radial-gradient(circle at 28px 18px, rgba(255,255,255,0.32) 0.85px, transparent 0.85px),
+                radial-gradient(circle at 35px 14px, rgba(255,255,255,0.36) 0.75px, transparent 0.75px),
+                radial-gradient(circle at 42px 25px, rgba(255,255,255,0.33) 0.8px, transparent 0.8px),
+                radial-gradient(circle at 48px 19px, rgba(255,255,255,0.37) 0.7px, transparent 0.7px),
+                radial-gradient(circle at 55px 31px, rgba(255,255,255,0.31) 0.9px, transparent 0.9px),
+                radial-gradient(circle at 62px 24px, rgba(255,255,255,0.34) 0.65px, transparent 0.65px),
+                radial-gradient(circle at 68px 38px, rgba(255,255,255,0.32) 0.8px, transparent 0.8px),
+                radial-gradient(circle at 75px 29px, rgba(255,255,255,0.35) 0.75px, transparent 0.75px),
+                radial-gradient(circle at 82px 42px, rgba(255,255,255,0.33) 0.7px, transparent 0.7px),
+                radial-gradient(circle at 88px 35px, rgba(255,255,255,0.36) 0.85px, transparent 0.85px),
+                radial-gradient(circle at 95px 47px, rgba(255,255,255,0.3) 0.8px, transparent 0.8px);
+            background-size: 
+                8px 8px, 9px 9px, 10px 10px, 8px 8px, 9px 9px, 10px 10px,
+                8px 8px, 9px 9px, 10px 10px, 8px 8px, 9px 9px, 10px 10px,
+                8px 8px, 9px 9px, 10px 10px;
+            opacity: 0.4;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .corner-marks {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .corner-mark {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border: 1px solid var(--white-40);
+        }
+
+        .corner-mark.top-left {
+            top: 16px;
+            left: 16px;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .corner-mark.top-right {
+            top: 16px;
+            right: 16px;
+            border-left: none;
+            border-bottom: none;
+        }
+
+        .corner-mark.bottom-left {
+            bottom: 16px;
+            left: 16px;
+            border-right: none;
+            border-top: none;
+        }
+
+        .corner-mark.bottom-right {
+            bottom: 16px;
+            right: 16px;
+            border-left: none;
+            border-top: none;
+        }
+
+        .artboard {
+            width: 1600px;
+            height: 900px;
+            position: relative;
+            background: var(--black-000);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .logo-white {
+            filter: brightness(0) invert(1);
+            object-fit: contain;
+        }
+
+        /* Template A - Structured Grid Canvas */
+        .template-a {
+            background: var(--black-000);
+        }
+
+        .template-a-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 79px,
+                    var(--white-08) 79px,
+                    var(--white-08) 80px
+                ),
+                repeating-linear-gradient(
+                    -45deg,
+                    transparent,
+                    transparent 79px,
+                    var(--white-08) 79px,
+                    var(--white-08) 80px
+                );
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .template-a-vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, transparent 0%, transparent 40%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0.7) 100%);
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .template-a-content {
+            position: absolute;
+            top: 120px;
+            left: 120px;
+            max-width: 900px;
+            z-index: 10;
+        }
+
+        .template-a-headline {
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 76px;
+            line-height: 1.1;
+            color: #ffffff;
+            margin-bottom: 32px;
+            letter-spacing: -2px;
+            font-weight: 400;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .template-a-headline-logo {
+            height: 76px;
+            width: auto;
+            object-fit: contain;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .template-a-body {
+            font-family: 'BaselGrotesk-Regular', sans-serif;
+            font-size: 20px;
+            line-height: 1.6;
+            color: var(--white-85);
+            margin-bottom: 24px;
+            font-weight: 400;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .template-a-logo-badge {
+            position: absolute;
+            top: 80px;
+            right: 80px;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .template-a-logo-capsule {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--white-25);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(8px);
+        }
+
+        .template-a-logo-capsule img {
+            width: 32px;
+            height: 32px;
+        }
+
+        .template-a-accent-line {
+            width: 40px;
+            height: 2px;
+            background: var(--accent-orange);
+            margin-top: 4px;
+        }
+
+        .template-a-baseline-bar {
+            position: absolute;
+            bottom: 60px;
+            left: 120px;
+            right: 120px;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .template-a-baseline-ticks {
+            display: flex;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .template-a-tick {
+            width: 1px;
+            height: 16px;
+            background: var(--white-40);
+        }
+
+        .template-a-tag {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 12px;
+            color: #ffffff;
+            border: 1px solid var(--accent-orange);
+            padding: 6px 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Template A enhancements */
+        .template-a-scanline {
+            position: absolute;
+            top: 260px;
+            left: 120px;
+            right: 600px;
+            height: 1px;
+            background: repeating-linear-gradient(
+                to right,
+                transparent 0px,
+                transparent 40px,
+                var(--white-15) 40px,
+                var(--white-15) 42px
+            );
+            z-index: 10;
+        }
+
+        .template-a-side-labels {
+            position: absolute;
+            left: 40px;
+            top: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 80px;
+            z-index: 10;
+        }
+
+        .template-a-side-label {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 10px;
+            color: var(--white-40);
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .template-a-corner-brackets {
+            position: absolute;
+            bottom: 60px;
+            left: 120px;
+            width: 60px;
+            height: 60px;
+            z-index: 10;
+        }
+
+        .template-a-corner-bracket {
+            position: absolute;
+            border: 1px dashed var(--white-15);
+        }
+
+        .template-a-corner-bracket.horizontal {
+            width: 40px;
+            height: 0;
+            bottom: 0;
+            left: 0;
+        }
+
+        .template-a-corner-bracket.vertical {
+            width: 0;
+            height: 40px;
+            bottom: 0;
+            left: 0;
+        }
+
+        .template-a-surface-reflection {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 200px;
+            background: linear-gradient(to top, rgba(255, 255, 255, 0.03) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .template-a-partner-logos {
+            position: absolute;
+            bottom: 140px;
+            left: 120px;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .template-a-partner-logo-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .template-a-partner-logo {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
+            display: block;
+        }
+
+        .template-a-partner-logo-name {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 10px;
+            color: var(--white-60);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+
+        /* Template B - Floating Spotlight Canvas */
+        .template-b {
+            background: linear-gradient(135deg, var(--black-0A) 0%, var(--black-12) 50%, rgba(255, 77, 0, 0.08) 100%);
+        }
+
+        .template-b-border {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 1px solid var(--white-15);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .template-b-card {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 900px;
+            padding: 80px 100px;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(18px);
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            z-index: 10;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .template-b-card-headline {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 64px;
+            line-height: 1.2;
+            color: #ffffff;
+            margin-bottom: 32px;
+            font-weight: 400;
+            letter-spacing: -1px;
+        }
+
+        .template-b-card-body {
+            font-family: 'BaselGrotesk-Regular', sans-serif;
+            font-size: 20px;
+            line-height: 1.7;
+            color: var(--white-85);
+            margin-bottom: 24px;
+            font-weight: 400;
+        }
+
+        .template-b-logo-ribbon {
+            position: absolute;
+            bottom: 80px;
+            right: 80px;
+            z-index: 11;
+        }
+
+        .template-b-ribbon-bg {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--white-25);
+            padding: 12px 24px;
+            backdrop-filter: blur(8px);
+        }
+
+        .template-b-ribbon-bg img {
+            width: 40px;
+            height: 40px;
+            filter: brightness(0);
+        }
+
+        .template-b-chip {
+            position: absolute;
+            border: 1px solid var(--white-25);
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(4px);
+            z-index: 10;
+        }
+
+        .template-b-chip-top {
+            top: 140px;
+            right: 180px;
+        }
+
+        .template-b-chip-bottom {
+            bottom: 140px;
+            left: 180px;
+        }
+
+        .template-b-chip-text {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 11px;
+            color: var(--white-60);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .template-b-connector {
+            position: absolute;
+            border: 1px dashed var(--white-15);
+            z-index: 9;
+        }
+
+        .template-b-connector-1 {
+            top: 200px;
+            right: 380px;
+            width: 120px;
+            height: 1px;
+        }
+
+        .template-b-connector-2 {
+            bottom: 200px;
+            left: 380px;
+            width: 120px;
+            height: 1px;
+        }
+
+        .template-b-binary-line {
+            position: absolute;
+            left: 60px;
+            top: 120px;
+            bottom: 120px;
+            width: 1px;
+            background: var(--white-15);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0;
+        }
+
+        .template-b-binary-char {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 10px;
+            color: var(--white-40);
+            line-height: 1.2;
+            letter-spacing: 0;
+            margin: 0;
+        }
+
+        /* Template C - Columnar Framed Canvas */
+        .template-c {
+            background: var(--black-000);
+        }
+
+        .template-c-layout {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            height: 100%;
+        }
+
+        .template-c-left-rail {
+            position: relative;
+            border-right: 1px solid var(--white-15);
+            padding: 60px 40px;
+        }
+
+        .template-c-rail-logo {
+            margin-bottom: 80px;
+        }
+
+        .template-c-rail-logo img {
+            width: 144px;
+            height: 144px;
+        }
+
+        .template-c-rail-guides {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        .template-c-rail-guide {
+            width: 100%;
+            height: 1px;
+            background: repeating-linear-gradient(
+                to right,
+                var(--white-15) 0px,
+                var(--white-15) 8px,
+                transparent 8px,
+                transparent 16px
+            );
+        }
+
+        .template-c-right-column {
+            position: relative;
+            padding: 80px 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .template-c-panel {
+            background: var(--black-12);
+            border-top: 1px solid var(--white-15);
+            padding: 48px 0;
+            position: relative;
+        }
+
+        .template-c-panel:first-child {
+            border-top: none;
+        }
+
+        .template-c-headline {
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 78px;
+            line-height: 1.1;
+            color: #ffffff;
+            margin-bottom: 32px;
+            letter-spacing: -2px;
+            font-weight: 400;
+        }
+
+        .template-c-body {
+            font-family: 'BaselGrotesk-Regular', sans-serif;
+            font-size: 20px;
+            line-height: 1.7;
+            color: var(--white-85);
+            margin-bottom: 24px;
+            font-weight: 400;
+        }
+
+        .template-c-bottom-strip {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: rgba(255, 77, 0, 0.1);
+            border-top: 1px solid var(--white-15);
+            display: flex;
+            align-items: center;
+            padding: 0 100px;
+            z-index: 10;
+        }
+
+        .template-c-strip-text {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 12px;
+            color: var(--white-60);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .template-c-ca-section {
+            position: absolute;
+            top: 60px;
+            right: 100px;
+            z-index: 10;
+            background: rgba(255, 77, 0, 0.12);
+            border: 3px solid var(--accent-orange);
+            padding: 24px 32px;
+            backdrop-filter: blur(4px);
+        }
+
+        .template-c-ca-label {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 12px;
+            color: var(--accent-orange);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .template-c-ca-address {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 18px;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            word-break: break-all;
+            font-weight: 400;
+        }
+
+        .template-c-sheen {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 40%;
+            height: 100%;
+            background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.02) 50%, transparent 100%);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* Template C enhancements */
+        .template-c-panel-number {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 120px;
+            color: rgba(255, 255, 255, 0.03);
+            font-weight: 400;
+            line-height: 1;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .template-c-panel:nth-child(1) .template-c-panel-number::before { content: "01"; }
+        .template-c-panel:nth-child(2) .template-c-panel-number::before { content: "02"; }
+        .template-c-panel:nth-child(3) .template-c-panel-number::before { content: "03"; }
+
+        .template-c-modular-bars {
+            position: absolute;
+            top: 0;
+            right: 40px;
+            width: 120px;
+            height: 100%;
+            display: none;
+            gap: 20px;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .template-c-modular-bar {
+            width: 1px;
+            height: 100%;
+            background: var(--white-08);
+        }
+
+        .template-c-brushed-texture {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(255, 255, 255, 0.01) 2px,
+                    rgba(255, 255, 255, 0.01) 3px
+                );
+            opacity: 0.3;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* Template D - End-of-Post Safety Notice */
+        .template-d {
+            background: radial-gradient(ellipse at center, var(--black-050) 0%, var(--black-000) 70%);
+        }
+
+        .template-d-vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.8) 100%);
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .template-d-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 10;
+            max-width: 1000px;
+        }
+
+        .template-d-separator {
+            width: 200px;
+            height: 1px;
+            background: repeating-linear-gradient(
+                to right,
+                transparent 0px,
+                transparent 4px,
+                var(--white-25) 4px,
+                var(--white-25) 8px
+            );
+            margin: 0 auto 60px;
+        }
+
+        .template-d-headline {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 84px;
+            line-height: 1.1;
+            color: #ffffff;
+            margin-bottom: 40px;
+            letter-spacing: 4px;
+            font-weight: 400;
+            text-transform: uppercase;
+        }
+
+        .template-d-body {
+            font-family: 'BaselGrotesk-Regular', sans-serif;
+            font-size: 22px;
+            line-height: 1.8;
+            color: var(--white-85);
+            margin-bottom: 60px;
+            font-weight: 400;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .template-d-warning-strip {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            background: rgba(255, 77, 0, 0.15);
+            border-top: 2px solid var(--accent-orange);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .template-d-warning-text {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 14px;
+            color: #ffffff;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .template-d-warning-text .handle {
+            color: var(--accent-orange);
+        }
+
+        .template-d-brand-text {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 60px;
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 48px;
+            color: #ffffff;
+            letter-spacing: -1px;
+            line-height: 1.2;
+        }
+
+        .template-d-brand-text .logo-x {
+            width: 56px;
+            height: 56px;
+            display: inline-block;
+            vertical-align: text-bottom;
+            filter: brightness(0) saturate(100%) invert(26%) sepia(98%) saturate(7462%) hue-rotate(359deg) brightness(104%) contrast(101%);
+            object-fit: contain;
+            margin-left: -8px;
+            transform: translateY(16px);
+        }
+
+        /* Template E - Bold Orange Energy */
+        .template-e {
+            background: 
+                radial-gradient(circle at 80% 20%, rgba(255, 77, 0, 0.1) 0%, transparent 50%),
+                #000000;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .template-e-orange-split {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 45%;
+            height: 100%;
+            background: linear-gradient(135deg, transparent 0%, rgba(255, 77, 0, 0.08) 100%);
+            clip-path: polygon(20% 0, 100% 0, 100% 100%, 0% 100%);
+            z-index: 1;
+        }
+
+        .template-e-content {
+            position: absolute;
+            top: 50%;
+            left: 120px;
+            right: 120px;
+            transform: translateY(-50%);
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .template-e-left {
+            max-width: 700px;
+        }
+
+        .template-e-eyebrow {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 12px;
+            color: var(--accent-orange);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+            font-weight: 400;
+        }
+
+        .template-e-headline {
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 82px;
+            line-height: 0.95;
+            color: #ffffff;
+            margin-bottom: 28px;
+            letter-spacing: -3px;
+            font-weight: 400;
+        }
+
+        .template-e-headline-orange {
+            color: var(--accent-orange);
+        }
+
+        .template-e-body {
+            font-family: 'BaselGrotesk-Regular', sans-serif;
+            font-size: 19px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.7);
+            max-width: 550px;
+            font-weight: 400;
+        }
+
+        .template-e-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 40px;
+        }
+
+        .template-e-logo-large {
+            width: 160px;
+            height: 160px;
+            background: var(--accent-orange);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .template-e-logo-large::before {
+            content: '';
+            position: absolute;
+            inset: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .template-e-logo-large img {
+            width: 80px;
+            height: 80px;
+            filter: brightness(0) invert(1);
+            position: relative;
+            z-index: 1;
+        }
+
+        .template-e-stats {
+            display: flex;
+            gap: 48px;
+        }
+
+        .template-e-stat {
+            text-align: right;
+        }
+
+        .template-e-stat-number {
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 48px;
+            color: var(--accent-orange);
+            line-height: 1;
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+        }
+
+        .template-e-stat-label {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .template-e-bottom-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: var(--accent-orange);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .template-e-url {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 14px;
+            color: #000000;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: 400;
+        }
+
+        .template-e-top-corner {
+            position: absolute;
+            top: 60px;
+            left: 120px;
+            z-index: 10;
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.4);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Template F - Token Launch Date Teaser */
+        .template-f {
+            background: 
+                radial-gradient(ellipse at 50% 50%, rgba(255, 77, 0, 0.12) 0%, transparent 60%),
+                radial-gradient(circle at 20% 80%, rgba(255, 77, 0, 0.05) 0%, transparent 40%),
+                #000000;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .template-f-radial-grid {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 1000px;
+            height: 1000px;
+            background-image: 
+                repeating-radial-gradient(
+                    circle at center,
+                    transparent 0px,
+                    transparent 79px,
+                    var(--white-08) 79px,
+                    var(--white-08) 80px
+                );
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .template-f-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 10;
+            width: 100%;
+        }
+
+        .template-f-logo-top {
+            margin-bottom: 60px;
+        }
+
+        .template-f-logo-top img {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+        }
+
+        .template-f-eyebrow {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 14px;
+            color: var(--white-60);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-bottom: 40px;
+            font-weight: 400;
+            opacity: 0.8;
+        }
+
+        .template-f-date {
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 180px;
+            line-height: 1;
+            color: #ffffff;
+            letter-spacing: -6px;
+            font-weight: 400;
+            margin-bottom: 48px;
+            text-shadow: 0 0 80px rgba(255, 77, 0, 0.3);
+            position: relative;
+        }
+
+        .template-f-date::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120%;
+            height: 2px;
+            background: repeating-linear-gradient(
+                to right,
+                transparent 0px,
+                transparent 20px,
+                var(--white-15) 20px,
+                var(--white-15) 40px
+            );
+            z-index: -1;
+        }
+
+        .template-f-tagline {
+            font-family: 'BaselGrotesk-Regular', sans-serif;
+            font-size: 28px;
+            line-height: 1.5;
+            color: var(--white-85);
+            margin-bottom: 32px;
+            font-weight: 400;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .template-f-tagline-accent {
+            color: var(--accent-orange);
+            font-weight: 400;
+        }
+
+        .template-f-subtitle {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 12px;
+            color: var(--white-40);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-top: 60px;
+            font-weight: 400;
+        }
+
+
+        .template-f-accent-bars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(
+                to right,
+                transparent 0%,
+                var(--accent-orange) 20%,
+                var(--accent-orange) 80%,
+                transparent 100%
+            );
+            z-index: 10;
+        }
+
+        .template-f-accent-bars-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(
+                to right,
+                transparent 0%,
+                var(--accent-orange) 20%,
+                var(--accent-orange) 80%,
+                transparent 100%
+            );
+            z-index: 10;
+        }
+
+
+        .template-f-countdown-label {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 11px;
+            color: var(--accent-orange);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            padding: 10px 24px;
+            border: 1px solid var(--accent-orange);
+            background: rgba(255, 77, 0, 0.05);
+            backdrop-filter: blur(4px);
+            z-index: 10;
+        }
+
+        .template-f-corner-glow {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .template-f-corner-glow.top-left {
+            top: -150px;
+            left: -150px;
+            background: radial-gradient(circle at center, rgba(255, 77, 0, 0.08) 0%, transparent 70%);
+        }
+
+        .template-f-corner-glow.bottom-right {
+            bottom: -150px;
+            right: -150px;
+            background: radial-gradient(circle at center, rgba(255, 77, 0, 0.08) 0%, transparent 70%);
+        }
+
+        /* Template G - Payment Facilitators Showcase */
+        .template-g {
+            background: 
+                radial-gradient(ellipse at 30% 40%, rgba(255, 77, 0, 0.06) 0%, transparent 50%),
+                var(--black-000);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .template-g-gradient-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, transparent 0%, rgba(255, 77, 0, 0.03) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .template-g-content {
+            position: relative;
+            padding: 60px 80px 100px;
+            z-index: 10;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .template-g-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 32px;
+            margin-bottom: 50px;
+        }
+
+        .template-g-logo {
+            flex-shrink: 0;
+        }
+
+        .template-g-logo img {
+            width: 56px;
+            height: 56px;
+        }
+
+        .template-g-title-section {
+            flex: 1;
+        }
+
+        .template-g-eyebrow {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 10px;
+            color: var(--accent-orange);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            font-weight: 400;
+        }
+
+        .template-g-headline {
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 52px;
+            line-height: 1.1;
+            color: #ffffff;
+            margin-bottom: 16px;
+            letter-spacing: -2px;
+            font-weight: 400;
+        }
+
+        .template-g-body {
+            font-family: 'BaselGrotesk-Regular', sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--white-85);
+            max-width: 700px;
+            font-weight: 400;
+        }
+
+        .template-g-facilitators {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        .template-g-section {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .template-g-section-label {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .template-g-status-badge {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 9px;
+            color: #ffffff;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 5px 10px;
+            border-radius: 2px;
+            font-weight: 400;
+        }
+
+        .template-g-status-badge.active {
+            background: var(--accent-orange);
+            border: 1px solid var(--accent-orange);
+        }
+
+        .template-g-status-badge.upcoming {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--white-25);
+            color: var(--white-60);
+        }
+
+        .template-g-section-title {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 11px;
+            color: var(--white-60);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: 400;
+        }
+
+        .template-g-logo-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 32px;
+            max-width: 800px;
+        }
+
+        .template-g-logo-grid-three {
+            grid-template-columns: repeat(3, 1fr);
+            max-width: 1200px;
+        }
+
+        .template-g-facilitator-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--white-15);
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .template-g-facilitator-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(255, 77, 0, 0.05) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .template-g-facilitator-card:hover::before {
+            opacity: 1;
+        }
+
+        .template-g-facilitator-card.upcoming {
+            opacity: 0.6;
+            border-style: dashed;
+        }
+
+        .template-g-facilitator-logo-wrapper {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--white-08);
+            padding: 16px;
+        }
+
+        .template-g-facilitator-logo {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .template-g-facilitator-name {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 12px;
+            color: var(--white-85);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 400;
+        }
+
+        .template-g-divider {
+            width: 100%;
+            height: 1px;
+            background: repeating-linear-gradient(
+                to right,
+                transparent 0px,
+                transparent 8px,
+                var(--white-15) 8px,
+                var(--white-15) 16px
+            );
+        }
+
+        .template-g-bottom-strip {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: rgba(255, 77, 0, 0.08);
+            border-top: 1px solid var(--white-15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .template-g-strip-text {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 11px;
+            color: var(--white-60);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Template H - X Community Banner (Light Theme) */
+        .artboard-banner {
+            width: 1500px;
+            height: 500px;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .template-h {
+            background: linear-gradient(135deg, #F8F9FA 0%, #E8EEF2 50%, #F5F7FA 100%);
+            border: 3px solid #000000;
+        }
+
+        .template-h-geometric-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 60px,
+                    rgba(255, 77, 0, 0.02) 60px,
+                    rgba(255, 77, 0, 0.02) 61px
+                ),
+                repeating-linear-gradient(
+                    -45deg,
+                    transparent,
+                    transparent 60px,
+                    rgba(0, 0, 0, 0.015) 60px,
+                    rgba(0, 0, 0, 0.015) 61px
+                );
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .template-h-accent-circle {
+            position: absolute;
+            top: -100px;
+            right: -100px;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle at center, rgba(255, 77, 0, 0.08) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .template-h-accent-circle-2 {
+            position: absolute;
+            bottom: -80px;
+            left: 30%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle at center, rgba(255, 77, 0, 0.04) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .template-h-content {
+            position: relative;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            padding: 0 80px 0 80px;
+            z-index: 10;
+        }
+
+        .template-h-left {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 200px;
+        }
+
+        .template-h-logo-container {
+            position: relative;
+            width: 350px;
+            height: 350px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .template-h-logo-bg {
+            position: absolute;
+            inset: 0;
+            background: transparent;
+            border: 3px solid #000000;
+        }
+
+        .template-h-logo-img {
+            width: 260px;
+            height: 260px;
+            object-fit: contain;
+            position: relative;
+            z-index: 2;
+            filter: brightness(0);
+        }
+
+        .template-h-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .template-h-eyebrow {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 11px;
+            color: #FF4D00;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            font-weight: 400;
+            margin-bottom: 4px;
+        }
+
+        .template-h-headline {
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 110px;
+            line-height: 1.0;
+            color: #000000;
+            letter-spacing: -3px;
+            font-weight: 400;
+            margin-bottom: 20px;
+        }
+
+        .template-h-headline-accent {
+            color: #FF4D00;
+        }
+
+        .template-h-body {
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 48px;
+            line-height: 1.3;
+            color: #2C3E50;
+            max-width: 600px;
+            font-weight: 400;
+        }
+
+        .template-h-tags {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .template-h-tag {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 9px;
+            color: #000000;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 6px 14px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 2px;
+            font-weight: 400;
+        }
+
+        .template-h-tag.accent {
+            background: rgba(255, 77, 0, 0.08);
+            border-color: rgba(255, 77, 0, 0.2);
+            color: #FF4D00;
+        }
+
+        .template-h-corner-accent {
+            position: absolute;
+            top: 30px;
+            right: 60px;
+            width: 60px;
+            height: 60px;
+            z-index: 10;
+        }
+
+        .template-h-corner-accent::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 40px;
+            height: 2px;
+            background: linear-gradient(to left, #FF4D00 0%, transparent 100%);
+        }
+
+        .template-h-corner-accent::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 2px;
+            height: 40px;
+            background: linear-gradient(to bottom, #FF4D00 0%, transparent 100%);
+        }
+
+        .template-h-bottom-accent {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(
+                to right,
+                transparent 0%,
+                rgba(255, 77, 0, 0.3) 35%,
+                rgba(255, 77, 0, 0.5) 50%,
+                rgba(255, 77, 0, 0.3) 65%,
+                transparent 100%
+            );
+            z-index: 10;
+        }
+
+        .template-h-brand-tag {
+            position: absolute;
+            bottom: 30px;
+            left: 80px;
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 9px;
+            color: rgba(0, 0, 0, 0.35);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            z-index: 10;
+        }
+
+        /* Template I - Twitter Article Banner (Premium Dark) */
+        .artboard-article {
+            width: 1200px;
+            height: 480px;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .template-i {
+            background: linear-gradient(135deg, var(--black-000) 0%, var(--black-0A) 50%, var(--black-12) 100%);
+        }
+
+        .template-i-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 49px,
+                    var(--white-08) 49px,
+                    var(--white-08) 50px
+                ),
+                repeating-linear-gradient(
+                    -45deg,
+                    transparent,
+                    transparent 49px,
+                    var(--white-08) 49px,
+                    var(--white-08) 50px
+                );
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .template-i-vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, transparent 0%, transparent 30%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.8) 100%);
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .template-i-orange-glow {
+            position: absolute;
+            top: -100px;
+            right: -100px;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle at center, rgba(255, 77, 0, 0.15) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .template-i-content {
+            position: absolute;
+            top: 50%;
+            left: 70px;
+            right: 70px;
+            transform: translateY(-50%);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .template-i-left {
+            flex: 1;
+            max-width: 700px;
+        }
+
+        .template-i-eyebrow {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 11px;
+            color: var(--accent-orange);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+            font-weight: 400;
+        }
+
+        .template-i-headline {
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 58px;
+            line-height: 1.1;
+            color: #ffffff;
+            margin-bottom: 20px;
+            letter-spacing: -2px;
+            font-weight: 400;
+        }
+
+        .template-i-headline-accent {
+            color: var(--accent-orange);
+        }
+
+        .template-i-body {
+            font-family: 'BaselGrotesk-Regular', sans-serif;
+            font-size: 18px;
+            line-height: 1.6;
+            color: var(--white-85);
+            max-width: 600px;
+            font-weight: 400;
+        }
+
+        .template-i-right {
+            flex-shrink: 0;
+            margin-left: 60px;
+        }
+
+        .template-i-logo-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .template-i-logo-frame {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid var(--white-25);
+            backdrop-filter: blur(8px);
+        }
+
+        .template-i-logo-frame::before {
+            content: '';
+            position: absolute;
+            inset: 8px;
+            border: 1px solid var(--white-15);
+        }
+
+        .template-i-logo-frame::after {
+            content: '';
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 16px;
+            height: 16px;
+            background: var(--accent-orange);
+        }
+
+        .template-i-logo-img {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            position: relative;
+            z-index: 2;
+            filter: brightness(0) invert(1);
+        }
+
+        .template-i-accent-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(
+                to right,
+                transparent 0%,
+                var(--accent-orange) 15%,
+                var(--accent-orange) 85%,
+                transparent 100%
+            );
+            z-index: 10;
+        }
+
+        .template-i-corner-marks-article {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .template-i-corner-mark {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border: 1px solid var(--white-40);
+        }
+
+        .template-i-corner-mark.top-left {
+            top: 20px;
+            left: 20px;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .template-i-corner-mark.top-right {
+            top: 20px;
+            right: 20px;
+            border-left: none;
+            border-bottom: none;
+        }
+
+        .template-i-corner-mark.bottom-left {
+            bottom: 20px;
+            left: 20px;
+            border-right: none;
+            border-top: none;
+        }
+
+        .template-i-corner-mark.bottom-right {
+            bottom: 20px;
+            right: 20px;
+            border-left: none;
+            border-top: none;
+        }
+
+        .template-i-side-accent {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 200px;
+            width: 2px;
+            background: linear-gradient(
+                to bottom,
+                transparent 0%,
+                var(--white-15) 30%,
+                var(--white-15) 70%,
+                transparent 100%
+            );
+            z-index: 10;
+        }
+
+        .template-i-decorative-lines {
+            position: absolute;
+            right: 70px;
+            bottom: 80px;
+            display: flex;
+            gap: 4px;
+            z-index: 10;
+        }
+
+        .template-i-dec-line {
+            width: 40px;
+            height: 2px;
+            background: var(--white-25);
+        }
+
+        .template-i-dec-line:nth-child(2) {
+            background: var(--accent-orange);
+        }
+
+        .template-i-tag {
+            position: absolute;
+            top: 40px;
+            left: 70px;
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 9px;
+            color: var(--white-60);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 6px 12px;
+            border: 1px solid var(--white-25);
+            background: rgba(255, 255, 255, 0.05);
+            z-index: 10;
+        }
+
+        /* Template J - Vision/Roadmap (Premium White) */
+        .template-j {
+            background: #FFFFFF;
+            position: relative;
+            overflow: hidden;
+            border: 3px solid #000000;
+        }
+
+        .template-j-right-pattern {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 40%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 79px,
+                    rgba(0, 0, 0, 0.15) 79px,
+                    rgba(0, 0, 0, 0.15) 80px
+                ),
+                repeating-linear-gradient(
+                    -45deg,
+                    transparent,
+                    transparent 79px,
+                    rgba(0, 0, 0, 0.15) 79px,
+                    rgba(0, 0, 0, 0.15) 80px
+                );
+            mask-image: linear-gradient(to right, transparent 0%, black 15%, black 100%);
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 15%, black 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .template-j-right-pattern::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at 70% 50%, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.02) 100%);
+            pointer-events: none;
+        }
+
+        .template-j-header {
+            position: absolute;
+            top: 60px;
+            left: 80px;
+            right: 80px;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .template-j-logo-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .template-j-logo-box {
+            width: 70px;
+            height: 70px;
+            background: #FFFFFF;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .template-j-logo-box::after {
+            content: '';
+            position: absolute;
+            inset: 6px;
+            border: 1px solid rgba(255, 77, 0, 0.15);
+        }
+
+        .template-j-logo-box img {
+            width: 40px;
+            height: 40px;
+            filter: brightness(0);
+            position: relative;
+            z-index: 1;
+        }
+
+        .template-j-brand-name {
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 32px;
+            color: #000000;
+            letter-spacing: -1px;
+            font-weight: 400;
+        }
+
+        .template-j-eyebrow {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 11px;
+            color: #FF4D00;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            font-weight: 400;
+            padding: 8px 18px;
+            border: 1px solid rgba(255, 77, 0, 0.3);
+            background: rgba(255, 77, 0, 0.04);
+        }
+
+        .template-j-content {
+            position: absolute;
+            top: 50%;
+            left: 80px;
+            right: 80px;
+            transform: translateY(-50%);
+            z-index: 10;
+        }
+
+        .template-j-main-headline {
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 96px;
+            line-height: 1.05;
+            color: #000000;
+            margin-bottom: 40px;
+            letter-spacing: -4px;
+            font-weight: 400;
+            max-width: 1200px;
+        }
+
+        .template-j-headline-accent {
+            color: #FF4D00;
+            position: relative;
+        }
+
+        .template-j-headline-accent::after {
+            content: '';
+            position: absolute;
+            bottom: 8px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: rgba(255, 77, 0, 0.15);
+        }
+
+        .template-j-divider {
+            width: 120px;
+            height: 3px;
+            background: linear-gradient(to right, #FF4D00 0%, rgba(255, 77, 0, 0.3) 100%);
+            margin-bottom: 36px;
+        }
+
+        .template-j-body {
+            font-family: 'BaselGrotesk-Regular', sans-serif;
+            font-size: 22px;
+            line-height: 1.6;
+            color: #2C3E50;
+            max-width: 900px;
+            font-weight: 400;
+        }
+
+        .template-j-bottom-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(
+                to right,
+                transparent 0%,
+                rgba(255, 77, 0, 0.2) 20%,
+                #FF4D00 50%,
+                rgba(255, 77, 0, 0.2) 80%,
+                transparent 100%
+            );
+            z-index: 10;
+        }
+
+        .template-j-corner-brackets {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .template-j-bracket {
+            position: absolute;
+            border: 2px solid rgba(0, 0, 0, 0.2);
+        }
+
+        .template-j-bracket.top-left-h {
+            top: 20px;
+            left: 20px;
+            width: 50px;
+            height: 0;
+            border-bottom: none;
+        }
+
+        .template-j-bracket.top-left-v {
+            top: 20px;
+            left: 20px;
+            width: 0;
+            height: 50px;
+            border-right: none;
+        }
+
+        .template-j-bracket.bottom-right-h {
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 0;
+            border-top: none;
+        }
+
+        .template-j-bracket.bottom-right-v {
+            bottom: 20px;
+            right: 20px;
+            width: 0;
+            height: 50px;
+            border-left: none;
+        }
+
+        /* Template K - Expansion Announcement (DayDreams & Solana) */
+        .template-k {
+            background: 
+                radial-gradient(circle at 15% 25%, rgba(255, 77, 0, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 85% 75%, rgba(255, 77, 0, 0.08) 0%, transparent 40%),
+                linear-gradient(135deg, var(--black-000) 0%, var(--black-0A) 50%, var(--black-12) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .template-k-grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 39px,
+                    var(--white-08) 39px,
+                    var(--white-08) 40px
+                ),
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 39px,
+                    var(--white-08) 39px,
+                    var(--white-08) 40px
+                );
+            pointer-events: none;
+            z-index: 2;
+            opacity: 0.3;
+        }
+
+        .template-k-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            width: 100%;
+            max-width: 1400px;
+            text-align: center;
+        }
+
+        .template-k-header {
+            margin-bottom: 80px;
+        }
+
+        .template-k-eyebrow {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 12px;
+            color: var(--accent-orange);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            font-weight: 400;
+            margin-bottom: 40px;
+        }
+
+        .template-k-headline {
+            font-family: 'TWKEverett-Regular', sans-serif;
+            font-size: 96px;
+            line-height: 1.05;
+            color: #ffffff;
+            margin-bottom: 32px;
+            letter-spacing: -3px;
+            font-weight: 400;
+        }
+
+        .template-k-headline-accent {
+            color: var(--accent-orange);
+        }
+
+        .template-k-body {
+            font-family: 'BaselGrotesk-Regular', sans-serif;
+            font-size: 22px;
+            line-height: 1.6;
+            color: var(--white-85);
+            max-width: 700px;
+            font-weight: 400;
+            margin: 0 auto 80px;
+        }
+
+        .template-k-logos-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 80px;
+        }
+
+        .template-k-logo-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 2px solid var(--white-15);
+            padding: 48px 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+            position: relative;
+            backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
+        }
+
+        .template-k-logo-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(255, 77, 0, 0.08) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .template-k-logo-card:hover::before {
+            opacity: 1;
+        }
+
+        .template-k-logo-wrapper {
+            width: 160px;
+            height: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--white-08);
+            padding: 24px;
+            position: relative;
+        }
+
+        .template-k-logo-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: 10px;
+            border: 1px solid var(--white-08);
+        }
+
+        .template-k-logo-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            position: relative;
+            z-index: 1;
+        }
+
+        .template-k-logo-name {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 14px;
+            color: var(--white-85);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: 400;
+            text-align: center;
+        }
+
+        .template-k-connector-line {
+            width: 100px;
+            height: 2px;
+            background: linear-gradient(
+                to right,
+                var(--white-15) 0%,
+                var(--accent-orange) 50%,
+                var(--white-15) 100%
+            );
+            position: relative;
+        }
+
+        .template-k-connector-line::before,
+        .template-k-connector-line::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 10px;
+            height: 10px;
+            border: 2px solid var(--accent-orange);
+            border-radius: 50%;
+            background: var(--black-000);
+        }
+
+        .template-k-connector-line::before {
+            left: -5px;
+        }
+
+        .template-k-connector-line::after {
+            right: -5px;
+        }
+
+        .template-k-bottom-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: rgba(255, 77, 0, 0.08);
+            border-top: 2px solid var(--accent-orange);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .template-k-bottom-text {
+            font-family: 'TWKEverettMono-Regular', monospace;
+            font-size: 11px;
+            color: var(--white-85);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            font-weight: 400;
+        }
+
+        .template-k-accent-glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 1000px;
+            height: 1000px;
+            background: radial-gradient(circle at center, rgba(255, 77, 0, 0.04) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- Template A - Structured Grid Canvas -->
+    <div class="artboard template-a">
+        <div class="grain-overlay"></div>
+        <div class="template-a-grid"></div>
+        <div class="template-a-vignette"></div>
+        <div class="corner-marks">
+            <div class="corner-mark top-left"></div>
+            <div class="corner-mark top-right"></div>
+            <div class="corner-mark bottom-left"></div>
+            <div class="corner-mark bottom-right"></div>
+        </div>
+        <div class="template-a-content">
+            <div class="template-a-headline">R1X JOINS LOCUS HACKATHON</div>
+            <div class="template-a-body">Showcasing r1x Agent at the forefront of autonomous payments. The next economy starts here.</div>
+        </div>
+        <div class="template-a-logo-badge">
+            <div class="template-a-logo-capsule">
+                <img src="./public/logosvg.svg" alt="r1x Logo" class="logo-white" />
+            </div>
+            <div class="template-a-accent-line"></div>
+        </div>
+        <div class="template-a-baseline-bar">
+            <div class="template-a-baseline-ticks">
+                <div class="template-a-tick"></div>
+                <div class="template-a-tick"></div>
+                <div class="template-a-tick"></div>
+                <div class="template-a-tick"></div>
+                <div class="template-a-tick"></div>
+                <div class="template-a-tick"></div>
+                <div class="template-a-tick"></div>
+                <div class="template-a-tick"></div>
+                <div class="template-a-tick"></div>
+                <div class="template-a-tick"></div>
+            </div>
+            <div class="template-a-tag">Hackathon</div>
+        </div>
+        <div class="template-a-scanline"></div>
+        <div class="template-a-side-labels">
+            <div class="template-a-side-label">Community</div>
+            <div class="template-a-side-label">Announcement</div>
+        </div>
+        <div class="template-a-corner-brackets">
+            <div class="template-a-corner-bracket horizontal"></div>
+            <div class="template-a-corner-bracket vertical"></div>
+        </div>
+        <div class="template-a-surface-reflection"></div>
+        <div class="template-a-partner-logos">
+            <div class="template-a-partner-logo-item">
+                <img src="public/logos/ycombinator.png" alt="Y Combinator" class="template-a-partner-logo" />
+                <div class="template-a-partner-logo-name">Y Combinator</div>
+            </div>
+            <div class="template-a-partner-logo-item">
+                <img src="public/logos/coinbase.png" alt="Coinbase" class="template-a-partner-logo" />
+                <div class="template-a-partner-logo-name">Coinbase</div>
+            </div>
+            <div class="template-a-partner-logo-item">
+                <img src="public/logos/anthropic.jpg" alt="Anthropic" class="template-a-partner-logo" />
+                <div class="template-a-partner-logo-name">Anthropic</div>
+            </div>
+            <div class="template-a-partner-logo-item">
+                <img src="public/logos/openai.jpg" alt="OpenAI" class="template-a-partner-logo" />
+                <div class="template-a-partner-logo-name">OpenAI</div>
+            </div>
+            <div class="template-a-partner-logo-item">
+                <img src="public/logos/replit.jpg" alt="Replit" class="template-a-partner-logo" />
+                <div class="template-a-partner-logo-name">Replit</div>
+            </div>
+            <div class="template-a-partner-logo-item">
+                <img src="public/logos/Locus.png" alt="Locus" class="template-a-partner-logo" />
+                <div class="template-a-partner-logo-name">Locus</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template B - Floating Spotlight Canvas -->
+    <div class="artboard template-b">
+        <div class="grain-overlay"></div>
+        <div class="template-b-border"></div>
+        <div class="corner-marks">
+            <div class="corner-mark top-left"></div>
+            <div class="corner-mark top-right"></div>
+            <div class="corner-mark bottom-left"></div>
+            <div class="corner-mark bottom-right"></div>
+        </div>
+        <div class="template-b-binary-line">
+            <div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">0</div><div class="template-b-binary-char">1</div><div class="template-b-binary-char">1</div>
+        </div>
+        <div class="template-b-card">
+            <div class="template-b-card-headline">THE NEXT ECONOMY ISN'T HUMAN</div>
+        </div>
+        <div class="template-b-logo-ribbon">
+            <div class="template-b-ribbon-bg">
+                <img src="./public/logosvg.svg" alt="r1x Logo" />
+            </div>
+        </div>
+        <div class="template-b-chip template-b-chip-top">
+            <div class="template-b-chip-text">Thread</div>
+        </div>
+        <div class="template-b-chip template-b-chip-bottom">
+            <div class="template-b-chip-text">r1x</div>
+        </div>
+        <div class="template-b-connector template-b-connector-1"></div>
+        <div class="template-b-connector template-b-connector-2"></div>
+    </div>
+
+    <!-- Template C - Columnar Framed Canvas -->
+    <div class="artboard template-c">
+        <div class="grain-overlay"></div>
+        <div class="template-c-sheen"></div>
+        <div class="corner-marks">
+            <div class="corner-mark top-left"></div>
+            <div class="corner-mark top-right"></div>
+            <div class="corner-mark bottom-left"></div>
+            <div class="corner-mark bottom-right"></div>
+        </div>
+        
+        <div class="template-c-ca-section">
+            <div class="template-c-ca-label">CONTRACT ADDRESS</div>
+            <div class="template-c-ca-address">HFaVWAuNzKc2T4EfZVwXMpSNiNJgLVk6RstS3Q9upump</div>
+        </div>
+        
+        <div class="template-c-layout">
+            <div class="template-c-left-rail">
+                <div class="template-c-rail-logo">
+                    <img src="./public/logosvg.svg" alt="r1x Logo" class="logo-white" />
+                </div>
+                <div class="template-c-rail-guides">
+                    <div class="template-c-rail-guide"></div>
+                    <div class="template-c-rail-guide"></div>
+                    <div class="template-c-rail-guide"></div>
+                </div>
+            </div>
+            <div class="template-c-right-column">
+                <div class="template-c-panel">
+                    <div class="template-c-panel-number"></div>
+                    <div class="template-c-headline">$R1X IS NOW LIVE</div>
+                    <div class="template-c-body">The r1x token is officially live and trading. Join the machine economy revolution as autonomous agents begin transacting on the network.</div>
+                </div>
+                <div class="template-c-panel">
+                    <div class="template-c-panel-number"></div>
+                    <div class="template-c-body">3% of tokens bought from dev wallet are being locked, ensuring long-term alignment and sustainable tokenomics for the ecosystem.</div>
+                </div>
+            </div>
+        </div>
+        <div class="template-c-modular-bars">
+            <div class="template-c-modular-bar"></div>
+            <div class="template-c-modular-bar"></div>
+            <div class="template-c-modular-bar"></div>
+            <div class="template-c-modular-bar"></div>
+        </div>
+        <div class="template-c-brushed-texture"></div>
+        <div class="template-c-bottom-strip">
+            <div class="template-c-strip-text">www.r1xlabs.com</div>
+        </div>
+    </div>
+
+    <!-- Template D - End-of-Post Safety Notice -->
+    <div class="artboard template-d">
+        <div class="grain-overlay" style="opacity: 0.6;"></div>
+        <div class="template-d-vignette"></div>
+        <div class="corner-marks">
+            <div class="corner-mark top-left"></div>
+            <div class="corner-mark top-right"></div>
+            <div class="corner-mark bottom-left"></div>
+            <div class="corner-mark bottom-right"></div>
+        </div>
+        <div class="template-d-content">
+            <div class="template-d-brand-text">
+                <span>r1</span>
+                <img src="./public/logosvg.svg" alt="x" class="logo-x" />
+                <span>labs</span>
+            </div>
+            <div class="template-d-separator"></div>
+            <div class="template-d-headline">END OF POST</div>
+            <div class="template-d-body">Any replies to this post that look like us are likely a scam. Do not click on links from other posts. Always verify our official handle <span class="handle">@r1xlabs</span> before interacting.</div>
+        </div>
+        <div class="template-d-warning-strip">
+            <div class="template-d-warning-text">ONLY TRUST <span class="handle">@r1xlabs</span> — VERIFY BEFORE INTERACTING</div>
+        </div>
+    </div>
+
+    <!-- Template E - Bold Orange Energy -->
+    <div class="artboard template-e">
+        <div class="grain-overlay"></div>
+        <div class="template-e-orange-split"></div>
+        <div class="corner-marks">
+            <div class="corner-mark top-left"></div>
+            <div class="corner-mark top-right"></div>
+            <div class="corner-mark bottom-left"></div>
+            <div class="corner-mark bottom-right"></div>
+        </div>
+        <div class="template-e-top-corner">R1X LABS — 2025</div>
+        <div class="template-e-content">
+            <div class="template-e-left">
+                <div class="template-e-eyebrow">NOW IN BETA</div>
+                <div class="template-e-headline">
+                    r1x Agent<br/>
+                    <span class="template-e-headline-orange">& Marketplace</span><br/>
+                    Now Live
+                </div>
+                <div class="template-e-body">r1x Agent doesn't just chat—it purchases, negotiates, and executes. The most capable AI agent in the machine economy is live.</div>
+            </div>
+            <div class="template-e-right">
+                <div class="template-e-logo-large">
+                    <img src="./public/logosvg.svg" alt="r1x Logo" />
+                </div>
+                <div class="template-e-stats">
+                    <div class="template-e-stat">
+                        <div class="template-e-stat-number">BETA</div>
+                        <div class="template-e-stat-label">Now Live</div>
+                    </div>
+                    <div class="template-e-stat">
+                        <div class="template-e-stat-number">∞</div>
+                        <div class="template-e-stat-label">Scalable</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="template-e-bottom-bar">
+            <div class="template-e-url">www.r1xlabs.com</div>
+        </div>
+    </div>
+
+    <!-- Template F - Token Launch Date Teaser -->
+    <div class="artboard template-f">
+        <div class="grain-overlay"></div>
+        <div class="template-f-radial-grid"></div>
+        <div class="template-f-corner-glow top-left"></div>
+        <div class="template-f-corner-glow bottom-right"></div>
+        <div class="corner-marks">
+            <div class="corner-mark top-left"></div>
+            <div class="corner-mark top-right"></div>
+            <div class="corner-mark bottom-left"></div>
+            <div class="corner-mark bottom-right"></div>
+        </div>
+        <div class="template-f-accent-bars"></div>
+        <div class="template-f-accent-bars-bottom"></div>
+        <div class="template-f-content">
+            <div class="template-f-logo-top">
+                <img src="./public/logosvg.svg" alt="r1x Logo" class="logo-white" />
+            </div>
+            <div class="template-f-eyebrow">COMING SOON</div>
+            <div class="template-f-date">11.7.2025</div>
+            <div class="template-f-tagline">The <span class="template-f-tagline-accent">$R1X</span> token launches</div>
+            <div class="template-f-subtitle">THE FUTURE OF AUTONOMOUS PAYMENTS</div>
+        </div>
+        <div class="template-f-countdown-label">TOKEN LAUNCH</div>
+    </div>
+
+    <!-- Template G - Payment Facilitators Showcase -->
+    <div class="artboard template-g">
+        <div class="grain-overlay"></div>
+        <div class="template-g-gradient-overlay"></div>
+        <div class="corner-marks">
+            <div class="corner-mark top-left"></div>
+            <div class="corner-mark top-right"></div>
+            <div class="corner-mark bottom-left"></div>
+            <div class="corner-mark bottom-right"></div>
+        </div>
+        <div class="template-g-content">
+            <div class="template-g-header">
+                <div class="template-g-logo">
+                    <img src="./public/logosvg.svg" alt="r1x Logo" class="logo-white" />
+                </div>
+                <div class="template-g-title-section">
+                    <div class="template-g-eyebrow">PAYMENT INFRASTRUCTURE</div>
+                    <div class="template-g-headline">Powering Autonomous Transactions</div>
+                    <div class="template-g-body">Building with industry-leading payment facilitators to enable seamless agent-to-agent value transfer</div>
+                </div>
+            </div>
+
+            <div class="template-g-facilitators">
+                <div class="template-g-section">
+                    <div class="template-g-section-label">
+                        <div class="template-g-status-badge active">ACTIVE</div>
+                        <div class="template-g-section-title">Current Facilitators</div>
+                    </div>
+                    <div class="template-g-logo-grid">
+                        <div class="template-g-facilitator-card">
+                            <div class="template-g-facilitator-logo-wrapper">
+                                <img src="./public/payai.jpg" alt="PayAI" class="template-g-facilitator-logo" />
+                            </div>
+                            <div class="template-g-facilitator-name">PayAI</div>
+                        </div>
+                        <div class="template-g-facilitator-card">
+                            <div class="template-g-facilitator-logo-wrapper">
+                                <img src="./public/logos/coinbase.png" alt="Coinbase" class="template-g-facilitator-logo" />
+                            </div>
+                            <div class="template-g-facilitator-name">Coinbase</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="template-g-divider"></div>
+
+                <div class="template-g-section">
+                    <div class="template-g-section-label">
+                        <div class="template-g-status-badge upcoming">COMING SOON</div>
+                        <div class="template-g-section-title">Expanding Capacity</div>
+                    </div>
+                    <div class="template-g-logo-grid template-g-logo-grid-three">
+                        <div class="template-g-facilitator-card upcoming">
+                            <div class="template-g-facilitator-logo-wrapper">
+                                <img src="./public/daydreams.png" alt="DayDreams" class="template-g-facilitator-logo" />
+                            </div>
+                            <div class="template-g-facilitator-name">DayDreams</div>
+                        </div>
+                        <div class="template-g-facilitator-card upcoming">
+                            <div class="template-g-facilitator-logo-wrapper">
+                                <img src="./public/thirdweb.jpg" alt="Thirdweb" class="template-g-facilitator-logo" />
+                            </div>
+                            <div class="template-g-facilitator-name">Thirdweb</div>
+                        </div>
+                        <div class="template-g-facilitator-card upcoming">
+                            <div class="template-g-facilitator-logo-wrapper">
+                                <img src="./public/stakefy.jpg" alt="Stakefy" class="template-g-facilitator-logo" />
+                            </div>
+                            <div class="template-g-facilitator-name">Stakefy</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="template-g-bottom-strip">
+            <div class="template-g-strip-text">Expanding agent payment capacity</div>
+        </div>
+    </div>
+
+    <!-- Template H - X Community Banner (Light Theme) -->
+    <div class="artboard-banner template-h">
+        <div class="template-h-geometric-bg"></div>
+        <div class="template-h-accent-circle"></div>
+        <div class="template-h-accent-circle-2"></div>
+        <div class="template-h-corner-accent"></div>
+        <div class="template-h-bottom-accent"></div>
+        <div class="template-h-brand-tag">R1X LABS</div>
+        
+        <div class="template-h-content">
+            <div class="template-h-left">
+                <div class="template-h-logo-container">
+                    <div class="template-h-logo-bg"></div>
+                    <img src="./public/logosvg.svg" alt="r1x Logo" class="template-h-logo-img" />
+                </div>
+            </div>
+            
+            <div class="template-h-right">
+                <div class="template-h-headline">
+                    <span class="template-h-headline-accent">r1x</span> builders
+                </div>
+                <div class="template-h-body">
+                    community
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template I - Twitter Article Banner (Premium Dark) -->
+    <div class="artboard-article template-i">
+        <div class="grain-overlay"></div>
+        <div class="template-i-grid"></div>
+        <div class="template-i-vignette"></div>
+        <div class="template-i-orange-glow"></div>
+        <div class="template-i-accent-bar"></div>
+        <div class="template-i-side-accent"></div>
+        
+        <div class="template-i-corner-marks-article">
+            <div class="template-i-corner-mark top-left"></div>
+            <div class="template-i-corner-mark top-right"></div>
+            <div class="template-i-corner-mark bottom-left"></div>
+            <div class="template-i-corner-mark bottom-right"></div>
+        </div>
+        
+        <div class="template-i-tag">R1X ARTICLE</div>
+        
+        <div class="template-i-content">
+            <div class="template-i-left">
+                <div class="template-i-eyebrow">THE MACHINE ECONOMY</div>
+                <div class="template-i-headline">
+                    The <span class="template-i-headline-accent">r1x</span> playbook
+                </div>
+                <div class="template-i-body">
+                    description
+                </div>
+            </div>
+            
+            <div class="template-i-right">
+                <div class="template-i-logo-container">
+                    <div class="template-i-logo-frame"></div>
+                    <img src="./public/logosvg.svg" alt="r1x Logo" class="template-i-logo-img" />
+                </div>
+            </div>
+        </div>
+        
+        <div class="template-i-decorative-lines">
+            <div class="template-i-dec-line"></div>
+            <div class="template-i-dec-line"></div>
+            <div class="template-i-dec-line"></div>
+        </div>
+    </div>
+
+    <!-- Template J - Vision/Roadmap (Premium White) -->
+    <div class="artboard template-j">
+        <!-- Right Side Pattern (1/3rd) -->
+        <div class="template-j-right-pattern"></div>
+        
+        <div class="template-j-bottom-bar"></div>
+        
+        <div class="template-j-corner-brackets">
+            <div class="template-j-bracket top-left-h"></div>
+            <div class="template-j-bracket top-left-v"></div>
+            <div class="template-j-bracket bottom-right-h"></div>
+            <div class="template-j-bracket bottom-right-v"></div>
+        </div>
+        
+        <div class="template-j-header">
+            <div class="template-j-logo-section">
+                <div class="template-j-logo-box">
+                    <img src="./public/logosvg.svg" alt="r1x Logo" />
+                </div>
+                <div class="template-j-brand-name">r1x labs</div>
+            </div>
+            <div class="template-j-eyebrow">VISION 2025</div>
+        </div>
+        
+        <div class="template-j-content">
+            <div class="template-j-main-headline">
+                Building the <span class="template-j-headline-accent">Future</span> of Autonomous Commerce
+            </div>
+            <div class="template-j-divider"></div>
+            <div class="template-j-body">
+                A comprehensive roadmap to power the machine economy—where AI agents transact, negotiate, and create value autonomously.
+            </div>
+        </div>
+    </div>
+
+    <!-- Template K - Expansion Announcement (DayDreams & Solana) -->
+    <div class="artboard template-k">
+        <div class="grain-overlay"></div>
+        <div class="template-k-grid-overlay"></div>
+        <div class="template-k-accent-glow"></div>
+        <div class="corner-marks">
+            <div class="corner-mark top-left"></div>
+            <div class="corner-mark top-right"></div>
+            <div class="corner-mark bottom-left"></div>
+            <div class="corner-mark bottom-right"></div>
+        </div>
+        
+        <div class="template-k-content">
+            <div class="template-k-header">
+                <div class="template-k-eyebrow">EXPANSION ANNOUNCEMENT</div>
+                <div class="template-k-headline">
+                    <span class="template-k-headline-accent">DayDreams</span> Facilitator<br/>
+                    & <span class="template-k-headline-accent">Solana</span> Network
+                </div>
+                <div class="template-k-body">
+                    Expanding payment infrastructure and network support.
+                </div>
+            </div>
+
+            <div class="template-k-logos-section">
+                <div class="template-k-logo-card">
+                    <div class="template-k-logo-wrapper">
+                        <img src="public/daydreams.png" alt="DayDreams Facilitator" class="template-k-logo-img" />
+                    </div>
+                    <div class="template-k-logo-name">DayDreams<br/>Facilitator</div>
+                </div>
+
+                <div class="template-k-connector-line"></div>
+
+                <div class="template-k-logo-card">
+                    <div class="template-k-logo-wrapper">
+                        <img src="public/solana.jpg" alt="Solana Network" class="template-k-logo-img" />
+                    </div>
+                    <div class="template-k-logo-name">Solana<br/>Network</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="template-k-bottom-bar">
+            <div class="template-k-bottom-text">r1xlabs.com</div>
+        </div>
+    </div>
+</body>
+</html>
+

@@ -1,0 +1,78 @@
+{
+  "name": "x402robotics",
+  "version": "0.1.0",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/0xLaylo/r1x-402.git"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "dev:x402": "tsx watch x402-server/index.ts",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:x402\"",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "postinstall": "prisma generate",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0",
+    "@prisma/client": "^6.18.0",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@reown/appkit": "^1.8.12",
+    "@reown/appkit-adapter-wagmi": "^1.8.12",
+    "@reown/appkit-adapter-solana": "^1.8.12",
+    "@tanstack/react-query": "^5.90.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
+    "@types/three": "^0.181.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "framer-motion": "^12.23.24",
+    "gsap": "^3.12.5",
+    "lucide-react": "^0.552.0",
+    "next": "16.0.1",
+    "prisma": "^6.18.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "recharts": "^3.3.0",
+    "tailwind-merge": "^3.3.1",
+    "three": "^0.181.0",
+    "viem": "^2.38.6",
+    "wagmi": "^2.19.2",
+    "x402-express": "^0.7.1",
+    "x402-fetch": "^0.7.0"
+  },
+  "engines": {
+    "node": ">=20.9.0",
+    "npm": ">=10.0.0"
+  },
+  "peerDependencies": {
+    "gsap": "^3.12.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitest/ui": "^2.1.8",
+    "concurrently": "^9.2.1",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.1",
+    "tailwindcss": "^4",
+    "tsx": "^4.20.6",
+    "typescript": "^5",
+    "vitest": "^2.1.8"
+  }
+}

@@ -1,0 +1,116 @@
+warning: in the working copy of 'src/components/hero/HeroBackground.tsx', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/src/components/hero/HeroBackground.tsx b/src/components/hero/HeroBackground.tsx[m
+[1mindex 0bafaaa..45c67c6 100644[m
+[1m--- a/src/components/hero/HeroBackground.tsx[m
+[1m+++ b/src/components/hero/HeroBackground.tsx[m
+[36m@@ -83,7 +83,6 @@[m [mexport default function HeroBackground() {[m
+       precision mediump float;[m
+       attribute vec3 position;[m
+       attribute float aIntensity;[m
+[31m-      attribute float aBand;[m
+       uniform float u_pointSize;[m
+       uniform float u_pixelRatio;[m
+       uniform float u_time;[m
+[36m@@ -105,27 +104,26 @@[m [mexport default function HeroBackground() {[m
+         float wave1 = sin(pos.y * u_waveFreq + u_time * u_waveSpeedX);[m
+         float wave2 = sin(pos.x * (u_waveFreq * 1.2) - u_time * u_waveSpeedY);[m
+         float wave = 0.5 * (wave1 + wave2);[m
+[31m-        float waveFactor = 1.0 - aBand; // top band disables wave[m
+[31m-        pos.x += u_waveAmp * wave * 0.8 * waveFactor;[m
+[32m+[m[32m        pos.x += u_waveAmp * wave * 0.8;[m
+         // Reduce vertical displacement near top edge to avoid exposing background[m
+         float topTaper = smoothstep(u_edgeTopStart, u_edgeTopEnd, orig.y);[m
+         float yFactor = mix(1.0, u_edgeTopMin, topTaper);[m
+[31m-        pos.y += u_waveAmp * wave * 0.6 * yFactor * waveFactor;[m
+[32m+[m[32m        pos.y += u_waveAmp * wave * 0.6 * yFactor;[m
+         // Do not allow upward movement beyond original y near the very top[m
+         float topClamp = smoothstep(0.9, 1.0, orig.y);[m
+         pos.y = mix(pos.y, min(pos.y, orig.y - 0.002), topClamp);[m
+[31m-        pos.z -= abs(wave) * 0.08 * yFactor * waveFactor;[m
+[32m+[m[32m        pos.z -= abs(wave) * 0.08 * yFactor;[m
+         // Scanning band left->right->left via sin time[m
+         float s = 0.5 + 0.5 * sin(u_time);[m
+         float scanCenter = mix(-1.2, 1.2, s);[m
+         float bandL = smoothstep(scanCenter - u_scanWidth, scanCenter, pos.x);[m
+         float bandR = 1.0 - smoothstep(scanCenter, scanCenter + u_scanWidth, pos.x);[m
+         float band = clamp(bandL * bandR, 0.0, 1.0);[m
+[31m-        vScan = mix(band, 1.0, aBand);[m
+[32m+[m[32m        vScan = band;[m
+         gl_Position = vec4(pos, 1.0);[m
+[31m-        gl_PointSize = u_pointSize * (1.0 + abs(wave) * 0.5 * waveFactor) * u_pixelRatio;[m
+[32m+[m[32m        gl_PointSize = u_pointSize * (1.0 + abs(wave) * 0.5) * u_pixelRatio;[m
+         vAlpha = aIntensity * 1.0;[m
+[31m-        vMask = abs(wave) * waveFactor;[m
+[32m+[m[32m        vMask = abs(wave);[m
+       }[m
+     `;[m
+ [m
+[36m@@ -167,6 +165,7 @@[m [mexport default function HeroBackground() {[m
+     });[m
+ [m
+     let points: THREE.Points | null = null;[m
+[32m+[m[41m    [m
+ [m
+     const build = (width: number, height: number) => {[m
+       if (points) {[m
+[36m@@ -176,13 +175,12 @@[m [mexport default function HeroBackground() {[m
+ [m
+       const positions: number[] = [];[m
+       const intensities: number[] = [];[m
+[31m-      const bands: number[] = [];[m
+ [m
+       const columnSpacings = [8, 9, 10, 8, 9, 10, 8, 9, 10, 8, 9, 10, 8, 9, 10];[m
+       const rowSpacing = 8;[m
+ [m
+       // Build x positions with overscan beyond edges[m
+[31m-      const overscanX = Math.ceil(width * 0.15);[m
+[32m+[m[32m      const overscanX = Math.ceil(width * 0.25);[m
+       const xPositionsPx: number[] = [];[m
+       let currentX = -overscanX;[m
+       let colIndex = 0;[m
+[36m@@ -196,7 +194,7 @@[m [mexport default function HeroBackground() {[m
+       }[m
+ [m
+       // Build y positions with overscan beyond edges[m
+[31m-      const overscanY = Math.ceil(height * 0.8);[m
+[32m+[m[32m      const overscanY = Math.ceil(height * 0.45);[m
+       const yPositionsPx: number[] = [];[m
+       let currentY = -overscanY;[m
+       while (currentY < height + overscanY) {[m
+[36m@@ -213,34 +211,16 @@[m [mexport default function HeroBackground() {[m
+           const py = yPositionsPx[yi];[m
+           const hash = ((px * 131 + py * 137) % 1000) / 1000.0;[m
+           const intensity = 0.75 + hash * 0.25;[m
+[31m-          const x = (px / width) * 2.0 - 1.0;[m
+[31m-          const y = -((py / height) * 2.0 - 1.0);[m
+[32m+[m[32m          const x = ((px + overscanX) / (width + 2.0 * overscanX)) * 2.0 - 1.0;[m
+[32m+[m[32m          const y = -(((py + overscanY) / (height + 2.0 * overscanY)) * 2.0 - 1.0);[m
+           positions.push(x, y, 0);[m
+           intensities.push(intensity);[m
+[31m-          bands.push(0);[m
+[31m-        }[m
+[31m-      }[m
+[31m-[m
+[31m-      // Add a static top band (3 rows) pinned near top inside the viewport[m
+[31m-      const bandRowsPx = [0, 6, 12];[m
+[31m-      for (let br = 0; br < bandRowsPx.length; br++) {[m
+[31m-        const py = bandRowsPx[br];[m
+[31m-        const y = -((py / height) * 2.0 - 1.0);[m
+[31m-        for (let xi = 0; xi < xPositionsPx.length; xi++) {[m
+[31m-          const px = xPositionsPx[xi];[m
+[31m-          const hash = ((px * 131 + py * 137) % 1000) / 1000.0;[m
+[31m-          const intensity = 0.75 + hash * 0.25;[m
+[31m-          const x = (px / width) * 2.0 - 1.0;[m
+[31m-          positions.push(x, y, 0);[m
+[31m-          intensities.push(intensity);[m
+[31m-          bands.push(1);[m
+         }[m
+       }[m
+ [m
+       const geometry = new THREE.BufferGeometry();[m
+       geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));[m
+       geometry.setAttribute('aIntensity', new THREE.Float32BufferAttribute(intensities, 1));[m
+[31m-      geometry.setAttribute('aBand', new THREE.Float32BufferAttribute(bands, 1));[m
+       points = new THREE.Points(geometry, material);[m
+       scene.add(points);[m
+     };[m
