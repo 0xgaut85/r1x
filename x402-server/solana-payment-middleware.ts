@@ -114,52 +114,8 @@ async function settlePaymentWithDaydreams(
 }
 
 /**
- * Get transaction details from Solana network
- * Note: This function is currently unused - we rely on proof from client
- */
-async function getSolanaTransaction(signature: string): Promise<{ 
-  signature: string; 
-  from?: string; 
-  to?: string; 
-  amount?: string;
-  error?: string;
-}> {
-  try {
-    const connection = new Connection(SOLANA_RPC_URL, 'confirmed');
-    const tx = await connection.getTransaction(signature, {
-      commitment: 'confirmed',
-      maxSupportedTransactionVersion: 0,
-    });
-    
-    if (!tx) {
-      return { signature, error: 'Transaction not found' };
-    }
-    
-    // Extract transfer details from transaction
-    // For SPL token transfers, we need to parse the instructions
-    // Note: Full parsing of SPL token transfers requires parsing instructions
-    // For now, we'll rely on the proof provided by the client
-    // The transaction message can be VersionedMessage, so we use getAccountKeys() if available
-    let from: string | undefined;
-    try {
-      const message = tx.transaction.message;
-      if ('getAccountKeys' in message && typeof message.getAccountKeys === 'function') {
-        const accountKeys = message.getAccountKeys();
-        from = accountKeys.staticAccountKeys[0]?.toString();
-      }
-    } catch (e) {
-      // Fallback - rely on client proof
-    }
-    
-    return { signature, from };
-  } catch (error: any) {
-    return { signature, error: error.message || 'Failed to fetch transaction' };
-  }
-}
-
-/**
  * Solana payment verification middleware
- * Checks if request is for Solana network and verifies payment via Daydreams facilitator
+ * Checks if request is for Solana network and verifies payment via Daydreams facilitator (x402 protocol)
  */
 export function solanaPaymentMiddleware(
   routeConfig: {
