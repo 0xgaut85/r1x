@@ -1853,9 +1853,9 @@ export default function R1xAgentContent() {
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden" style={{ backgroundColor: '#0A0A0A', overflowY: 'hidden' }}>
       <AgentBackground />
-      <AgentHeader address={address} isConnected={isConnected} />
+      <AgentHeader address={address || undefined} isConnected={isConnected} />
       <AgentLeftSidebar 
-        address={address} 
+        address={address || undefined} 
         isConnected={isConnected}
         onReRun={handleReRunByServiceId}
       />

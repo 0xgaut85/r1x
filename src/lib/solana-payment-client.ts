@@ -1,7 +1,12 @@
 'use client';
 
-import { Connection, PublicKey, Transaction, ComputeBudgetProgram } from '@solana/web3.js';
-import { getAssociatedTokenAddress, createTransferInstruction, getAccount } from '@solana/spl-token';
+import { Connection, PublicKey, Transaction, ComputeBudgetProgram, SendTransactionError } from '@solana/web3.js';
+import {
+  getAssociatedTokenAddress,
+  createTransferInstruction,
+  getAccount,
+  createAssociatedTokenAccountInstruction,
+} from '@solana/spl-token';
 import { usdcToAtomic } from './solana-payment';
 import { getSolanaRpcUrl } from './solana-rpc-config';
 
@@ -76,6 +81,7 @@ export class SolanaPaymentClient {
   async transferUSDC(params: {
     to: string;
     amount: string; // Decimal string, e.g., "0.25"
+    priorityMicroLamports?: number; // Optional priority fee per CU (micro-lamports)
   }): Promise<{
     signature: string;
     proof: {
@@ -94,7 +100,7 @@ export class SolanaPaymentClient {
       throw new Error('Solana wallet not connected');
     }
 
-    const { to, amount } = params;
+    const { to, amount, priorityMicroLamports } = params;
 
     // Get wallet public key
     const publicKey = this.wallet.publicKey;
@@ -110,6 +116,20 @@ export class SolanaPaymentClient {
     const amountAtomic = BigInt(usdcToAtomic(amount));
 
     try {
+      // Ensure payer has some SOL for fees (priority + ATA creation)
+      try {
+        const lamports = await (this.connection as Connection).getBalance(fromPubkey, 'confirmed');
+        // Require at least ~0.0005 SOL to cover small priority and potential ATA creation
+        if (lamports < 500_000) {
+          throw new Error('Insufficient SOL for fees. Please keep at least 0.0005 SOL for priority/ATA creation.');
+        }
+      } catch (balErr: any) {
+        // Non-fatal check; continue if balance fails to fetch
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[SolanaPaymentClient] Balance check failed:', balErr?.message || balErr);
+        }
+      }
+
       // Get associated token accounts
       const fromTokenAccount = await getAssociatedTokenAddress(mintPubkey, fromPubkey);
       const toTokenAccount = await getAssociatedTokenAddress(mintPubkey, toPubkey);
@@ -158,6 +178,14 @@ export class SolanaPaymentClient {
         throw new Error(`Insufficient USDC balance. Required: ${amount}, Available: ${Number(fromAccount.amount) / 1e6}`);
       }
 
+      // Determine if recipient ATA exists; if not, add create ATA instruction
+      let needCreateRecipientAta = false;
+      try {
+        await getAccount(this.connection as Connection, toTokenAccount);
+      } catch {
+        needCreateRecipientAta = true;
+      }
+
       // Create transfer instruction
       const transferInstruction = createTransferInstruction(
         fromTokenAccount,
@@ -167,117 +195,172 @@ export class SolanaPaymentClient {
         []
       );
 
-      // Create transaction with priority fees (required for Solana v0 transactions)
-      const transaction = new Transaction();
+      // Attempts with escalating priority fees to satisfy tip account write-lock
+      const attemptSend = async (microLamports: number): Promise<string> => {
+        // Create transaction with priority fees (required for Solana v0 transactions)
+        const transaction = new Transaction();
       
-      // Add compute budget instructions for priority fees
-      // This fixes "Transaction must write lock at least one tip account" error
-      const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
-        units: 200000, // Standard compute units for token transfer
-      });
-      
-      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-        microLamports: 1000, // Small priority fee (0.000001 SOL per compute unit)
-      });
-      
-      transaction.add(modifyComputeUnits);
-      transaction.add(addPriorityFee);
-      transaction.add(transferInstruction);
-
-      // Get recent blockhash (may also fail with RPC errors)
-      let blockhash;
-      try {
-        const blockhashResult = await (this.connection as Connection).getLatestBlockhash('confirmed');
-        blockhash = blockhashResult.blockhash;
-      } catch (blockhashError: any) {
-        const errorMsg = String(blockhashError?.message || '');
-        const errorString = JSON.stringify(blockhashError || {});
-        const isRpcError = 
-          errorMsg.includes('403') ||
-          errorMsg.toLowerCase().includes('access forbidden') ||
-          errorMsg.includes('Endpoint URL must start') ||
-          errorString.includes('"code": 403') ||
-          errorString.includes('"code":403');
-        
-        if (isRpcError) {
-          // Same error handling as above
-          if (this.rpcUrl.includes('helius-rpc.com')) {
-            throw new Error(
-              'Helius RPC returned 403. Please ensure your domain is allowlisted in Helius dashboard. ' +
-              'Domain: ' + (typeof window !== 'undefined' ? window.location.origin : 'unknown')
-            );
-          } else {
-            const currentRpc = this.rpcUrl.includes('quiknode') ? 'QuickNode' : 
-                              this.rpcUrl.includes('helius') ? 'Helius' : 
-                              'public Solana RPC';
-            throw new Error(
-              `Solana RPC error (403). Current RPC: ${currentRpc}. ` +
-              `Please ensure SOLANA_RPC_URL is set with QuickNode URL in Railway.`
-            );
-          }
-        } else {
-          throw blockhashError;
-        }
-      }
-
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = fromPubkey;
-
-      // Sign transaction with wallet
-      const signedTransaction = await this.wallet.signTransaction(transaction);
-
-      // Send transaction (may also fail with RPC errors)
-      let signature;
-      try {
-        signature = await (this.connection as Connection).sendRawTransaction(signedTransaction.serialize(), {
-          skipPreflight: false,
-          maxRetries: 3,
+        // Add compute budget instructions for priority fees
+        // This fixes "Transaction must write lock at least one tip account" error
+        // If creating ATA, need more compute units (400k vs 200k)
+        const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
+          units: needCreateRecipientAta ? 400_000 : 200_000, // ATA creation requires more compute
         });
-      } catch (sendError: any) {
-        const errorMsg = String(sendError?.message || '');
-        const errorString = JSON.stringify(sendError || {});
-        const isRpcError = 
-          errorMsg.includes('403') ||
-          errorMsg.toLowerCase().includes('access forbidden') ||
-          errorMsg.includes('Endpoint URL must start') ||
-          errorString.includes('"code": 403') ||
-          errorString.includes('"code":403');
         
-        if (isRpcError) {
-          // Same error handling as above
-          if (this.rpcUrl.includes('helius-rpc.com')) {
-            throw new Error(
-              'Helius RPC returned 403. Please ensure your domain is allowlisted in Helius dashboard. ' +
-              'Domain: ' + (typeof window !== 'undefined' ? window.location.origin : 'unknown')
-            );
-          } else {
-            const currentRpc = this.rpcUrl.includes('quiknode') ? 'QuickNode' : 
-                              this.rpcUrl.includes('helius') ? 'Helius' : 
-                              'public Solana RPC';
-            throw new Error(
-              `Solana RPC error (403). Current RPC: ${currentRpc}. ` +
-              `Please ensure SOLANA_RPC_URL is set with QuickNode URL in Railway.`
-            );
-          }
-        } else {
-          throw sendError;
+        const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+          microLamports, // dynamic
+        });
+        
+        transaction.add(modifyComputeUnits);
+        transaction.add(addPriorityFee);
+
+        // Create recipient ATA if needed
+        if (needCreateRecipientAta) {
+          transaction.add(
+            createAssociatedTokenAccountInstruction(
+              fromPubkey,       // payer
+              toTokenAccount,   // ata to create
+              toPubkey,         // owner of ata
+              mintPubkey        // token mint
+            )
+          );
         }
+
+        transaction.add(transferInstruction);
+
+        // Get recent blockhash (may also fail with RPC errors)
+        let blockhash;
+        try {
+          const blockhashResult = await (this.connection as Connection).getLatestBlockhash('confirmed');
+          blockhash = blockhashResult.blockhash;
+        } catch (blockhashError: any) {
+          const errorMsg = String(blockhashError?.message || '');
+          const errorString = JSON.stringify(blockhashError || {});
+          const isRpcError = 
+            errorMsg.includes('403') ||
+            errorMsg.toLowerCase().includes('access forbidden') ||
+            errorMsg.includes('Endpoint URL must start') ||
+            errorString.includes('"code": 403') ||
+            errorString.includes('"code":403');
+          
+          if (isRpcError) {
+            // Same error handling as above
+            if (this.rpcUrl.includes('helius-rpc.com')) {
+              throw new Error(
+                'Helius RPC returned 403. Please ensure your domain is allowlisted in Helius dashboard. ' +
+                'Domain: ' + (typeof window !== 'undefined' ? window.location.origin : 'unknown')
+              );
+            } else {
+              const currentRpc = this.rpcUrl.includes('quiknode') ? 'QuickNode' : 
+                                this.rpcUrl.includes('helius') ? 'Helius' : 
+                                'public Solana RPC';
+              throw new Error(
+                `Solana RPC error (403). Current RPC: ${currentRpc}. ` +
+                `Please ensure SOLANA_RPC_URL is set with QuickNode URL in Railway.`
+              );
+            }
+          } else {
+            throw blockhashError;
+          }
+        }
+
+        transaction.recentBlockhash = blockhash;
+        transaction.feePayer = fromPubkey;
+
+        // Sign transaction with wallet
+        const signedTransaction = await this.wallet.signTransaction(transaction);
+
+        // Send transaction (may also fail with RPC errors)
+        let signature;
+        try {
+          signature = await (this.connection as Connection).sendRawTransaction(signedTransaction.serialize(), {
+            skipPreflight: false,
+            maxRetries: 3,
+          });
+        } catch (sendError: any) {
+          // Surface simulation logs if available
+          if (sendError instanceof SendTransactionError) {
+            const logs = (sendError as any).logs || (sendError as any)?.cause?.logs;
+            if (logs && process.env.NODE_ENV !== 'production') {
+              console.error('[SolanaPaymentClient] Simulation logs:', logs);
+            }
+          }
+          const errorMsg = String(sendError?.message || '');
+          const errorString = JSON.stringify(sendError || {});
+          const isRpcError = 
+            errorMsg.includes('403') ||
+            errorMsg.toLowerCase().includes('access forbidden') ||
+            errorMsg.includes('Endpoint URL must start') ||
+            errorString.includes('"code": 403') ||
+            errorString.includes('"code":403');
+          
+          if (isRpcError) {
+            // Same error handling as above
+            if (this.rpcUrl.includes('helius-rpc.com')) {
+              throw new Error(
+                'Helius RPC returned 403. Please ensure your domain is allowlisted in Helius dashboard. ' +
+                'Domain: ' + (typeof window !== 'undefined' ? window.location.origin : 'unknown')
+              );
+            } else {
+              const currentRpc = this.rpcUrl.includes('quiknode') ? 'QuickNode' : 
+                                this.rpcUrl.includes('helius') ? 'Helius' : 
+                                'public Solana RPC';
+              throw new Error(
+                `Solana RPC error (403). Current RPC: ${currentRpc}. ` +
+                `Please ensure SOLANA_RPC_URL is set with QuickNode URL in Railway.`
+              );
+            }
+          } else {
+            throw sendError;
+          }
+        }
+
+        // Wait for confirmation
+        await (this.connection as Connection).confirmTransaction(signature, 'confirmed');
+        return signature;
+      };
+
+      // Use provided priority or start with sensible default, retry once with higher tip if needed
+      const firstPriority = typeof priorityMicroLamports === 'number' ? priorityMicroLamports : 10_000;
+      try {
+        const sig = await attemptSend(firstPriority);
+        return {
+          signature: sig,
+          proof: {
+            signature: sig,
+            from: fromPubkey.toString(),
+            to: toPubkey.toString(),
+            amount: amountAtomic.toString(),
+            tokenSymbol: 'USDC',
+            token: USDC_MINT,
+          },
+        };
+      } catch (e: any) {
+        const emsg = String(e?.message || '');
+        const tipLockError = emsg.toLowerCase().includes('write lock at least one tip account') ||
+                             emsg.toLowerCase().includes('tip account');
+        if (tipLockError) {
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn('[SolanaPaymentClient] Retrying with higher priority fee due to tip account error');
+          }
+          // Retry with higher tip
+          const higherPriority = Math.max(firstPriority, 100_000);
+          const sig = await attemptSend(higherPriority);
+          return {
+            signature: sig,
+            proof: {
+              signature: sig,
+              from: fromPubkey.toString(),
+              to: toPubkey.toString(),
+              amount: amountAtomic.toString(),
+              tokenSymbol: 'USDC',
+              token: USDC_MINT,
+            },
+          };
+        }
+        throw e;
       }
 
-      // Wait for confirmation
-      await (this.connection as Connection).confirmTransaction(signature, 'confirmed');
-
-      return {
-        signature,
-        proof: {
-          signature,
-          from: fromPubkey.toString(),
-          to: toPubkey.toString(),
-          amount: amountAtomic.toString(),
-          tokenSymbol: 'USDC',
-          token: USDC_MINT,
-        },
-      };
     } catch (error: any) {
       console.error('[SolanaPaymentClient] Transfer error:', error);
       throw new Error(`Solana USDC transfer failed: ${error.message}`);
