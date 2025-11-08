@@ -76,9 +76,12 @@ RUN chmod +x scripts/start.sh
 
 USER nextjs
 
-EXPOSE 3000
+# Railway sets PORT dynamically - don't hardcode it
+# EXPOSE is just documentation, Railway uses the PORT env var
+EXPOSE 8080
 
-ENV PORT=3000
+# Railway will set PORT automatically - don't override it
+# HOSTNAME must be 0.0.0.0 to accept connections from Railway
 ENV HOSTNAME="0.0.0.0"
 
 # Use start script that runs migrations before starting
