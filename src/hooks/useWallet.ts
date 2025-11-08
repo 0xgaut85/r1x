@@ -104,11 +104,10 @@ export function useWallet() {
   const { solanaAddress, isSolanaConnected } = useSolanaWallet();
 
   // Combined connection status: EVM OR Solana
-  // Wagmi's useAccount hook automatically handles EVM disconnect events
-  // useSolanaWallet hook handles Solana disconnect events
+  // Prefer EVM address when EVM is connected; otherwise fall back to Solana.
+  // This avoids stale Solana address after switching to an EVM wallet (e.g., Rabby).
   const isAnyWalletConnected = isConnected || isSolanaConnected;
-  // Prefer Solana address if connected, otherwise EVM address
-  const displayAddress = solanaAddress || address;
+  const displayAddress = (isConnected && address) ? address : (isSolanaConnected ? solanaAddress : null);
 
   const transferUSDC = async (to: string, amount: string): Promise<string> => {
     if (!walletClient || !address) {
