@@ -243,10 +243,7 @@ function ServiceCard({ service, index, currentNetwork }: { service: MarketplaceS
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               proof: feeResult.proof,
-              verifyPayload: { signature: feeResult.signature, ...feeResult.proof }, // Minimal payload
-              settlePayload: { signature: feeResult.signature, ...feeResult.proof }, // Minimal payload
               feeAmount,
-              routerSettled: false, // We created the transaction ourselves
             }),
           });
 

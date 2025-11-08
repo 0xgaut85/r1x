@@ -1,8 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
+import { Connection } from '@solana/web3.js';
 
 export const dynamic = 'force-dynamic';
+
+const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+
+/**
+ * Verify Solana transaction exists on-chain
+ * This is the correct method - Solana transactions are verified on-chain
+ */
+async function verifySolanaTransaction(signature: string): Promise<{ verified: boolean; error?: string }> {
+  try {
+    const connection = new Connection(SOLANA_RPC_URL, 'confirmed');
+    const txStatus = await connection.getSignatureStatus(signature);
+    
+    if (!txStatus || !txStatus.value) {
+      return { verified: false, error: 'Transaction not found' };
+    }
+    
+    if (txStatus.value.err) {
+      return { verified: false, error: `Transaction failed: ${JSON.stringify(txStatus.value.err)}` };
+    }
+    
+    return { verified: true };
+  } catch (error: any) {
+    return { verified: false, error: error.message || 'Verification error' };
+  }
+}
 
 function formatUSDC(amount: string): string {
   try {
@@ -31,27 +57,10 @@ const ProofSchema = z.object({
   token: z.string().optional(),
 });
 
-async function fetchWithRetry(url: string, init: RequestInit, attempts = 2, timeoutMs = 15000): Promise<Response> {
-  let lastErr: any;
-  for (let i = 0; i <= attempts; i++) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const res = await fetch(url, { ...init, signal: controller.signal });
-      clearTimeout(timer);
-      if (res.ok || (res.status >= 400 && res.status < 500)) return res; // don't retry 4xx
-      lastErr = new Error(`HTTP ${res.status}: ${res.statusText}`);
-    } catch (e) {
-      lastErr = e;
-    }
-  }
-  throw lastErr;
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { serviceId, serviceName, proof, verifyPayload, settlePayload, routerSettled } = body;
+    const { serviceId, serviceName, proof } = body;
 
     if (!serviceId || !serviceName || !proof) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -65,39 +74,19 @@ export async function POST(request: NextRequest) {
 
     const facilitatorUrl = process.env.DAYDREAMS_FACILITATOR_URL || 'https://facilitator.daydreams.systems';
 
-    // If not routerSettled, perform verify/settle
-    let verifyJson: any = undefined;
-    let settleJson: any = undefined;
-
-    if (!routerSettled) {
-      if (!verifyPayload || !settlePayload) {
-        return NextResponse.json({ error: 'Missing verify/settle payloads' }, { status: 400 });
-      }
-
-      const verifyRes = await fetchWithRetry(`${facilitatorUrl}/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify(verifyPayload),
-      });
-
-      if (!verifyRes.ok) {
-        const text = await verifyRes.text().catch(() => '');
-        return NextResponse.json({ error: 'Verification failed', details: text }, { status: 400 });
-      }
-      verifyJson = await verifyRes.json().catch(() => ({}));
-
-      const settleRes = await fetchWithRetry(`${facilitatorUrl}/settle`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify(settlePayload),
-      });
-
-      if (!settleRes.ok) {
-        const text = await settleRes.text().catch(() => '');
-        return NextResponse.json({ error: 'Settlement failed', details: text }, { status: 400 });
-      }
-      settleJson = await settleRes.json().catch(() => ({}));
+    // Verify transaction on-chain (correct method for Solana)
+    // Solana transactions are settled immediately when sent, so we verify on-chain
+    const verifyResult = await verifySolanaTransaction(validProof.signature);
+    
+    if (!verifyResult.verified) {
+      return NextResponse.json({ 
+        error: 'Payment verification failed', 
+        details: verifyResult.error 
+      }, { status: 400 });
     }
+
+    // Transaction verified on-chain - no separate settlement needed for Solana
+    const settlementHash = validProof.signature; // Solana signature is the settlement hash
 
     const tokenSymbol: string = validProof.tokenSymbol || 'USDC';
     const tokenString: string = validProof.token || tokenSymbol;
@@ -129,14 +118,12 @@ export async function POST(request: NextRequest) {
     const feePct = parseFloat(process.env.PLATFORM_FEE_PERCENTAGE || '5');
     const { feeAmount, merchantAmount } = calculateFees(amount, isFinite(feePct) ? feePct : 5);
 
-    const settlementHash = routerSettled
-      ? null
-      : (settleJson?.settlementHash || settleJson?.transactionHash || settleJson?.hash || null);
+    const settlementHash = validProof.signature; // Solana signature is the settlement hash
 
     await prisma.transaction.create({
       data: {
         serviceId: dbService.id,
-        transactionHash: String(validProof.signature || (validProof as any).transactionHash || 'unknown'),
+        transactionHash: String(validProof.signature),
         settlementHash: settlementHash,
         blockNumber: null,
         from: String(validProof.from || '').toString(),
@@ -146,15 +133,20 @@ export async function POST(request: NextRequest) {
         chainId: 0,
         feeAmount,
         merchantAmount,
-        status: routerSettled ? 'settled' : 'settled',
-        verificationStatus: routerSettled ? 'verified' : 'verified',
+        status: 'settled',
+        verificationStatus: 'verified',
         verifiedAt: new Date(),
         settledAt: new Date(),
         timestamp: new Date(),
       },
     });
 
-    return NextResponse.json({ success: true, verify: verifyJson, settle: settleJson });
+    return NextResponse.json({ 
+      success: true, 
+      verified: true,
+      settled: true,
+      settlementHash,
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || 'Internal error' }, { status: 500 });
   }

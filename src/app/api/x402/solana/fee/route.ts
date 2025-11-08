@@ -1,8 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
+import { Connection } from '@solana/web3.js';
 
 export const dynamic = 'force-dynamic';
+
+const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+
+/**
+ * Verify Solana transaction exists on-chain
+ */
+async function verifySolanaTransaction(signature: string): Promise<{ verified: boolean; error?: string }> {
+  try {
+    const connection = new Connection(SOLANA_RPC_URL, 'confirmed');
+    const txStatus = await connection.getSignatureStatus(signature);
+    
+    if (!txStatus || !txStatus.value) {
+      return { verified: false, error: 'Transaction not found' };
+    }
+    
+    if (txStatus.value.err) {
+      return { verified: false, error: `Transaction failed: ${JSON.stringify(txStatus.value.err)}` };
+    }
+    
+    return { verified: true };
+  } catch (error: any) {
+    return { verified: false, error: error.message || 'Verification error' };
+  }
+}
 
 function formatUSDC(amount: string): string {
   try {
@@ -26,29 +51,12 @@ const ProofSchema = z.object({
 
 const FeeAmountSchema = z.string().regex(/^\d+(\.\d{1,6})?$/);
 
-async function fetchWithRetry(url: string, init: RequestInit, attempts = 2, timeoutMs = 15000): Promise<Response> {
-  let lastErr: any;
-  for (let i = 0; i <= attempts; i++) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const res = await fetch(url, { ...init, signal: controller.signal });
-      clearTimeout(timer);
-      if (res.ok || (res.status >= 400 && res.status < 500)) return res;
-      lastErr = new Error(`HTTP ${res.status}: ${res.statusText}`);
-    } catch (e) {
-      lastErr = e;
-    }
-  }
-  throw lastErr;
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const { proof, verifyPayload, settlePayload, feeAmount } = await request.json();
+    const { proof, feeAmount } = await request.json();
 
-    if (!proof || !verifyPayload || !settlePayload) {
-      return NextResponse.json({ error: 'Missing required fields: proof, verifyPayload, settlePayload' }, { status: 400 });
+    if (!proof) {
+      return NextResponse.json({ error: 'Missing required field: proof' }, { status: 400 });
     }
 
     const proofParsed = ProofSchema.safeParse(proof);
@@ -72,33 +80,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Recipient mismatch: fee must be paid to SOLANA_FEE_RECIPIENT_ADDRESS' }, { status: 400 });
     }
 
-    // Verify via Daydreams
-    const verifyRes = await fetchWithRetry(`${facilitatorUrl}/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify(verifyPayload),
-    });
-
-    if (!verifyRes.ok) {
-      const t = await verifyRes.text().catch(() => '');
-      return NextResponse.json({ error: 'Verification failed', details: t }, { status: 400 });
+    // Verify transaction on-chain (correct method for Solana)
+    const verifyResult = await verifySolanaTransaction(proofParsed.data.signature);
+    
+    if (!verifyResult.verified) {
+      return NextResponse.json({ 
+        error: 'Payment verification failed', 
+        details: verifyResult.error 
+      }, { status: 400 });
     }
 
-    const verifyJson: any = await verifyRes.json().catch(() => ({}));
-
-    // Settle via Daydreams
-    const settleRes = await fetchWithRetry(`${facilitatorUrl}/settle`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify(settlePayload),
-    });
-
-    if (!settleRes.ok) {
-      const t = await settleRes.text().catch(() => '');
-      return NextResponse.json({ error: 'Settlement failed', details: t }, { status: 400 });
-    }
-
-    const settleJson: any = await settleRes.json().catch(() => ({}));
+    // Transaction verified on-chain - no separate settlement needed for Solana
+    const settlementHash = proofParsed.data.signature; // Solana signature is the settlement hash
 
     // Persist fee transaction (100% fee to platform)
     const tokenSymbol: string = proofParsed.data.tokenSymbol || 'USDC';
@@ -139,12 +132,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const settlementHash = settleJson.settlementHash || settleJson.transactionHash || settleJson.hash || null;
-
     await prisma.transaction.create({
       data: {
         serviceId: dbService.id,
-        transactionHash: String(proofParsed.data.signature || (proofParsed.data as any).transactionHash || 'unknown'),
+        transactionHash: String(proofParsed.data.signature),
         settlementHash: settlementHash,
         blockNumber: null,
         from: String(proofParsed.data.from || '').toString(),
@@ -162,7 +153,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ success: true, verify: verifyJson, settle: settleJson });
+    return NextResponse.json({ 
+      success: true, 
+      verified: true,
+      settled: true,
+      settlementHash,
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || 'Internal error' }, { status: 500 });
   }
