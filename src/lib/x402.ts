@@ -7,7 +7,7 @@
 
 import { PaymentQuote, PaymentProof, FacilitatorVerifyRequest, FacilitatorVerifyResponse, FacilitatorSettleRequest, FacilitatorSettleResponse, MerchantFeeConfig, PaymentStatus } from './types/x402';
 
-const PAYAI_FACILITATOR_URL = 'https://facilitator.payai.network';
+const PAYAI_FACILITATOR_URL = process.env.FACILITATOR_URL; // Railway env only; no fallback
 const BASE_CHAIN_ID = 8453;
 const USDC_BASE_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'; // USDC on Base
 
@@ -20,6 +20,11 @@ async function getPayAIFacilitatorAddress(): Promise<string | null> {
   const envAddress = process.env.PAYAI_FACILITATOR_ADDRESS;
   if (envAddress) {
     return envAddress;
+  }
+
+  if (!PAYAI_FACILITATOR_URL) {
+    console.warn('FACILITATOR_URL not configured; cannot fetch facilitator address');
+    return null;
   }
 
   try {
@@ -99,6 +104,13 @@ export async function verifyPaymentWithFacilitator(
   proof: PaymentProof,
   merchantAddress: string
 ): Promise<FacilitatorVerifyResponse> {
+  if (!PAYAI_FACILITATOR_URL) {
+    console.error('[PayAI] FACILITATOR_URL not configured in environment (Railway).');
+    return {
+      verified: false,
+      reason: 'FACILITATOR_URL not configured',
+    };
+  }
   // Validate that payer and merchant are different
   if (proof.from.toLowerCase() === merchantAddress.toLowerCase()) {
     console.error('[PayAI] Invalid payment: payer and merchant are the same address');
@@ -239,6 +251,13 @@ export async function settlePaymentWithFacilitator(
   proof: PaymentProof,
   merchantAddress: string
 ): Promise<FacilitatorSettleResponse> {
+  if (!PAYAI_FACILITATOR_URL) {
+    console.error('[PayAI] FACILITATOR_URL not configured in environment (Railway).');
+    return {
+      success: false,
+      reason: 'FACILITATOR_URL not configured',
+    };
+  }
   const settleRequest: FacilitatorSettleRequest = {
     transactionHash: proof.transactionHash,
     chainId: BASE_CHAIN_ID,

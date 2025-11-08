@@ -211,7 +211,8 @@ export async function GET(request: NextRequest) {
 
     // Fetch services from PayAI facilitator in real-time (Base/EVM only)
     let payaiServices: MarketplaceService[] = [];
-    if (network === 'base') {
+    const enablePayAI = process.env.ENABLE_PAYAI_FACILITATOR === 'true';
+    if (network === 'base' && enablePayAI) {
       try {
         const facilitatorServices = await fetchPayAIServices();
         const PLATFORM_FEE_PERCENTAGE = 5; // 5% fee
@@ -252,6 +253,8 @@ export async function GET(request: NextRequest) {
         console.error('[Marketplace] Error fetching PayAI facilitator services:', error.message);
         // Continue with database services only if PayAI fetch fails
       }
+    } else if (network === 'base' && !enablePayAI) {
+      console.info('[Marketplace] Skipping PayAI facilitator fetch (ENABLE_PAYAI_FACILITATOR is not true)');
     }
 
     // Combine database services and PayAI facilitator services

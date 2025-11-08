@@ -7,9 +7,19 @@
 import { prisma } from '@/lib/db';
 import { formatUnits, parseUnits } from 'viem';
 
-const PAYAI_FACILITATOR_URL = process.env.FACILITATOR_URL || 'https://facilitator.payai.network';
+const PAYAI_FACILITATOR_URL = process.env.FACILITATOR_URL; // Railway-provided only; no hardcoded fallback
+const ENABLE_PAYAI_FACILITATOR = process.env.ENABLE_PAYAI_FACILITATOR === 'true';
 const BASE_CHAIN_ID = 8453;
 const USDC_BASE_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+
+// Simple in-memory circuit breaker to avoid log spam on repeated failures
+let payaiCircuitOpenUntil: number | null = null;
+let payaiLastErrorMessage: string | null = null;
+
+function isHttpUrl(value: string | undefined): boolean {
+  if (!value) return false;
+  return value.startsWith('http://') || value.startsWith('https://');
+}
 
 export interface PayAIService {
   id: string;
@@ -40,6 +50,27 @@ export interface PayAIService {
  * Documentation: https://docs.payai.network/x402/facilitators/introduction
  */
 export async function fetchPayAIServices(): Promise<PayAIService[]> {
+  // Feature flag to enable/disable external facilitator calls
+  if (!ENABLE_PAYAI_FACILITATOR) {
+    console.info('[PayAI] Skipping facilitator fetch (ENABLE_PAYAI_FACILITATOR is not true)');
+    return [];
+  }
+
+  // Validate URL configuration before attempting network call
+  if (!isHttpUrl(PAYAI_FACILITATOR_URL)) {
+    console.warn('[PayAI] Invalid FACILITATOR_URL; expected http(s) URL. Set FACILITATOR_URL or disable via ENABLE_PAYAI_FACILITATOR=false.');
+    return [];
+  }
+
+  // Circuit breaker: if we recently failed, skip until cool-down elapses
+  if (payaiCircuitOpenUntil && Date.now() < payaiCircuitOpenUntil) {
+    console.warn('[PayAI] Skipping facilitator fetch due to recent failures (circuit breaker open)', {
+      until: new Date(payaiCircuitOpenUntil).toISOString(),
+      lastError: payaiLastErrorMessage || undefined,
+    });
+    return [];
+  }
+
   try {
     console.log(`[PayAI] Fetching services from facilitator: ${PAYAI_FACILITATOR_URL}`);
     
@@ -156,6 +187,9 @@ export async function fetchPayAIServices(): Promise<PayAIService[]> {
       console.log(`[PayAI] Found ${services.length} services from /list`);
       const normalized = services.map((service: any) => normalizePayAIService(service));
       console.log(`[PayAI] Normalized services sample:`, normalized.slice(0, 3).map(s => ({ id: s.id, name: s.name, token: s.tokenSymbol })));
+      // Reset circuit breaker on success
+      payaiCircuitOpenUntil = null;
+      payaiLastErrorMessage = null;
       return normalized;
     }
     
@@ -165,7 +199,15 @@ export async function fetchPayAIServices(): Promise<PayAIService[]> {
     if (error.name === 'AbortError') {
       console.warn(`[PayAI] Request to /list timed out`);
     } else {
-      console.error(`[PayAI] Error fetching from /list:`, error.message);
+      // Include richer diagnostics if available (Node/undici often exposes cause.code)
+      const causeCode = error?.cause?.code || error?.code;
+      console.error(`[PayAI] Network error fetching facilitator /list:`, {
+        message: error?.message,
+        code: causeCode,
+      });
+      // Open circuit breaker for 60 seconds to reduce log spam
+      payaiCircuitOpenUntil = Date.now() + 60_000;
+      payaiLastErrorMessage = error?.message || String(error);
     }
     console.error('[PayAI] Error stack:', error.stack);
     // Don't throw - return empty array so sync can continue with seed data

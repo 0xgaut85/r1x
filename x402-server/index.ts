@@ -445,7 +445,13 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
       let payaiServices: any[] = [];
       try {
         const { parseUnits } = await import('viem');
-        const facilitatorUrl = process.env.FACILITATOR_URL || 'https://facilitator.payai.network';
+        const enablePayAI = process.env.ENABLE_PAYAI_FACILITATOR === 'true';
+        const facilitatorUrl = process.env.FACILITATOR_URL; // Railway env only
+        if (!enablePayAI || !facilitatorUrl || facilitatorUrl.startsWith('http') === false) {
+          console.info('[x402-server] Skipping PayAI /list fetch (disabled or FACILITATOR_URL missing)');
+          payaiServices = [];
+          // Continue processing without PayAI real-time services
+        } else {
         // Use /list endpoint (official PayAI API)
         const url = `${facilitatorUrl}/list`;
         

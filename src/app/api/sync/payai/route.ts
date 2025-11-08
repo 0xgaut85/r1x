@@ -10,6 +10,12 @@ import { syncPayAIServices } from '@/lib/payai-sync';
 
 export async function POST(request: NextRequest) {
   try {
+    if (process.env.ENABLE_PAYAI_FACILITATOR !== 'true') {
+      return NextResponse.json(
+        { success: false, message: 'PayAI facilitator sync disabled (set ENABLE_PAYAI_FACILITATOR=true to enable)' },
+        { status: 200 }
+      );
+    }
     // Optional: Add authentication/authorization check here
     const authHeader = request.headers.get('authorization');
     if (process.env.SYNC_SECRET && authHeader !== `Bearer ${process.env.SYNC_SECRET}`) {
