@@ -33,11 +33,13 @@ function useSolanaWallet() {
       
       if (wallet && wallet.isConnected && wallet.publicKey) {
         const addr = wallet.publicKey.toString();
-        setSolanaAddress(prev => (prev === addr ? prev : addr));
-        setIsSolanaConnected(prev => (prev === true ? prev : true));
+        // Always update if different (triggers re-render)
+        setSolanaAddress(addr);
+        setIsSolanaConnected(true);
       } else {
-        setSolanaAddress(prev => (prev === null ? prev : null));
-        setIsSolanaConnected(prev => (prev === false ? prev : false));
+        // Always set to disconnected state (triggers re-render even if already null/false)
+        setSolanaAddress(null);
+        setIsSolanaConnected(false);
       }
     };
 
@@ -45,11 +47,16 @@ function useSolanaWallet() {
     checkSolanaWallet();
 
     // Listen for wallet events
-    const handleAccountsChanged = () => { checkSolanaWallet(); };
-    const handleConnect = () => { checkSolanaWallet(); };
+    const handleAccountsChanged = () => { 
+      checkSolanaWallet(); 
+    };
+    const handleConnect = () => { 
+      checkSolanaWallet(); 
+    };
     const handleDisconnect = () => {
-      setSolanaAddress(prev => (prev === null ? prev : null));
-      setIsSolanaConnected(prev => (prev === false ? prev : false));
+      // Force update to disconnected state
+      setSolanaAddress(null);
+      setIsSolanaConnected(false);
     };
 
     const phantom = (window as any).phantom?.solana;
@@ -68,7 +75,8 @@ function useSolanaWallet() {
     }
 
     // Poll for wallet connection (in case events don't fire)
-    const interval = setInterval(checkSolanaWallet, 5000);
+    // Reduced to 2s for faster disconnect detection
+    const interval = setInterval(checkSolanaWallet, 2000);
 
     return () => {
       clearInterval(interval);
@@ -96,6 +104,8 @@ export function useWallet() {
   const { solanaAddress, isSolanaConnected } = useSolanaWallet();
 
   // Combined connection status: EVM OR Solana
+  // Wagmi's useAccount hook automatically handles EVM disconnect events
+  // useSolanaWallet hook handles Solana disconnect events
   const isAnyWalletConnected = isConnected || isSolanaConnected;
   // Prefer Solana address if connected, otherwise EVM address
   const displayAddress = solanaAddress || address;
