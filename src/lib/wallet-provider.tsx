@@ -22,22 +22,27 @@ const metadata = {
 
 // Ensure Solana network has a valid RPC URL to avoid "Endpoint URL must start with http/https"
 const solanaRpcFromEnv = (process.env.NEXT_PUBLIC_SOLANA_RPC_URL || '').trim();
+// Remove trailing slash if present (can cause issues)
+const cleanedRpc = solanaRpcFromEnv.endsWith('/') ? solanaRpcFromEnv.slice(0, -1) : solanaRpcFromEnv;
 // Ensure we always have a valid URL string (never empty or undefined)
-const validSolanaRpc = solanaRpcFromEnv && (solanaRpcFromEnv.startsWith('http://') || solanaRpcFromEnv.startsWith('https://'))
-  ? solanaRpcFromEnv
+const validSolanaRpc = cleanedRpc && (cleanedRpc.startsWith('http://') || cleanedRpc.startsWith('https://'))
+  ? cleanedRpc
   : 'https://api.mainnet-beta.solana.com'; // fallback (will fail in browser - needs QuickNode)
 
-// Log RPC being used (for debugging)
+// Log RPC being used (for debugging) - ALWAYS log to help debug build-time issues
 if (typeof window !== 'undefined') {
   const maskedRpc = validSolanaRpc.includes('quiknode')
     ? validSolanaRpc.replace(/\/[^\/]+\/[^\/]+\//, '/***/***/')
     : validSolanaRpc.includes('api-key')
     ? validSolanaRpc.replace(/api-key=[^&]+/, 'api-key=***')
     : validSolanaRpc;
-  console.log('[WalletProvider] Solana RPC:', maskedRpc);
+  console.log('[WalletProvider] Solana RPC from env:', process.env.NEXT_PUBLIC_SOLANA_RPC_URL ? 'SET (masked)' : 'NOT SET');
+  console.log('[WalletProvider] Solana RPC being used:', maskedRpc);
   
   if (validSolanaRpc === 'https://api.mainnet-beta.solana.com') {
-    console.warn('[WalletProvider] WARNING: Using public Solana RPC (will fail). Set NEXT_PUBLIC_SOLANA_RPC_URL with QuickNode URL in Railway and redeploy.');
+    console.error('[WalletProvider] ERROR: Using public Solana RPC (will fail). NEXT_PUBLIC_SOLANA_RPC_URL is not set or invalid. Set it in Railway and trigger a rebuild.');
+  } else if (validSolanaRpc.includes('quiknode')) {
+    console.log('[WalletProvider] ✅ Using QuickNode RPC');
   }
 }
 
