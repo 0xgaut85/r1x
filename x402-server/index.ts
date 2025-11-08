@@ -607,9 +607,12 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
               };
           });
           
-          console.log(`[x402-server] Fetched ${payaiServices.length} services from PayAI facilitator`);
+            console.log(`[x402-server] Fetched ${payaiServices.length} services from PayAI facilitator`);
+          } else {
+            console.warn('[x402-server] No services found in PayAI facilitator response');
+          }
         } else {
-          console.warn('[x402-server] No services found in PayAI facilitator response');
+          console.warn(`[x402-server] PayAI facilitator returned ${response.status}: ${response.statusText}`);
         }
       } catch (payaiError: any) {
         if (payaiError.name === 'AbortError') {
