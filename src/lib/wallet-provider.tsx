@@ -6,7 +6,7 @@ import { SolanaAdapter } from '@reown/appkit-adapter-solana';
 import { mainnet, base, solana } from '@reown/appkit/networks';
 import { QueryClient } from '@tanstack/react-query';
 
-const projectId = process.env.NEXT_PUBLIC_PROJECT_ID || 'bb1ac17de596e3590a24a476c5cb419c';
+const projectId = process.env.NEXT_PUBLIC_PROJECT_ID || 'ac7a5e22564f2698c80f05dbf4811d6a';
 
 // Use NEXT_PUBLIC_BASE_URL or default to production URL
 const baseUrl = typeof window !== 'undefined' 
