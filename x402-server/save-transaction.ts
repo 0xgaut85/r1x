@@ -303,7 +303,8 @@ async function ensureService(
   serviceName: string,
   merchantAddress: string,
   price: string,
-  priceDisplay: string
+  priceDisplay: string,
+  proof: PaymentProof
 ): Promise<string> {
   if (!prisma) {
     throw new Error('Prisma client not initialized');
@@ -378,7 +379,8 @@ export async function saveTransaction(params: SaveTransactionParams): Promise<vo
       serviceName,
       merchantAddress,
       proof.amount,
-      price
+      price,
+      proof
     );
 
     // Check if transaction already exists
