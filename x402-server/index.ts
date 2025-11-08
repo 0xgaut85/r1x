@@ -430,57 +430,62 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
       try {
         const { parseUnits } = await import('viem');
         const facilitatorUrl = process.env.FACILITATOR_URL || 'https://facilitator.payai.network';
-        // Prefer /resources then fallback to /list
-        const endpoints = ['/resources', '/list'];
+        // Use /list endpoint (official PayAI API)
+        const url = `${facilitatorUrl}/list`;
         
-        let services: any[] = [];
-
-        for (const ep of endpoints) {
-          try {
-            const url = `${facilitatorUrl}${ep}`;
-            const headers: Record<string, string> = {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'User-Agent': 'r1x-agent/1.0',
-            };
-            const cdpApiKeyId = process.env.CDP_API_KEY_ID;
-            const cdpApiKeySecret = process.env.CDP_API_KEY_SECRET;
-            if (cdpApiKeyId && cdpApiKeySecret) {
-              const auth = Buffer.from(`${cdpApiKeyId}:${cdpApiKeySecret}`).toString('base64');
-              headers['Authorization'] = `Basic ${auth}`;
-            }
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000);
-            const response = await fetch(url, { method: 'GET', headers, signal: controller.signal });
-            clearTimeout(timeoutId);
-            if (!response.ok) continue;
-            const data = await response.json() as any;
-            if (Array.isArray(data)) {
-              services = data;
-            } else if (data?.resources && Array.isArray(data.resources)) {
-              services = data.resources;
-            } else if (data?.list && Array.isArray(data.list)) {
-              services = data.list;
-            } else if (data?.data && Array.isArray(data.data)) {
-              services = data.data;
-            } else if (typeof data === 'object' && !Array.isArray(data)) {
-              for (const key in data) {
-                if (Array.isArray((data as any)[key])) {
-                  services = (data as any)[key];
-                  break;
-                }
-              }
-              if (services.length === 0 && Object.keys(data).length > 0) {
-                services = [data];
-              }
-            }
-            if (services.length > 0) break;
-          } catch {
-            continue;
-          }
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'User-Agent': 'r1x-agent/1.0',
+        };
+        
+        const cdpApiKeyId = process.env.CDP_API_KEY_ID;
+        const cdpApiKeySecret = process.env.CDP_API_KEY_SECRET;
+        
+        if (cdpApiKeyId && cdpApiKeySecret) {
+          const auth = Buffer.from(`${cdpApiKeyId}:${cdpApiKeySecret}`).toString('base64');
+          headers['Authorization'] = `Basic ${auth}`;
         }
-
-        if (services.length > 0) {
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers,
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const data = await response.json() as any;
+          let services: any[] = [];
+          
+          // Handle different response formats from PayAI facilitator
+          if (Array.isArray(data)) {
+            services = data;
+          } else if (data?.resources && Array.isArray(data.resources)) {
+            services = data.resources;
+          } else if (data?.list && Array.isArray(data.list)) {
+            services = data.list;
+          } else if (data?.data && Array.isArray(data.data)) {
+            services = data.data;
+          } else if (typeof data === 'object' && !Array.isArray(data)) {
+            // Try to find any array property
+            for (const key in data) {
+              if (Array.isArray(data[key])) {
+                services = data[key];
+                break;
+              }
+            }
+            // If still no array found, wrap single object
+            if (services.length === 0 && Object.keys(data).length > 0) {
+              services = [data];
+            }
+          }
+          
+          if (services.length > 0) {
           // Normalize PayAI services (same logic as marketplace)
           payaiServices = services.map((s: any) => {
               const accepts = Array.isArray(s.accepts) ? s.accepts : [];

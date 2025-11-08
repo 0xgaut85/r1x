@@ -12,7 +12,7 @@
 - `FACILITATOR_URL` - PayAI facilitator URL for EVM networks (default: https://facilitator.payai.network)
 - `DAYDREAMS_FACILITATOR_URL` - Daydreams facilitator URL for Solana network (default: https://facilitator.daydreams.systems)
 - `SOLANA_FEE_RECIPIENT_ADDRESS` - Solana address (base58) that receives platform fees on Solana
-- `NEXT_PUBLIC_SOLANA_RPC_URL` - Solana RPC URL exposed to the client (e.g., Helius mainnet RPC)
+- `NEXT_PUBLIC_SOLANA_RPC_URL` - Solana RPC URL exposed to the client (QuickNode, Alchemy, or Helius mainnet RPC)
 - `NETWORK` - Network identifier (set to `base` for Base mainnet, `solana` for Solana)
 - `CDP_API_KEY_ID` - Coinbase Developer Platform API Key ID (required for Base mainnet)
 - `CDP_API_KEY_SECRET` - Coinbase Developer Platform API Key Secret (required for Base mainnet)
@@ -71,7 +71,7 @@ DATABASE_URL="postgresql://..."
 MERCHANT_ADDRESS="0x..."
 FEE_RECIPIENT_ADDRESS="0x..."
 SOLANA_FEE_RECIPIENT_ADDRESS="F..."
-NEXT_PUBLIC_SOLANA_RPC_URL="https://mainnet.helius-rpc.com/?api-key=..."
+NEXT_PUBLIC_SOLANA_RPC_URL="https://YOUR-ENDPOINT.solana-mainnet.quiknode.pro/YOUR-API-KEY/" # QuickNode Mainnet Beta
 PLATFORM_FEE_PERCENTAGE=5
 NETWORK=base
 ANTHROPIC_API_KEY="sk-ant-..."

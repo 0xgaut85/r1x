@@ -41,7 +41,11 @@ PAYAI_FACILITATOR_ADDRESS=... # Optionnel
 # Daydreams Facilitator (Solana network)
 DAYDREAMS_FACILITATOR_URL=https://facilitator.daydreams.systems
 SOLANA_FEE_RECIPIENT_ADDRESS=F... # Adresse Solana (public key base58) pour recevoir les fees
-NEXT_PUBLIC_SOLANA_RPC_URL=https://mainnet.helius-rpc.com/?api-key=... # RPC Solana exposé au client (Helius)
+NEXT_PUBLIC_SOLANA_RPC_URL=https://YOUR-ENDPOINT.solana-mainnet.quiknode.pro/YOUR-API-KEY/ # QuickNode Solana Mainnet RPC
+# Alternative providers:
+# - QuickNode: https://YOUR-ENDPOINT.solana-mainnet.quiknode.pro/YOUR-API-KEY/
+# - Alchemy: https://solana-mainnet.g.alchemy.com/v2/YOUR-API-KEY
+# - Helius: https://mainnet.helius-rpc.com/?api-key=YOUR-API-KEY
 
 # AI Agent
 ANTHROPIC_API_KEY=sk-ant-... # Anthropic API key
