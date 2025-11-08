@@ -21,6 +21,9 @@ export class SolanaPaymentClient {
     this.wallet = wallet;
     this.rpcUrl = rpcUrl || process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
     this.connection = new Connection(this.rpcUrl, 'confirmed');
+    
+    // Log which RPC is being used (for debugging)
+    console.log('[SolanaPaymentClient] Using RPC:', this.rpcUrl.includes('api-key') ? this.rpcUrl.replace(/api-key=[^&]+/, 'api-key=***') : this.rpcUrl);
   }
 
   /**
@@ -71,20 +74,32 @@ export class SolanaPaymentClient {
       try {
         fromAccount = await getAccount(this.connection, fromTokenAccount);
       } catch (rpcError: any) {
-        const errorMsg = rpcError?.message || '';
+        const errorMsg = String(rpcError?.message || '');
+        const errorString = JSON.stringify(rpcError || {});
         // If RPC error (403, invalid endpoint, etc.), fallback to public RPC
-        if (
-          !this.didFallbackToPublicRpc &&
-          (errorMsg.includes('403') ||
-            errorMsg.toLowerCase().includes('access forbidden') ||
-            errorMsg.includes('Endpoint URL must start'))
-        ) {
-          console.warn('[SolanaPaymentClient] RPC error detected, falling back to public RPC:', errorMsg);
-          this.didFallbackToPublicRpc = true;
-          this.rpcUrl = 'https://api.mainnet-beta.solana.com';
-          this.connection = new Connection(this.rpcUrl, 'confirmed');
-          // Retry with public RPC
-          fromAccount = await getAccount(this.connection, fromTokenAccount);
+        const isRpcError = 
+          errorMsg.includes('403') ||
+          errorMsg.toLowerCase().includes('access forbidden') ||
+          errorMsg.includes('Endpoint URL must start') ||
+          errorString.includes('"code": 403') ||
+          errorString.includes('"code":403');
+        
+        if (!this.didFallbackToPublicRpc && isRpcError) {
+          // Public Solana RPC doesn't support browser requests (CORS), so don't fallback
+          // Instead, provide a helpful error message
+          if (this.rpcUrl.includes('helius-rpc.com')) {
+            throw new Error(
+              'Helius RPC returned 403. Please ensure your domain is allowlisted in Helius dashboard. ' +
+              'Domain: ' + (typeof window !== 'undefined' ? window.location.origin : 'unknown') +
+              '. Once allowlisted, refresh the page and try again.'
+            );
+          } else {
+            // If not using Helius, suggest configuring it
+            throw new Error(
+              'Solana RPC error (403). Please configure NEXT_PUBLIC_SOLANA_RPC_URL with a Helius RPC URL ' +
+              'and ensure your domain is allowlisted in Helius dashboard.'
+            );
+          }
         } else {
           throw rpcError;
         }
@@ -112,19 +127,25 @@ export class SolanaPaymentClient {
         const blockhashResult = await this.connection.getLatestBlockhash('confirmed');
         blockhash = blockhashResult.blockhash;
       } catch (blockhashError: any) {
-        const errorMsg = blockhashError?.message || '';
-        if (
-          !this.didFallbackToPublicRpc &&
-          (errorMsg.includes('403') ||
-            errorMsg.toLowerCase().includes('access forbidden') ||
-            errorMsg.includes('Endpoint URL must start'))
-        ) {
-          console.warn('[SolanaPaymentClient] Blockhash RPC error, falling back to public RPC');
-          this.didFallbackToPublicRpc = true;
-          this.rpcUrl = 'https://api.mainnet-beta.solana.com';
-          this.connection = new Connection(this.rpcUrl, 'confirmed');
-          const blockhashResult = await this.connection.getLatestBlockhash('confirmed');
-          blockhash = blockhashResult.blockhash;
+        const errorMsg = String(blockhashError?.message || '');
+        const errorString = JSON.stringify(blockhashError || {});
+        const isRpcError = 
+          errorMsg.includes('403') ||
+          errorMsg.toLowerCase().includes('access forbidden') ||
+          errorMsg.includes('Endpoint URL must start') ||
+          errorString.includes('"code": 403') ||
+          errorString.includes('"code":403');
+        
+        if (!this.didFallbackToPublicRpc && isRpcError) {
+          // Same error handling as above
+          if (this.rpcUrl.includes('helius-rpc.com')) {
+            throw new Error(
+              'Helius RPC returned 403. Please ensure your domain is allowlisted in Helius dashboard. ' +
+              'Domain: ' + (typeof window !== 'undefined' ? window.location.origin : 'unknown')
+            );
+          } else {
+            throw new Error('Solana RPC error (403). Please configure Helius RPC with domain allowlisting.');
+          }
         } else {
           throw blockhashError;
         }
@@ -144,21 +165,25 @@ export class SolanaPaymentClient {
           maxRetries: 3,
         });
       } catch (sendError: any) {
-        const errorMsg = sendError?.message || '';
-        if (
-          !this.didFallbackToPublicRpc &&
-          (errorMsg.includes('403') ||
-            errorMsg.toLowerCase().includes('access forbidden') ||
-            errorMsg.includes('Endpoint URL must start'))
-        ) {
-          console.warn('[SolanaPaymentClient] Send RPC error, falling back to public RPC');
-          this.didFallbackToPublicRpc = true;
-          this.rpcUrl = 'https://api.mainnet-beta.solana.com';
-          this.connection = new Connection(this.rpcUrl, 'confirmed');
-          signature = await this.connection.sendRawTransaction(signedTransaction.serialize(), {
-            skipPreflight: false,
-            maxRetries: 3,
-          });
+        const errorMsg = String(sendError?.message || '');
+        const errorString = JSON.stringify(sendError || {});
+        const isRpcError = 
+          errorMsg.includes('403') ||
+          errorMsg.toLowerCase().includes('access forbidden') ||
+          errorMsg.includes('Endpoint URL must start') ||
+          errorString.includes('"code": 403') ||
+          errorString.includes('"code":403');
+        
+        if (!this.didFallbackToPublicRpc && isRpcError) {
+          // Same error handling as above
+          if (this.rpcUrl.includes('helius-rpc.com')) {
+            throw new Error(
+              'Helius RPC returned 403. Please ensure your domain is allowlisted in Helius dashboard. ' +
+              'Domain: ' + (typeof window !== 'undefined' ? window.location.origin : 'unknown')
+            );
+          } else {
+            throw new Error('Solana RPC error (403). Please configure Helius RPC with domain allowlisting.');
+          }
         } else {
           throw sendError;
         }
