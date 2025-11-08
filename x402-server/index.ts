@@ -902,7 +902,7 @@ app.post('/api/fees/collect', async (req, res) => {
   }
 });
 
-// Fixed $0.05 USDC agent fee endpoint - first transaction before service calls
+// Fixed $0.25 USDC agent fee endpoint - first transaction before service calls
 app.post('/api/fee', async (req, res) => {
   // Payment is already verified by PayAI middleware
   if (res.headersSent) {
@@ -918,9 +918,9 @@ app.post('/api/fee', async (req, res) => {
       const paymentProof = parsePaymentProof(xPaymentHeader);
       
       if (paymentProof) {
-        // Validate that paid amount is exactly $0.05 USDC
+        // Validate that paid amount is exactly $0.25 USDC
         const paidAmountUSDC = parseFloat((BigInt(paymentProof.amount) / BigInt(10 ** 6)).toString());
-        const expectedFee = 0.05;
+        const expectedFee = 0.25;
         const tolerance = 0.001; // Small tolerance for rounding
         
         if (Math.abs(paidAmountUSDC - expectedFee) > tolerance) {
@@ -941,7 +941,7 @@ app.post('/api/fee', async (req, res) => {
             proof: paymentProof,
             serviceId: 'r1x-agent-fee',
             serviceName: 'r1x Agent Service Fee',
-            price: '0.05',
+            price: '0.25',
             feePercentage: 100, // 100% of payment is platform fee
           }),
           new Promise((_, reject) => 
@@ -958,7 +958,7 @@ app.post('/api/fee', async (req, res) => {
       res.json({
         success: true,
         message: 'Agent fee payment verified',
-        feeAmount: '0.05',
+        feeAmount: '0.25',
       });
     }
   } catch (error: any) {
