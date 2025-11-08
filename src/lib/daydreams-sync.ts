@@ -27,92 +27,43 @@ export interface DaydreamsService {
 /**
  * Fetch services from Daydreams facilitator
  * Daydreams facilitator API endpoints: /verify, /settle, /supported
- * Service discovery via /supported or /list endpoint (if available)
+ * We do not rely on an undocumented catalog endpoint.
  */
 export async function fetchDaydreamsServices(): Promise<DaydreamsService[]> {
   try {
-    console.log(`[Daydreams] Fetching services from facilitator: ${DAYDREAMS_FACILITATOR_URL}`);
-    
-    // Daydreams facilitator endpoints
-    // Check /supported first to see what's available
-    const endpoints = [
-      '/supported',  // Check supported networks/tokens
-      '/list',       // Service list (if available)
-    ];
+    console.log(`[Daydreams] Checking supported networks/tokens: ${DAYDREAMS_FACILITATOR_URL}/supported`);
 
-    let lastError: any = null;
-    
-    for (const endpoint of endpoints) {
-      try {
-        const url = `${DAYDREAMS_FACILITATOR_URL}${endpoint}`;
-        console.log(`[Daydreams] Trying endpoint: ${url}`);
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-        
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'User-Agent': 'r1x-marketplace/1.0',
-        };
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          headers,
-          signal: controller.signal,
-        });
-        
-        clearTimeout(timeoutId);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-        if (!response.ok) {
-          console.warn(`[Daydreams] ${endpoint} returned ${response.status}: ${response.statusText}`);
-          lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
-          continue; // Try next endpoint
-        }
+    const response = await fetch(`${DAYDREAMS_FACILITATOR_URL}/supported`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'r1x-marketplace/1.0',
+      },
+      signal: controller.signal,
+    });
 
-        const data = await response.json();
-        console.log(`[Daydreams] ${endpoint} response received`);
-        
-        // Handle /supported endpoint (returns supported networks/tokens)
-        if (endpoint === '/supported') {
-          console.log('[Daydreams] Supported networks/tokens:', data);
-          // Continue to try /list for actual services
-          continue;
-        }
-        
-        // Handle service list response
-        let services: any[] = [];
-        if (Array.isArray(data)) {
-          services = data;
-        } else if (data?.resources && Array.isArray(data.resources)) {
-          services = data.resources;
-        } else if (data?.list && Array.isArray(data.list)) {
-          services = data.list;
-        } else if (data?.services && Array.isArray(data.services)) {
-          services = data.services;
-        }
-        
-        if (services.length > 0) {
-          const normalizedServices = services.map((s: any) => normalizeDaydreamsService(s));
-          console.log(`[Daydreams] Fetched ${normalizedServices.length} services`);
-          return normalizedServices;
-        }
-      } catch (error: any) {
-        if (error.name === 'AbortError') {
-          console.warn(`[Daydreams] ${endpoint} request timed out`);
-        } else {
-          console.error(`[Daydreams] Error fetching ${endpoint}:`, error.message);
-        }
-        lastError = error;
-        continue;
-      }
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.warn(`[Daydreams] /supported returned ${response.status}: ${response.statusText}`);
+      return [];
     }
-    
-    // If no services found, return empty array
-    console.warn('[Daydreams] No services found from any endpoint');
+
+    const data = await response.json().catch(() => ({}));
+    console.log('[Daydreams] Supported response received');
+
+    // We do not have a public service catalog in docs; rely on DB/self-serve.
     return [];
   } catch (error: any) {
-    console.error('[Daydreams] Error fetching services:', error);
+    if (error.name === 'AbortError') {
+      console.warn('[Daydreams] /supported request timed out');
+    } else {
+      console.error('[Daydreams] Error fetching /supported:', error?.message || error);
+    }
     return [];
   }
 }
@@ -128,7 +79,7 @@ function normalizeDaydreamsService(service: any): DaydreamsService {
     merchant: service.merchant || service.payTo || '',
     network: SOLANA_NETWORK,
     token: service.token || undefined,
-    tokenSymbol: service.tokenSymbol || 'SOL', // Default to SOL for Solana
+    tokenSymbol: service.tokenSymbol || 'SOL',
     price: service.price || service.amount || '0',
     endpoint: service.endpoint || service.resource || undefined,
     websiteUrl: service.websiteUrl || service.website || undefined,
@@ -142,14 +93,14 @@ function normalizeDaydreamsService(service: any): DaydreamsService {
 export async function syncDaydreamsServices(): Promise<number> {
   try {
     const services = await fetchDaydreamsServices();
-    
+
     if (services.length === 0) {
       console.log('[Daydreams] No services to sync');
       return 0;
     }
-    
+
     let synced = 0;
-    
+
     for (const service of services) {
       try {
         await prisma.service.upsert({
@@ -159,7 +110,7 @@ export async function syncDaydreamsServices(): Promise<number> {
             description: service.description,
             merchant: service.merchant,
             network: service.network,
-            chainId: 0, // Solana doesn't use EVM chainId; store 0 as sentinel
+            chainId: 0,
             token: service.token || '',
             tokenSymbol: service.tokenSymbol || 'SOL',
             price: service.price,
@@ -177,7 +128,7 @@ export async function syncDaydreamsServices(): Promise<number> {
             description: service.description,
             merchant: service.merchant,
             network: service.network,
-            chainId: 0, // Solana doesn't use EVM chainId; store 0 as sentinel
+            chainId: 0,
             token: service.token || '',
             tokenSymbol: service.tokenSymbol || 'SOL',
             price: service.price,
@@ -194,7 +145,7 @@ export async function syncDaydreamsServices(): Promise<number> {
         console.error(`[Daydreams] Error syncing service ${service.id}:`, error.message);
       }
     }
-    
+
     console.log(`[Daydreams] Synced ${synced} services to database`);
     return synced;
   } catch (error: any) {

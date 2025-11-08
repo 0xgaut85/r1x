@@ -1060,7 +1060,7 @@ app.post('/api/r1x-agent/plan', async (req, res) => {
 
     // Rank: Base network first, then by price
     const ranked = allServices
-      .filter(s => s.network === 'base' && (!s.chainId || s.chainId === chainId))
+      .filter(s => s.network === network && (!s.chainId || s.chainId === chainId))
       .sort((a, b) => {
         const priceA = parseFloat(a.price || '999999');
         const priceB = parseFloat(b.price || '999999');

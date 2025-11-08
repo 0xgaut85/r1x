@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,12 +15,49 @@ function formatUSDC(amount: string): string {
   }
 }
 
+const ProofSchema = z.object({
+  signature: z.string().min(1),
+  from: z.string().min(1),
+  to: z.string().min(1),
+  amount: z.union([z.string().regex(/^\d+$/), z.number()]).transform(v => v.toString()),
+  tokenSymbol: z.string().optional(),
+  token: z.string().optional(),
+});
+
+const FeeAmountSchema = z.string().regex(/^\d+(\.\d{1,6})?$/);
+
+async function fetchWithRetry(url: string, init: RequestInit, attempts = 2, timeoutMs = 15000): Promise<Response> {
+  let lastErr: any;
+  for (let i = 0; i <= attempts; i++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...init, signal: controller.signal });
+      clearTimeout(timer);
+      if (res.ok || (res.status >= 400 && res.status < 500)) return res;
+      lastErr = new Error(`HTTP ${res.status}: ${res.statusText}`);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { proof, verifyPayload, settlePayload, feeAmount } = await request.json();
 
     if (!proof || !verifyPayload || !settlePayload) {
       return NextResponse.json({ error: 'Missing required fields: proof, verifyPayload, settlePayload' }, { status: 400 });
+    }
+
+    const proofParsed = ProofSchema.safeParse(proof);
+    if (!proofParsed.success) {
+      return NextResponse.json({ error: 'Invalid proof', details: proofParsed.error.flatten() }, { status: 400 });
+    }
+
+    if (feeAmount && !FeeAmountSchema.safeParse(String(feeAmount)).success) {
+      return NextResponse.json({ error: 'Invalid feeAmount format' }, { status: 400 });
     }
 
     const facilitatorUrl = process.env.DAYDREAMS_FACILITATOR_URL || 'https://facilitator.daydreams.systems';
@@ -30,12 +68,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate proof recipient matches our Solana fee recipient
-    if ((proof.to || '').toString() !== solanaFeeRecipient.toString()) {
+    if ((proofParsed.data.to || '').toString() !== solanaFeeRecipient.toString()) {
       return NextResponse.json({ error: 'Recipient mismatch: fee must be paid to SOLANA_FEE_RECIPIENT_ADDRESS' }, { status: 400 });
     }
 
     // Verify via Daydreams
-    const verifyRes = await fetch(`${facilitatorUrl}/verify`, {
+    const verifyRes = await fetchWithRetry(`${facilitatorUrl}/verify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify(verifyPayload),
@@ -49,7 +87,7 @@ export async function POST(request: NextRequest) {
     const verifyJson: any = await verifyRes.json().catch(() => ({}));
 
     // Settle via Daydreams
-    const settleRes = await fetch(`${facilitatorUrl}/settle`, {
+    const settleRes = await fetchWithRetry(`${facilitatorUrl}/settle`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify(settlePayload),
@@ -63,21 +101,20 @@ export async function POST(request: NextRequest) {
     const settleJson: any = await settleRes.json().catch(() => ({}));
 
     // Persist fee transaction (100% fee to platform)
-    const tokenSymbol: string = proof.tokenSymbol || 'USDC';
-    const tokenString: string = proof.token || tokenSymbol;
+    const tokenSymbol: string = proofParsed.data.tokenSymbol || 'USDC';
+    const tokenString: string = proofParsed.data.token || tokenSymbol;
     // Prefer explicit feeAmount provided by client; fallback to proof.amount
     const amountAtomic: string = feeAmount
       ? (() => {
-          // feeAmount is expected as decimal (e.g., '0.25'), convert to 6-decimals atomic
           try {
             const [whole, frac = ''] = String(feeAmount).split('.');
             const padded = (frac + '000000').slice(0, 6);
             return `${BigInt(whole) * BigInt(1_000_000) + BigInt(padded)}`;
           } catch {
-            return String(proof.amount);
+            return String(proofParsed.data.amount);
           }
         })()
-      : String(proof.amount);
+      : String(proofParsed.data.amount);
 
     // Ensure service exists (platform-fee)
     let dbService = await prisma.service.findUnique({ where: { serviceId: 'platform-fee-solana' } });
@@ -107,11 +144,11 @@ export async function POST(request: NextRequest) {
     await prisma.transaction.create({
       data: {
         serviceId: dbService.id,
-        transactionHash: String(proof.signature || proof.transactionHash || 'unknown'),
+        transactionHash: String(proofParsed.data.signature || (proofParsed.data as any).transactionHash || 'unknown'),
         settlementHash: settlementHash,
         blockNumber: null,
-        from: String(proof.from || '').toString(),
-        to: String(proof.to || '').toString(),
+        from: String(proofParsed.data.from || '').toString(),
+        to: String(proofParsed.data.to || '').toString(),
         amount: amountAtomic,
         token: tokenString,
         chainId: 0,
