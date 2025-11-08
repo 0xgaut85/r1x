@@ -118,8 +118,6 @@ export async function POST(request: NextRequest) {
     const feePct = parseFloat(process.env.PLATFORM_FEE_PERCENTAGE || '5');
     const { feeAmount, merchantAmount } = calculateFees(amount, isFinite(feePct) ? feePct : 5);
 
-    const settlementHash = validProof.signature; // Solana signature is the settlement hash
-
     await prisma.transaction.create({
       data: {
         serviceId: dbService.id,
