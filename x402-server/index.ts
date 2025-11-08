@@ -19,7 +19,11 @@ import { URL } from 'url';
 
 config();
 
+// Facilitator configuration - PayAI for EVM networks (Base)
+// Note: x402-express middleware currently supports PayAI facilitator for EVM networks
+// Solana/Daydreams support will be added separately
 const facilitatorUrl = (process.env.FACILITATOR_URL || 'https://facilitator.payai.network') as Resource;
+const daydreamsFacilitatorUrl = process.env.DAYDREAMS_FACILITATOR_URL || 'https://facilitator.daydreams.systems';
 const payTo = process.env.MERCHANT_ADDRESS as `0x${string}`;
 const cdpApiKeyId = process.env.CDP_API_KEY_ID;
 const cdpApiKeySecret = process.env.CDP_API_KEY_SECRET;
@@ -29,6 +33,10 @@ if (!facilitatorUrl || !payTo) {
   console.error('Missing required environment variables: FACILITATOR_URL or MERCHANT_ADDRESS');
   process.exit(1);
 }
+
+console.log('[x402-server] Facilitator configuration:');
+console.log(`  PayAI (EVM): ${facilitatorUrl}`);
+console.log(`  Daydreams (Solana): ${daydreamsFacilitatorUrl}`);
 
 const app = express();
 
@@ -1008,8 +1016,8 @@ app.post('/api/r1x-agent/plan', async (req, res) => {
     const query = req.body.query || '';
     const category = req.body.category;
     const budgetMax = req.body.budgetMax ? parseFloat(req.body.budgetMax) : undefined;
-    const network = 'base';
-    const chainId = 8453;
+    const network = (req.body.network as string) || 'base';
+    const chainId = network === 'base' ? 8453 : 0;
 
     // Build database query
     const where: any = {

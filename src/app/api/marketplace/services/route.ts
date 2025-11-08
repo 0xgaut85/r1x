@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { MarketplaceService } from '@/lib/types/x402';
 import { syncPayAIServices, fetchPayAIServices } from '@/lib/payai-sync';
+import { syncDaydreamsServices } from '@/lib/daydreams-sync';
 import { formatUnits } from 'viem';
 
 export async function GET(request: NextRequest) {
@@ -17,7 +18,9 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category');
     const merchant = searchParams.get('merchant');
     const network = searchParams.get('network') || 'base';
-    const chainId = searchParams.get('chainId') ? parseInt(searchParams.get('chainId')!) : 8453;
+    const chainId = searchParams.get('chainId')
+      ? parseInt(searchParams.get('chainId')!)
+      : (network === 'base' ? 8453 : 0);
     const skipSync = searchParams.get('skipSync') === 'true';
     const type = searchParams.get('type'); // Service type filter
     const q = searchParams.get('q'); // Search query
@@ -112,12 +115,17 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // If no services found and sync not skipped, trigger sync
+    // If no services found and sync not skipped, trigger facilitator-specific sync
     if (services.length === 0 && !skipSync) {
-      console.log('No services found in database, triggering PayAI sync...');
+      console.log(`No services found for network='${network}', triggering sync...`);
       try {
-        const syncResult = await syncPayAIServices();
-        console.log(`Sync completed: ${syncResult.synced} services synced, ${syncResult.errors} errors`);
+        if (network === 'solana') {
+          const synced = await syncDaydreamsServices();
+          console.log(`[Marketplace] Daydreams sync completed: ${synced} services synced`);
+        } else {
+          const syncResult = await syncPayAIServices();
+          console.log(`[Marketplace] PayAI sync completed: ${syncResult.synced} services synced, ${syncResult.errors} errors`);
+        }
         
         // Query again after sync - use same fallback logic
         try {

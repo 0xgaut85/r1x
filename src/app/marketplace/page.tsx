@@ -23,16 +23,22 @@ export default function MarketplacePage() {
   const [services, setServices] = useState<MarketplaceService[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [network, setNetwork] = useState<string>('base');
 
   useEffect(() => {
     fetchServices();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [network]);
 
   const fetchServices = async (retry = false) => {
     try {
       setLoading(true);
       // If retrying, skip sync to avoid infinite loop
-      const url = retry ? '/api/marketplace/services?skipSync=true' : '/api/marketplace/services';
+      const baseUrl = '/api/marketplace/services';
+      const params = new URLSearchParams();
+      params.set('network', network);
+      if (retry) params.set('skipSync', 'true');
+      const url = `${baseUrl}?${params.toString()}`;
       const response = await fetch(url);
       const data = await response.json();
       
@@ -88,6 +94,26 @@ export default function MarketplacePage() {
               </a>
             </div>
 
+            {/* Network Selector */}
+            <div className="flex flex-wrap gap-3 mb-6">
+              {['base', 'solana'].map((net) => (
+                <motion.button
+                  key={net}
+                  onClick={() => setNetwork(net)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`px-4 py-2 rounded-lg transition-all duration-200 ${
+                    network === net
+                      ? 'bg-[#FF4D00] text-white'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-[#FF4D00]'
+                  }`}
+                  style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
+                >
+                  {net === 'base' ? 'Base (EVM)' : 'Solana'}
+                </motion.button>
+              ))}
+            </div>
+
             {/* Category Filter */}
             <div className="flex flex-wrap gap-3 mb-8">
               {categories.map((category) => (
@@ -120,7 +146,7 @@ export default function MarketplacePage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredServices.map((service, index) => (
-                  <ServiceCard key={service.id} service={service} index={index} />
+                  <ServiceCard key={service.id} service={service} index={index} currentNetwork={network} />
                 ))}
               </div>
             )}
@@ -132,7 +158,7 @@ export default function MarketplacePage() {
   );
 }
 
-function ServiceCard({ service, index }: { service: MarketplaceService; index: number }) {
+function ServiceCard({ service, index, currentNetwork }: { service: MarketplaceService; index: number; currentNetwork: string }) {
   const { walletClient, address, isConnected } = useWallet();
   const { isConnected: wagmiConnected } = useAccount();
   const chainId = useChainId();
@@ -170,8 +196,13 @@ function ServiceCard({ service, index }: { service: MarketplaceService; index: n
       return;
     }
 
-    if (chainId !== base.id) {
-      alert('Please switch to Base network');
+    if (service.network === 'base') {
+      if (chainId !== base.id) {
+        alert('Please switch to Base network');
+        return;
+      }
+    } else if (service.network === 'solana') {
+      alert('Solana purchases are coming soon. You can browse Solana services now.');
       return;
     }
 

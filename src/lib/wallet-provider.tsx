@@ -2,7 +2,8 @@
 
 import { createAppKit } from '@reown/appkit/react';
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
-import { mainnet, base } from '@reown/appkit/networks';
+import { SolanaAdapter } from '@reown/appkit-adapter-solana';
+import { mainnet, base, solana } from '@reown/appkit/networks';
 import { QueryClient } from '@tanstack/react-query';
 
 const projectId = 'ac7a5e22564f2698c80f05dbf4811d6a';
@@ -19,12 +20,14 @@ const metadata = {
   icons: ['/logosvg.svg'],
 };
 
-const networks = [base, mainnet];
+const networks = [base, mainnet, solana];
 
 const wagmiAdapter = new WagmiAdapter({
   networks: networks as any,
   projectId,
 });
+
+const solanaAdapter = new SolanaAdapter();
 
 // Create QueryClient with SSR-safe defaults
 const queryClient = new QueryClient({
@@ -37,7 +40,7 @@ const queryClient = new QueryClient({
 });
 
 export const modal = createAppKit({
-  adapters: [wagmiAdapter],
+  adapters: [wagmiAdapter, solanaAdapter],
   networks: networks as any,
   projectId,
   metadata,

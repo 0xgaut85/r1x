@@ -31,12 +31,15 @@ MERCHANT_ADDRESS=0x... # Ton adresse wallet merchant (Base network)
 FEE_RECIPIENT_ADDRESS=0x... # r1x wallet pour recevoir les fees
 PLATFORM_FEE_PERCENTAGE=5
 
-# PayAI Facilitator
+# PayAI Facilitator (EVM networks: Base, Polygon, etc.)
 FACILITATOR_URL=https://facilitator.payai.network
 NETWORK=base
 CDP_API_KEY_ID=... # Coinbase Developer Platform API Key ID
 CDP_API_KEY_SECRET=... # Coinbase Developer Platform API Key Secret
 PAYAI_FACILITATOR_ADDRESS=... # Optionnel
+
+# Daydreams Facilitator (Solana network)
+DAYDREAMS_FACILITATOR_URL=https://facilitator.daydreams.systems
 
 # AI Agent
 ANTHROPIC_API_KEY=sk-ant-... # Anthropic API key

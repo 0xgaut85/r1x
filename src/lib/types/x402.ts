@@ -67,7 +67,7 @@ export interface FacilitatorSettleResponse {
 export interface MerchantFeeConfig {
   feePercentage: number; // Fee percentage (e.g., 5 for 5%)
   feeRecipient: string; // r1x wallet address to receive fees
-  network: 'base'; // Network identifier
+  network: 'base' | 'solana' | 'polygon' | 'base-sepolia'; // Network identifier
 }
 
 export interface PaymentStatus {
@@ -95,8 +95,8 @@ export interface MarketplaceService {
   isExternal?: boolean; // true if from PayAI facilitator (external merchant)
   token?: string; // Token contract address
   tokenSymbol?: string; // Token symbol (e.g., "USDC")
-  network?: string; // Network identifier (e.g., "base")
-  chainId?: number; // Chain ID (e.g., 8453 for Base)
+  network?: string; // Network identifier (e.g., "base", "solana")
+  chainId?: number; // Chain ID (e.g., 8453 for Base, undefined for Solana)
   x402Ready?: boolean; // true if endpoint returns valid 402
   verified?: boolean; // true if ownership verified
   source?: string; // Source: payai, x402scan, selfserve
