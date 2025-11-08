@@ -209,47 +209,49 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // Fetch services from PayAI facilitator in real-time
+    // Fetch services from PayAI facilitator in real-time (Base/EVM only)
     let payaiServices: MarketplaceService[] = [];
-    try {
-      const facilitatorServices = await fetchPayAIServices();
-      const PLATFORM_FEE_PERCENTAGE = 5; // 5% fee
-      
-      payaiServices = facilitatorServices.map((service) => {
-        // Calculate price with fee added
-        const priceWei = BigInt(service.price);
-        const feeWei = (priceWei * BigInt(PLATFORM_FEE_PERCENTAGE)) / BigInt(100);
-        const totalPriceWei = priceWei + feeWei;
+    if (network === 'base') {
+      try {
+        const facilitatorServices = await fetchPayAIServices();
+        const PLATFORM_FEE_PERCENTAGE = 5; // 5% fee
         
-        // Format price display
-        const decimals = service.tokenSymbol === 'USDC' ? 6 : 18;
-        const basePrice = formatUnits(priceWei, decimals);
-        const totalPrice = formatUnits(totalPriceWei, decimals);
+        payaiServices = facilitatorServices.map((service) => {
+          // Calculate price with fee added
+          const priceWei = BigInt(service.price);
+          const feeWei = (priceWei * BigInt(PLATFORM_FEE_PERCENTAGE)) / BigInt(100);
+          const totalPriceWei = priceWei + feeWei;
+          
+          // Format price display
+          const decimals = service.tokenSymbol === 'USDC' ? 6 : 18;
+          const basePrice = formatUnits(priceWei, decimals);
+          const totalPrice = formatUnits(totalPriceWei, decimals);
+          
+          return {
+            id: service.id,
+            name: service.name,
+            description: service.description || '',
+            price: basePrice, // Base price (before fee)
+            priceWithFee: totalPrice, // Total price (with 5% fee)
+            merchant: service.merchant,
+            category: extractCategory(service.name, service.description) || 'Other',
+            endpoint: service.endpoint || undefined,
+            websiteUrl: service.websiteUrl || undefined,
+            screenshotUrl: undefined, // PayAI services don't have cached screenshots yet
+            available: true,
+            isExternal: true, // Services from PayAI facilitator
+            token: service.token,
+            tokenSymbol: service.tokenSymbol,
+            network: service.network,
+            chainId: service.chainId,
+          };
+        });
         
-        return {
-          id: service.id,
-          name: service.name,
-          description: service.description || '',
-          price: basePrice, // Base price (before fee)
-          priceWithFee: totalPrice, // Total price (with 5% fee)
-          merchant: service.merchant,
-          category: extractCategory(service.name, service.description) || 'Other',
-          endpoint: service.endpoint || undefined,
-          websiteUrl: service.websiteUrl || undefined,
-          screenshotUrl: undefined, // PayAI services don't have cached screenshots yet
-          available: true,
-          isExternal: true, // Services from PayAI facilitator
-          token: service.token,
-          tokenSymbol: service.tokenSymbol,
-          network: service.network,
-          chainId: service.chainId,
-        };
-      });
-      
-      console.log(`[Marketplace] Fetched ${payaiServices.length} services from PayAI facilitator`);
-    } catch (error: any) {
-      console.error('[Marketplace] Error fetching PayAI facilitator services:', error.message);
-      // Continue with database services only if PayAI fetch fails
+        console.log(`[Marketplace] Fetched ${payaiServices.length} services from PayAI facilitator`);
+      } catch (error: any) {
+        console.error('[Marketplace] Error fetching PayAI facilitator services:', error.message);
+        // Continue with database services only if PayAI fetch fails
+      }
     }
 
     // Combine database services and PayAI facilitator services
@@ -268,7 +270,12 @@ export async function GET(request: NextRequest) {
       }
     });
     
-    const marketplaceServices = Array.from(allServicesMap.values());
+    // Final list, filtered by requested network and chainId for safety
+    const marketplaceServices = Array.from(allServicesMap.values()).filter(s => {
+      const matchesNetwork = !s.network || s.network === network;
+      const matchesChain = typeof s.chainId !== 'number' || s.chainId === chainId;
+      return matchesNetwork && matchesChain;
+    });
 
     return NextResponse.json({
       services: marketplaceServices,
