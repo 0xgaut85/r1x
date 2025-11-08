@@ -41,6 +41,7 @@ PAYAI_FACILITATOR_ADDRESS=... # Optionnel
 # Daydreams Facilitator (Solana network)
 DAYDREAMS_FACILITATOR_URL=https://facilitator.daydreams.systems
 SOLANA_FEE_RECIPIENT_ADDRESS=F... # Adresse Solana (public key base58) pour recevoir les fees
+NEXT_PUBLIC_SOLANA_RPC_URL=https://mainnet.helius-rpc.com/?api-key=... # RPC Solana exposé au client (Helius)
 
 # AI Agent
 ANTHROPIC_API_KEY=sk-ant-... # Anthropic API key
