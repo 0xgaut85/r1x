@@ -13,6 +13,7 @@ import { modal } from '@/lib/wallet-provider';
 import { X402Client } from '@/lib/payments/x402Client';
 import { getX402ServerUrlAsync } from '@/lib/x402-server-url';
 import { MarketplaceService } from '@/lib/types/x402';
+import { SolanaPaymentClient } from '@/lib/solana-payment-client';
 
 // Dynamically import Header to prevent SSR issues with WalletProvider context
 const Header = dynamicImport(() => import('@/components/Header'), { ssr: false });
@@ -202,7 +203,132 @@ function ServiceCard({ service, index, currentNetwork }: { service: MarketplaceS
         return;
       }
     } else if (service.network === 'solana') {
-      alert('Solana purchases are coming soon. You can browse Solana services now.');
+      // Solana purchase flow
+      setIsProcessing(true);
+      try {
+        // Get Solana wallet (Phantom or Solflare)
+        const solanaWallet = (window as any).phantom?.solana || (window as any).solflare;
+        if (!solanaWallet || !solanaWallet.isConnected) {
+          modal.open();
+          alert('Please connect your Solana wallet (Phantom or Solflare) to purchase services');
+          setIsProcessing(false);
+          return;
+        }
+
+        // Initialize Solana payment client
+        const solanaClient = new SolanaPaymentClient(solanaWallet);
+
+        const basePrice = parseFloat(service.price);
+        const feePercentage = parseFloat(process.env.NEXT_PUBLIC_PLATFORM_FEE_PERCENTAGE || '5');
+        
+        // Calculate fee (only for external services)
+        let feeAmount = '0';
+        if (service.isExternal) {
+          feeAmount = (basePrice * feePercentage / 100).toFixed(6);
+        }
+
+        // For external services: pay fee then service
+        // For our services: just pay service (no separate fee)
+        if (service.isExternal && parseFloat(feeAmount) > 0) {
+          // Pay fee first
+          const feeRecipient = process.env.NEXT_PUBLIC_SOLANA_FEE_RECIPIENT_ADDRESS || 'FJ1D5BAoHJpTfahmd8Ridq6kDciJq8d5XNU7WnwKExoz';
+          const feeResult = await solanaClient.transferUSDC({
+            to: feeRecipient,
+            amount: feeAmount,
+          });
+
+          // Call fee endpoint
+          const feeResponse = await fetch('/api/x402/solana/fee', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              proof: feeResult.proof,
+              verifyPayload: { signature: feeResult.signature, ...feeResult.proof }, // Minimal payload
+              settlePayload: { signature: feeResult.signature, ...feeResult.proof }, // Minimal payload
+              feeAmount,
+              routerSettled: false, // We created the transaction ourselves
+            }),
+          });
+
+          if (!feeResponse.ok) {
+            const errTxt = await feeResponse.text();
+            throw new Error(`Fee payment failed: ${errTxt}`);
+          }
+
+          // Pay service
+          if (!service.endpoint) {
+            alert('This service does not expose a direct purchase endpoint. Please open the service page.');
+            setIsProcessing(false);
+            return;
+          }
+
+          const serviceResult = await solanaClient.transferUSDC({
+            to: service.merchant || service.endpoint,
+            amount: service.price,
+          });
+
+          // Call service payment endpoint
+          const serviceResponse = await fetch('/api/x402/solana/pay', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              serviceId: service.id,
+              serviceName: service.name,
+              proof: serviceResult.proof,
+              verifyPayload: { signature: serviceResult.signature, ...serviceResult.proof },
+              settlePayload: { signature: serviceResult.signature, ...serviceResult.proof },
+              routerSettled: false,
+            }),
+          });
+
+          if (!serviceResponse.ok) {
+            const errTxt = await serviceResponse.text();
+            throw new Error(`Service payment failed: ${errTxt}`);
+          }
+
+          const serviceData = await serviceResponse.json();
+          alert(`✅ Purchase successful! ${serviceData.message || 'Service accessed.'}`);
+        } else {
+          // Our services: single payment (no fee)
+          if (!service.endpoint) {
+            alert('This service does not expose a direct purchase endpoint. Please open the service page.');
+            setIsProcessing(false);
+            return;
+          }
+
+          const serviceResult = await solanaClient.transferUSDC({
+            to: service.merchant || service.endpoint,
+            amount: service.price,
+          });
+
+          // Call service payment endpoint
+          const serviceResponse = await fetch('/api/x402/solana/pay', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              serviceId: service.id,
+              serviceName: service.name,
+              proof: serviceResult.proof,
+              verifyPayload: { signature: serviceResult.signature, ...serviceResult.proof },
+              settlePayload: { signature: serviceResult.signature, ...serviceResult.proof },
+              routerSettled: false,
+            }),
+          });
+
+          if (!serviceResponse.ok) {
+            const errTxt = await serviceResponse.text();
+            throw new Error(`Service payment failed: ${errTxt}`);
+          }
+
+          const serviceData = await serviceResponse.json();
+          alert(`✅ Purchase successful! ${serviceData.message || 'Service accessed.'}`);
+        }
+      } catch (error: any) {
+        console.error('[Marketplace] Solana purchase error:', error);
+        alert(`Purchase failed: ${error.message || 'Unknown error'}`);
+      } finally {
+        setIsProcessing(false);
+      }
       return;
     }
 

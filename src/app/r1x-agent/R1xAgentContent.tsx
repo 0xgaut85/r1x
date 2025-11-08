@@ -11,6 +11,7 @@ import { parseIntent, isPurchaseIntent, ServiceCategory } from '@/lib/intent/par
 import { marketplaceCatalog } from '@/lib/marketplace/catalog';
 import { X402Client } from '@/lib/payments/x402Client';
 import { MarketplaceService } from '@/lib/types/x402';
+import { SolanaPaymentClient } from '@/lib/solana-payment-client';
 
 // No longer need x402-server-url - using Next.js API routes (same origin)
 import AgentBackground from '@/components/r1x-agent/AgentBackground';
