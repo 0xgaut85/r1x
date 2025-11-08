@@ -1,6 +1,6 @@
 'use client';
 
-import { Connection, PublicKey, Transaction } from '@solana/web3.js';
+import { Connection, PublicKey, Transaction, ComputeBudgetProgram } from '@solana/web3.js';
 import { getAssociatedTokenAddress, createTransferInstruction, getAccount } from '@solana/spl-token';
 import { usdcToAtomic } from './solana-payment';
 import { getSolanaRpcUrl } from './solana-rpc-config';
@@ -164,8 +164,22 @@ export class SolanaPaymentClient {
         []
       );
 
-      // Create transaction
-      const transaction = new Transaction().add(transferInstruction);
+      // Create transaction with priority fees (required for Solana v0 transactions)
+      const transaction = new Transaction();
+      
+      // Add compute budget instructions for priority fees
+      // This fixes "Transaction must write lock at least one tip account" error
+      const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
+        units: 200000, // Standard compute units for token transfer
+      });
+      
+      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: 1000, // Small priority fee (0.000001 SOL per compute unit)
+      });
+      
+      transaction.add(modifyComputeUnits);
+      transaction.add(addPriorityFee);
+      transaction.add(transferInstruction);
 
       // Get recent blockhash (may also fail with RPC errors)
       let blockhash;

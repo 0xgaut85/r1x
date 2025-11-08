@@ -6,7 +6,6 @@ import { SolanaAdapter } from '@reown/appkit-adapter-solana';
 import { mainnet, base, solana } from '@reown/appkit/networks';
 import { QueryClient } from '@tanstack/react-query';
 import { getSolanaRpcUrl } from '@/lib/solana-rpc-config';
-import { useEffect, useState } from 'react';
 
 const projectId = process.env.NEXT_PUBLIC_PROJECT_ID || 'ac7a5e22564f2698c80f05dbf4811d6a';
 
@@ -22,12 +21,24 @@ const metadata = {
   icons: ['/logosvg.svg'],
 };
 
-// Initialize with default RPC (will be updated at runtime)
-const defaultSolanaRpc = 'https://api.mainnet-beta.solana.com';
-let solanaRpcUrl = defaultSolanaRpc;
-let appKitInitialized = false;
+// Fetch Solana RPC URL synchronously if possible, otherwise use fallback
+let solanaRpcUrl = 'https://api.mainnet-beta.solana.com'; // Fallback
 
-// Configure Solana network with RPC URL (will be updated at runtime)
+// Try to fetch RPC URL immediately (client-side only)
+if (typeof window !== 'undefined') {
+  // Fetch synchronously using cached value if available
+  getSolanaRpcUrl()
+    .then((rpcUrl) => {
+      solanaRpcUrl = rpcUrl;
+      console.log('[WalletProvider] ✅ Solana RPC fetched:', rpcUrl.includes('quiknode') ? 'QuickNode' : 'Other');
+    })
+    .catch(() => {
+      console.warn('[WalletProvider] Using fallback RPC (will fetch async)');
+    });
+}
+
+// Configure Solana network with RPC URL
+// Note: This will be updated when RPC URL is fetched, but Reown reads it at init
 const solanaNetwork = { 
   ...solana, 
   rpcUrl: solanaRpcUrl 
@@ -52,7 +63,7 @@ const queryClient = new QueryClient({
   },
 });
 
-// Initialize AppKit (will use default RPC initially, updated below)
+// Initialize AppKit
 export const modal = createAppKit({
   adapters: [wagmiAdapter, solanaAdapter],
   networks: networks as any,
@@ -67,41 +78,30 @@ export const modal = createAppKit({
   },
 });
 
-appKitInitialized = true;
-
-// Fetch RPC URL from Railway at runtime and update network config
+// Update RPC URL after initialization (Reown might re-read it on connection)
 if (typeof window !== 'undefined') {
   getSolanaRpcUrl()
     .then((rpcUrl) => {
-      solanaRpcUrl = rpcUrl;
-      
-      // Update the network config
-      solanaNetwork.rpcUrl = rpcUrl;
-      
-      // Log which RPC is being used
-      const maskedRpc = rpcUrl.includes('quiknode')
-        ? rpcUrl.replace(/\/[^\/]+\/[^\/]+\//, '/***/***/')
-        : rpcUrl.includes('api-key')
-        ? rpcUrl.replace(/api-key=[^&]+/, 'api-key=***')
-        : rpcUrl;
-      
-      console.log('[WalletProvider] ✅ Solana RPC fetched from Railway:', maskedRpc);
-      
-      if (rpcUrl === defaultSolanaRpc) {
-        console.error('[WalletProvider] ERROR: Using public Solana RPC (will fail). Set SOLANA_RPC_URL in Railway.');
-      } else if (rpcUrl.includes('quiknode')) {
-        console.log('[WalletProvider] ✅ Using QuickNode RPC from Railway');
-      }
-      
-      // Update AppKit networks if possible (Reown might not support this, but try)
-      // Note: Reown might require re-initialization, but this is the best we can do
-      if (modal && (modal as any).setNetworks) {
-        (modal as any).setNetworks([base, mainnet, solanaNetwork]);
+      if (rpcUrl !== solanaRpcUrl) {
+        solanaRpcUrl = rpcUrl;
+        solanaNetwork.rpcUrl = rpcUrl;
+        
+        const maskedRpc = rpcUrl.includes('quiknode')
+          ? rpcUrl.replace(/\/[^\/]+\/[^\/]+\//, '/***/***/')
+          : rpcUrl.includes('api-key')
+          ? rpcUrl.replace(/api-key=[^&]+/, 'api-key=***')
+          : rpcUrl;
+        
+        console.log('[WalletProvider] ✅ Solana RPC updated from Railway:', maskedRpc);
+        
+        // Try to update AppKit networks (may not work, but worth trying)
+        if ((modal as any).setNetworks) {
+          (modal as any).setNetworks([base, mainnet, solanaNetwork]);
+        }
       }
     })
     .catch((error) => {
       console.error('[WalletProvider] Failed to fetch Solana RPC URL:', error);
-      console.warn('[WalletProvider] Using default RPC (will fail in browser)');
     });
 }
 
