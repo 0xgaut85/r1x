@@ -1077,17 +1077,12 @@ export default function R1xAgentContent() {
 
     // Vérifier que le wallet est connecté et que x402-fetch est disponible
     if (!wagmiConnected || !fetchWithPayment) {
-      modal.open();
-      setError('Please connect your wallet to send messages');
-      setIsLoading(false);
-      return;
+      // For EVM path we'll need wallet + x402-fetch.
+      // If not available, we'll try the Solana path below after we build updatedMessages.
     }
 
-    if (chainId !== base.id) {
-      setError('Please switch to Base network');
-      setIsLoading(false);
-      return;
-    }
+    // We'll prefer Base when connected; otherwise we'll try Solana flow later.
+    // If chainId !== base.id, we won't block here.
 
     // If we have a pending purchase awaiting required fields, interpret this message as field values
     if (pendingPurchase && x402Client) {
@@ -1395,6 +1390,103 @@ export default function R1xAgentContent() {
     setInput('');
     setIsLoading(true);
     setError(null);
+
+    // If Base is not active or EVM signer missing, try Solana flow for the fixed agent fee ($0.25 USDC)
+    if (!wagmiConnected || !fetchWithPayment || chainId !== base.id) {
+      try {
+        const solanaWallet =
+          typeof window !== 'undefined'
+            ? ((window as any).phantom?.solana || (window as any).solflare)
+            : null;
+
+        if (!solanaWallet || !solanaWallet.isConnected) {
+          modal.open();
+          setError('Please connect your Solana wallet (Phantom or Solflare)');
+          setIsLoading(false);
+          return;
+        }
+
+        // Pay fixed 0.25 USDC agent fee to platform (Solana)
+        const feeRecipient =
+          process.env.NEXT_PUBLIC_SOLANA_FEE_RECIPIENT_ADDRESS ||
+          'FJ1D5BAoHJpTfahmd8Ridq6kDciJq8d5XNU7WnwKExoz';
+        const solanaClient = new SolanaPaymentClient(solanaWallet);
+
+        const feeResult = await solanaClient.transferUSDC({
+          to: feeRecipient,
+          amount: '0.25',
+        });
+
+        // Call agent chat with Solana proof
+        const response = await fetch('/api/r1x-agent/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Payment': JSON.stringify(feeResult.proof),
+          },
+          body: JSON.stringify({
+            network: 'solana',
+            messages: updatedMessages.map(msg => ({
+              role: msg.role,
+              content: msg.content,
+            })),
+          }),
+        });
+
+        // Handle response
+        const paymentResponseHeader =
+          response.headers.get('x-payment-response') ||
+          response.headers.get('X-Payment-Response');
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText || 'Unknown error'}`);
+        }
+
+        const data = await response.json();
+        const responseText = data.message || data.data?.message || '';
+
+        // Log the paid chat as a purchase so user panel shows explorer link immediately
+        try {
+          if (paymentResponseHeader && address) {
+            await fetch('/api/purchases/log', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                serviceId: 'r1x-agent-chat',
+                serviceName: 'r1x Agent Chat',
+                payer: address,
+                feeReceipt: null,
+                serviceReceipt: paymentResponseHeader,
+                servicePrice: '0.25',
+                type: 'internal',
+              }),
+            });
+          }
+        } catch (logErr) {
+          console.warn(
+            '[Agent] Failed to log chat purchase (non-blocking):',
+            (logErr as any)?.message || logErr
+          );
+        }
+
+        // Append assistant response
+        setMessages(prev => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: responseText || 'Done.',
+            status: 'sent',
+          } as any,
+        ]);
+        setIsLoading(false);
+        return;
+      } catch (err: any) {
+        setError(err.message || 'Payment failed');
+        setIsLoading(false);
+        return;
+      }
+    }
 
     // Check if this is a purchase intent
     const intent = parseIntent(input.trim());
