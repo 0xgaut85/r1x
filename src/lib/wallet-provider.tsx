@@ -22,7 +22,8 @@ const metadata = {
 
 // Ensure Solana network has a valid RPC URL to avoid "Endpoint URL must start with http/https"
 const solanaRpcFromEnv = (process.env.NEXT_PUBLIC_SOLANA_RPC_URL || '').trim();
-const validSolanaRpc = solanaRpcFromEnv.startsWith('http://') || solanaRpcFromEnv.startsWith('https://')
+// Ensure we always have a valid URL string (never empty or undefined)
+const validSolanaRpc = solanaRpcFromEnv && (solanaRpcFromEnv.startsWith('http://') || solanaRpcFromEnv.startsWith('https://'))
   ? solanaRpcFromEnv
   : 'https://api.mainnet-beta.solana.com'; // fallback (will fail in browser - needs QuickNode)
 
@@ -40,7 +41,11 @@ if (typeof window !== 'undefined') {
   }
 }
 
-const solanaNetwork = { ...solana, rpcUrl: validSolanaRpc } as any;
+// Configure Solana network with RPC URL
+const solanaNetwork = { 
+  ...solana, 
+  rpcUrl: validSolanaRpc 
+} as any;
 
 const networks = [base, mainnet, solanaNetwork];
 
@@ -49,6 +54,8 @@ const wagmiAdapter = new WagmiAdapter({
   projectId,
 });
 
+// SolanaAdapter reads RPC from the network object passed to createAppKit
+// Ensure the network has rpcUrl set (which we do above)
 const solanaAdapter = new SolanaAdapter();
 
 // Create QueryClient with SSR-safe defaults
