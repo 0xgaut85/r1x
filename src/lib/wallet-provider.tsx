@@ -24,7 +24,21 @@ const metadata = {
 const solanaRpcFromEnv = (process.env.NEXT_PUBLIC_SOLANA_RPC_URL || '').trim();
 const validSolanaRpc = solanaRpcFromEnv.startsWith('http://') || solanaRpcFromEnv.startsWith('https://')
   ? solanaRpcFromEnv
-  : 'https://api.mainnet-beta.solana.com'; // fallback to valid URL (will require Helius allowlist for browser)
+  : 'https://api.mainnet-beta.solana.com'; // fallback (will fail in browser - needs QuickNode)
+
+// Log RPC being used (for debugging)
+if (typeof window !== 'undefined') {
+  const maskedRpc = validSolanaRpc.includes('quiknode')
+    ? validSolanaRpc.replace(/\/[^\/]+\/[^\/]+\//, '/***/***/')
+    : validSolanaRpc.includes('api-key')
+    ? validSolanaRpc.replace(/api-key=[^&]+/, 'api-key=***')
+    : validSolanaRpc;
+  console.log('[WalletProvider] Solana RPC:', maskedRpc);
+  
+  if (validSolanaRpc === 'https://api.mainnet-beta.solana.com') {
+    console.warn('[WalletProvider] WARNING: Using public Solana RPC (will fail). Set NEXT_PUBLIC_SOLANA_RPC_URL with QuickNode URL in Railway and redeploy.');
+  }
+}
 
 const solanaNetwork = { ...solana, rpcUrl: validSolanaRpc } as any;
 

@@ -19,11 +19,22 @@ export class SolanaPaymentClient {
 
   constructor(wallet: any, rpcUrl?: string) {
     this.wallet = wallet;
+    // Use provided RPC URL, or env var, or fallback to public (which will fail in browser)
     this.rpcUrl = rpcUrl || process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
     this.connection = new Connection(this.rpcUrl, 'confirmed');
     
     // Log which RPC is being used (for debugging)
-    console.log('[SolanaPaymentClient] Using RPC:', this.rpcUrl.includes('api-key') ? this.rpcUrl.replace(/api-key=[^&]+/, 'api-key=***') : this.rpcUrl);
+    const maskedUrl = this.rpcUrl.includes('api-key') 
+      ? this.rpcUrl.replace(/api-key=[^&]+/, 'api-key=***')
+      : this.rpcUrl.includes('quiknode')
+      ? this.rpcUrl.replace(/\/[^\/]+\/[^\/]+\//, '/***/***/')
+      : this.rpcUrl;
+    console.log('[SolanaPaymentClient] Using RPC:', maskedUrl);
+    
+    // Warn if using fallback public RPC (won't work in browser)
+    if (this.rpcUrl === 'https://api.mainnet-beta.solana.com') {
+      console.warn('[SolanaPaymentClient] WARNING: Using public Solana RPC (will fail in browser). Set NEXT_PUBLIC_SOLANA_RPC_URL with QuickNode URL.');
+    }
   }
 
   /**
@@ -94,10 +105,14 @@ export class SolanaPaymentClient {
               '. Once allowlisted, refresh the page and try again.'
             );
           } else {
-            // If not using Helius, suggest configuring it
+            // If not using Helius/QuickNode, provide helpful error
+            const currentRpc = this.rpcUrl.includes('quiknode') ? 'QuickNode' : 
+                              this.rpcUrl.includes('helius') ? 'Helius' : 
+                              'public Solana RPC';
             throw new Error(
-              'Solana RPC error (403). Please configure NEXT_PUBLIC_SOLANA_RPC_URL with a Helius RPC URL ' +
-              'and ensure your domain is allowlisted in Helius dashboard.'
+              `Solana RPC error (403). Current RPC: ${currentRpc}. ` +
+              `Please ensure NEXT_PUBLIC_SOLANA_RPC_URL is set with a QuickNode RPC URL in Railway and redeploy. ` +
+              `QuickNode URL format: https://YOUR-ENDPOINT.solana-mainnet.quiknode.pro/YOUR-API-KEY/`
             );
           }
         } else {
@@ -144,7 +159,13 @@ export class SolanaPaymentClient {
               'Domain: ' + (typeof window !== 'undefined' ? window.location.origin : 'unknown')
             );
           } else {
-            throw new Error('Solana RPC error (403). Please configure Helius RPC with domain allowlisting.');
+            const currentRpc = this.rpcUrl.includes('quiknode') ? 'QuickNode' : 
+                              this.rpcUrl.includes('helius') ? 'Helius' : 
+                              'public Solana RPC';
+            throw new Error(
+              `Solana RPC error (403). Current RPC: ${currentRpc}. ` +
+              `Please ensure NEXT_PUBLIC_SOLANA_RPC_URL is set with QuickNode URL in Railway and redeploy.`
+            );
           }
         } else {
           throw blockhashError;
@@ -182,7 +203,13 @@ export class SolanaPaymentClient {
               'Domain: ' + (typeof window !== 'undefined' ? window.location.origin : 'unknown')
             );
           } else {
-            throw new Error('Solana RPC error (403). Please configure Helius RPC with domain allowlisting.');
+            const currentRpc = this.rpcUrl.includes('quiknode') ? 'QuickNode' : 
+                              this.rpcUrl.includes('helius') ? 'Helius' : 
+                              'public Solana RPC';
+            throw new Error(
+              `Solana RPC error (403). Current RPC: ${currentRpc}. ` +
+              `Please ensure NEXT_PUBLIC_SOLANA_RPC_URL is set with QuickNode URL in Railway and redeploy.`
+            );
           }
         } else {
           throw sendError;
