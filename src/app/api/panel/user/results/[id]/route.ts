@@ -25,7 +25,7 @@ export async function GET(
     }
 
     // Fetch the service result
-    const result = await prisma.serviceResult.findUnique({
+    const result = await (prisma as any).serviceResult.findUnique({
       where: { id: resultId },
       include: {
         service: {

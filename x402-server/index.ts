@@ -106,8 +106,8 @@ app.use((req, res, next) => {
 app.use(express.json());
 
 // Solana payment middleware - runs BEFORE PayAI middleware
-// If Solana payment verified, request continues; if Base, PayAI middleware handles it
-app.use(solanaPaymentMiddleware({ route: '/api/r1x-agent/chat', price: '$0.25' }));
+// Use a dedicated Solana route to avoid conflicts with PayAI on Base
+app.use(solanaPaymentMiddleware({ route: '/api/r1x-agent/chat/solana', price: '$0.25' }));
 
 // DISABLED: x402scan transformer - following PayAI docs exactly
 // app.use(x402scanResponseTransformer);
@@ -125,6 +125,22 @@ app.options('/api/r1x-agent/chat', (req, res) => {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Max-Age', '86400');
   console.log('[CORS] OPTIONS /api/r1x-agent/chat from:', origin);
+  res.status(200).end();
+});
+
+// Explicit OPTIONS for Solana chat route
+app.options('/api/r1x-agent/chat/solana', (req, res) => {
+  const origin = req.headers.origin;
+  if (origin && (origin.includes('r1xlabs.com') || origin.includes('railway.app') || origin.includes('vercel.app'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  const requestedHeaders = (req.headers['access-control-request-headers'] as string | undefined);
+  res.setHeader('Access-Control-Allow-Headers', requestedHeaders || 'Content-Type, X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Authorization, Accept, Access-Control-Expose-Headers');
+  res.setHeader('Access-Control-Expose-Headers', 'X-Payment, X-Payment-Response, X-Payment-Required, X-Payment-Quote, WWW-Authenticate, Content-Type');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  console.log('[CORS] OPTIONS /api/r1x-agent/chat/solana from:', origin);
   res.status(200).end();
 });
 
@@ -749,6 +765,129 @@ ${servicesList}`;
       error: error.message || 'Internal server error',
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
+    }
+  }
+});
+
+// Solana-specific chat route - bypasses PayAI middleware entirely
+app.post('/api/r1x-agent/chat/solana', async (req, res) => {
+  // Solana payment is verified by solanaPaymentMiddleware
+  if (res.headersSent) {
+    console.log('[x402-server] Response already sent by middleware (solana), skipping route handler');
+    return;
+  }
+
+  try {
+    // Reuse the same chat implementation by forwarding to the main handler context
+    // Mark as solana for downstream processing
+    (req as any).solanaPaymentVerified = (req as any).solanaPaymentVerified ?? false;
+
+    // Minimal duplication: call Anthropic logic directly (same as /chat)
+    const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+    if (!ANTHROPIC_API_KEY) {
+      console.error('[x402-server] ANTHROPIC_API_KEY not configured');
+      return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
+    }
+
+    if (!req.body.messages || !Array.isArray(req.body.messages)) {
+      console.error('[x402-server] Invalid messages format (solana):', req.body);
+      return res.status(400).json({ error: 'Invalid messages format' });
+    }
+
+    // Load services for system prompt (reuse logic by calling the existing function body inline)
+    let availableServices: any[] = [];
+    try {
+      const { PrismaClient } = await import('@prisma/client');
+      const prisma = new PrismaClient();
+      const { formatUnits } = await import('viem');
+
+      const dbServices = await prisma.service.findMany({
+        where: {
+          available: true,
+          OR: [
+            { network: 'base', chainId: 8453 },
+            { network: 'solana', chainId: 0 },
+          ],
+        },
+        select: {
+          serviceId: true,
+          name: true,
+          description: true,
+          category: true,
+          priceDisplay: true,
+          endpoint: true,
+          merchant: true,
+          tokenSymbol: true,
+          metadata: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+      });
+
+      const dbServicesFormatted = dbServices.map(s => {
+        const metadata = s.metadata && typeof s.metadata === 'object' && !Array.isArray(s.metadata)
+          ? s.metadata as Record<string, any>
+          : null;
+        const websiteUrl = metadata?.website || metadata?.websiteUrl || metadata?.homepage || metadata?.url || undefined;
+        return {
+          id: s.serviceId,
+          name: s.name,
+          description: s.description || '',
+          category: s.category || 'Other',
+          price: s.priceDisplay,
+          endpoint: s.endpoint || null,
+          merchant: s.merchant || null,
+          tokenSymbol: s.tokenSymbol || 'USDC',
+          websiteUrl: websiteUrl,
+        };
+      });
+
+      availableServices = dbServicesFormatted.slice(0, 50);
+      await prisma.$disconnect();
+    } catch (error) {
+      console.error('[x402-server] Error fetching services for system prompt (solana):', error);
+    }
+
+    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    const servicesList = availableServices.length > 0
+      ? `\n\nAvailable Marketplace Services:\n${availableServices.map((s, i) => {
+          const parts = [
+            `${i + 1}. **${s.name}**`,
+            `ID: ${s.id}`,
+            `Category: ${s.category}`,
+            `Price: ${s.price} USDC`,
+            s.description ? `Description: ${s.description}` : '',
+          ].filter(Boolean);
+          return parts.join('\n   ');
+        }).join('\n\n')}`
+      : '\n\nNote: No marketplace services are currently available.';
+
+    const systemPrompt = `You are r1x Agent (Solana). Keep answers concise and grounded to live features only.${servicesList}`;
+
+    const responseMsg = await anthropic.messages.create({
+      model: 'claude-3-opus-20240229',
+      max_tokens: 4096,
+      system: systemPrompt,
+      messages: req.body.messages.map((msg: any) => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content,
+      })),
+    });
+
+    const content = responseMsg.content[0];
+    if (content.type === 'text') {
+      console.log('[x402-server] Chat (solana) response sent successfully');
+      return res.json({ message: content.text });
+    } else {
+      console.error('[x402-server] Unexpected solana response format:', content);
+      return res.status(500).json({ error: 'Unexpected response format' });
+    }
+  } catch (error: any) {
+    console.error('[x402-server] Chat (solana) error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: error.message || 'Internal server error',
+      });
     }
   }
 });

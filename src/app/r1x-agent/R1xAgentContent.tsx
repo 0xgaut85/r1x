@@ -1418,8 +1418,8 @@ export default function R1xAgentContent() {
           amount: '0.25',
         });
 
-        // Call agent chat with Solana proof
-        const response = await fetch('/api/r1x-agent/chat', {
+        // Call agent chat (Solana route) with payment proof
+        const response = await fetch('/api/r1x-agent/chat/solana', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

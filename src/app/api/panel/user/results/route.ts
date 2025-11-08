@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch service results for this wallet
     const [results, total] = await Promise.all([
-      prisma.serviceResult.findMany({
+      (prisma as any).serviceResult.findMany({
         where: {
           payer: address.toLowerCase(),
         },
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
         take: limit,
         skip: offset,
       }),
-      prisma.serviceResult.count({
+      (prisma as any).serviceResult.count({
         where: {
           payer: address.toLowerCase(),
         },
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Format for frontend
-    const formattedResults = results.map(result => {
+    const formattedResults = (results as any[]).map((result: any) => {
       // Generate preview text
       let preview: string | null = null;
       if (result.resultText) {

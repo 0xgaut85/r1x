@@ -1,33 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
-import { Connection } from '@solana/web3.js';
+import { verifyPaymentWithDaydreams, settlePaymentWithDaydreams } from '@/lib/daydreams-facilitator';
+import { PaymentProof } from '@/lib/types/x402';
 
 export const dynamic = 'force-dynamic';
-
-const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
-
-/**
- * Verify Solana transaction exists on-chain
- */
-async function verifySolanaTransaction(signature: string): Promise<{ verified: boolean; error?: string }> {
-  try {
-    const connection = new Connection(SOLANA_RPC_URL, 'confirmed');
-    const txStatus = await connection.getSignatureStatus(signature);
-    
-    if (!txStatus || !txStatus.value) {
-      return { verified: false, error: 'Transaction not found' };
-    }
-    
-    if (txStatus.value.err) {
-      return { verified: false, error: `Transaction failed: ${JSON.stringify(txStatus.value.err)}` };
-    }
-    
-    return { verified: true };
-  } catch (error: any) {
-    return { verified: false, error: error.message || 'Verification error' };
-  }
-}
 
 function formatUSDC(amount: string): string {
   try {
@@ -80,23 +57,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Recipient mismatch: fee must be paid to SOLANA_FEE_RECIPIENT_ADDRESS' }, { status: 400 });
     }
 
-    // Verify transaction on-chain (correct method for Solana)
-    const verifyResult = await verifySolanaTransaction(proofParsed.data.signature);
-    
-    if (!verifyResult.verified) {
-      return NextResponse.json({ 
-        error: 'Payment verification failed', 
-        details: verifyResult.error 
-      }, { status: 400 });
-    }
-
-    // Transaction verified on-chain - no separate settlement needed for Solana
-    const settlementHash = proofParsed.data.signature; // Solana signature is the settlement hash
-
-    // Persist fee transaction (100% fee to platform)
-    const tokenSymbol: string = proofParsed.data.tokenSymbol || 'USDC';
-    const tokenString: string = proofParsed.data.token || tokenSymbol;
-    // Prefer explicit feeAmount provided by client; fallback to proof.amount
+    // Calculate amount in atomic units (prefer explicit feeAmount provided by client; fallback to proof.amount)
     const amountAtomic: string = feeAmount
       ? (() => {
           try {
@@ -108,6 +69,43 @@ export async function POST(request: NextRequest) {
           }
         })()
       : String(proofParsed.data.amount);
+
+    // Verify payment with Daydreams facilitator (proper x402 protocol)
+    const paymentProof: PaymentProof & { signature?: string } = {
+      transactionHash: proofParsed.data.signature, // Use signature as transactionHash for Solana
+      signature: proofParsed.data.signature,
+      blockNumber: 0, // Solana doesn't use block numbers
+      from: proofParsed.data.from,
+      to: proofParsed.data.to,
+      amount: amountAtomic,
+      token: proofParsed.data.token || 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+      timestamp: Date.now(),
+    };
+
+    const verifyResult = await verifyPaymentWithDaydreams(paymentProof, solanaFeeRecipient);
+    
+    if (!verifyResult.verified) {
+      return NextResponse.json({ 
+        error: 'Payment verification failed', 
+        details: verifyResult.reason 
+      }, { status: 400 });
+    }
+
+    // Settle payment with Daydreams facilitator
+    const settleResult = await settlePaymentWithDaydreams(paymentProof, solanaFeeRecipient);
+    
+    if (!settleResult.settled) {
+      return NextResponse.json({ 
+        error: 'Payment settlement failed', 
+        details: settleResult.reason 
+      }, { status: 400 });
+    }
+
+    const settlementHash = settleResult.settlementHash || proofParsed.data.signature;
+
+    // Persist fee transaction (100% fee to platform)
+    const tokenSymbol: string = proofParsed.data.tokenSymbol || 'USDC';
+    const tokenString: string = proofParsed.data.token || tokenSymbol;
 
     // Ensure service exists (platform-fee)
     let dbService = await prisma.service.findUnique({ where: { serviceId: 'platform-fee-solana' } });

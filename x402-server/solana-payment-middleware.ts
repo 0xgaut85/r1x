@@ -48,7 +48,7 @@ async function verifyPaymentWithDaydreams(
       return { verified: false, error: `Daydreams verification failed: ${response.status} ${errorText}` };
     }
 
-    const data = await response.json();
+    const data: any = await response.json();
     if (data.verified === true || data.success === true || data.status === 'verified') {
       return {
         verified: true,
@@ -99,7 +99,7 @@ async function settlePaymentWithDaydreams(
       return { settled: false, error: `Daydreams settlement failed: ${response.status} ${errorText}` };
     }
 
-    const data = await response.json();
+    const data: any = await response.json();
     if (data.settled === true || data.success === true || data.status === 'settled') {
       return {
         settled: true,

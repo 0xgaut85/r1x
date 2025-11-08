@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
       : resultText;
 
     // Create ServiceResult
-    const serviceResult = await prisma.serviceResult.create({
+    const serviceResult = await (prisma as any).serviceResult.create({
       data: {
         transactionId,
         transactionHash,

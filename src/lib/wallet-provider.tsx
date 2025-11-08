@@ -7,7 +7,7 @@ import { mainnet, base, solana } from '@reown/appkit/networks';
 import { QueryClient } from '@tanstack/react-query';
 import { getSolanaRpcUrl } from '@/lib/solana-rpc-config';
 
-const projectId = process.env.NEXT_PUBLIC_PROJECT_ID || 'ac7a5e22564f2698c80f05dbf4811d6a';
+const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string;
 
 // Use NEXT_PUBLIC_BASE_URL or default to production URL
 const baseUrl = typeof window !== 'undefined' 
@@ -118,7 +118,9 @@ if (typeof window !== 'undefined') {
           ? rpcUrl.replace(/api-key=[^&]+/, 'api-key=***')
           : rpcUrl;
         
-        console.log('[WalletProvider] ✅ Solana RPC fetched from Railway:', maskedRpc);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[WalletProvider] ✅ Solana RPC fetched from Railway:', maskedRpc);
+        }
         
         // Try to update AppKit networks
         if ((modal as any).setNetworks) {
@@ -144,7 +146,9 @@ if (typeof window !== 'undefined') {
               ? rpcUrl.replace(/api-key=[^&]+/, 'api-key=***')
               : rpcUrl;
             
-            console.log('[WalletProvider] ✅ Solana RPC updated from Railway:', maskedRpc);
+            if (process.env.NODE_ENV !== 'production') {
+              console.log('[WalletProvider] ✅ Solana RPC updated from Railway:', maskedRpc);
+            }
             
             // Try to update AppKit networks
             if ((modal as any).setNetworks) {

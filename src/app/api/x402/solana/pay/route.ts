@@ -1,34 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
-import { Connection } from '@solana/web3.js';
+import { verifyPaymentWithDaydreams, settlePaymentWithDaydreams } from '@/lib/daydreams-facilitator';
+import { PaymentProof } from '@/lib/types/x402';
 
 export const dynamic = 'force-dynamic';
-
-const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
-
-/**
- * Verify Solana transaction exists on-chain
- * This is the correct method - Solana transactions are verified on-chain
- */
-async function verifySolanaTransaction(signature: string): Promise<{ verified: boolean; error?: string }> {
-  try {
-    const connection = new Connection(SOLANA_RPC_URL, 'confirmed');
-    const txStatus = await connection.getSignatureStatus(signature);
-    
-    if (!txStatus || !txStatus.value) {
-      return { verified: false, error: 'Transaction not found' };
-    }
-    
-    if (txStatus.value.err) {
-      return { verified: false, error: `Transaction failed: ${JSON.stringify(txStatus.value.err)}` };
-    }
-    
-    return { verified: true };
-  } catch (error: any) {
-    return { verified: false, error: error.message || 'Verification error' };
-  }
-}
 
 function formatUSDC(amount: string): string {
   try {
@@ -73,24 +49,44 @@ export async function POST(request: NextRequest) {
     const validProof = parsed.data;
 
     const facilitatorUrl = process.env.DAYDREAMS_FACILITATOR_URL || 'https://facilitator.daydreams.systems';
+    const amountStr: string = String(validProof.amount);
 
-    // Verify transaction on-chain (correct method for Solana)
-    // Solana transactions are settled immediately when sent, so we verify on-chain
-    const verifyResult = await verifySolanaTransaction(validProof.signature);
+    // Verify payment with Daydreams facilitator (proper x402 protocol)
+    const paymentProof: PaymentProof & { signature?: string } = {
+      transactionHash: validProof.signature, // Use signature as transactionHash for Solana
+      signature: validProof.signature,
+      blockNumber: 0, // Solana doesn't use block numbers
+      from: validProof.from,
+      to: validProof.to,
+      amount: amountStr,
+      token: validProof.token || 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+      timestamp: Date.now(),
+    };
+
+    const verifyResult = await verifyPaymentWithDaydreams(paymentProof, validProof.to);
     
     if (!verifyResult.verified) {
       return NextResponse.json({ 
         error: 'Payment verification failed', 
-        details: verifyResult.error 
+        details: verifyResult.reason 
       }, { status: 400 });
     }
 
-    // Transaction verified on-chain - no separate settlement needed for Solana
-    const settlementHash = validProof.signature; // Solana signature is the settlement hash
+    // Settle payment with Daydreams facilitator
+    const settleResult = await settlePaymentWithDaydreams(paymentProof, validProof.to);
+    
+    if (!settleResult.settled) {
+      return NextResponse.json({ 
+        error: 'Payment settlement failed', 
+        details: settleResult.reason 
+      }, { status: 400 });
+    }
+
+    const settlementHash = settleResult.settlementHash || validProof.signature;
 
     const tokenSymbol: string = validProof.tokenSymbol || 'USDC';
     const tokenString: string = validProof.token || tokenSymbol;
-    const amount: string = String(validProof.amount);
+    const amount: string = amountStr;
 
     // Ensure service exists (Solana)
     let dbService = await prisma.service.findUnique({ where: { serviceId } });

@@ -15,8 +15,8 @@ const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
  */
 export class SolanaPaymentClient {
   private wallet: any; // Phantom or Solflare wallet adapter
-  private rpcUrl: string;
-  private connection: Connection;
+  private rpcUrl!: string;
+  private connection: Connection | null = null;
   private rpcUrlPromise: Promise<string> | null = null;
 
   constructor(wallet: any, rpcUrl?: string) {
@@ -35,10 +35,7 @@ export class SolanaPaymentClient {
         this.logRpcUrl();
         return url;
       });
-      
-      // Initialize with placeholder (will be updated when promise resolves)
-      this.rpcUrl = 'https://api.mainnet-beta.solana.com';
-      this.connection = new Connection(this.rpcUrl, 'confirmed');
+      // Do not initialize placeholder connection; wait for runtime RPC
     }
   }
 
@@ -48,12 +45,16 @@ export class SolanaPaymentClient {
       : this.rpcUrl.includes('quiknode')
       ? this.rpcUrl.replace(/\/[^\/]+\/[^\/]+\//, '/***/***/')
       : this.rpcUrl;
-    console.log('[SolanaPaymentClient] Using RPC:', maskedUrl);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[SolanaPaymentClient] Using RPC:', maskedUrl);
+    }
     
     if (this.rpcUrl === 'https://api.mainnet-beta.solana.com') {
       console.warn('[SolanaPaymentClient] WARNING: Using public Solana RPC (will fail in browser). Set SOLANA_RPC_URL in Railway.');
     } else if (this.rpcUrl.includes('quiknode')) {
-      console.log('[SolanaPaymentClient] ✅ Using QuickNode RPC from Railway');
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[SolanaPaymentClient] ✅ Using QuickNode RPC from Railway');
+      }
     }
   }
 
@@ -61,8 +62,10 @@ export class SolanaPaymentClient {
    * Ensure RPC URL is loaded from Railway before making requests
    */
   private async ensureRpcUrl(): Promise<void> {
-    if (this.rpcUrlPromise) {
-      await this.rpcUrlPromise;
+    if (this.rpcUrlPromise) await this.rpcUrlPromise;
+    if (!this.connection && this.rpcUrl) {
+      this.connection = new Connection(this.rpcUrl, 'confirmed');
+      this.logRpcUrl();
     }
   }
 
@@ -115,7 +118,7 @@ export class SolanaPaymentClient {
       // Wrap in try-catch to handle RPC errors (e.g., Helius 403)
       let fromAccount;
       try {
-        fromAccount = await getAccount(this.connection, fromTokenAccount);
+        fromAccount = await getAccount(this.connection as Connection, fromTokenAccount);
       } catch (rpcError: any) {
         const errorMsg = String(rpcError?.message || '');
         const errorString = JSON.stringify(rpcError || {});
@@ -184,7 +187,7 @@ export class SolanaPaymentClient {
       // Get recent blockhash (may also fail with RPC errors)
       let blockhash;
       try {
-        const blockhashResult = await this.connection.getLatestBlockhash('confirmed');
+        const blockhashResult = await (this.connection as Connection).getLatestBlockhash('confirmed');
         blockhash = blockhashResult.blockhash;
       } catch (blockhashError: any) {
         const errorMsg = String(blockhashError?.message || '');
@@ -226,7 +229,7 @@ export class SolanaPaymentClient {
       // Send transaction (may also fail with RPC errors)
       let signature;
       try {
-        signature = await this.connection.sendRawTransaction(signedTransaction.serialize(), {
+        signature = await (this.connection as Connection).sendRawTransaction(signedTransaction.serialize(), {
           skipPreflight: false,
           maxRetries: 3,
         });
@@ -262,7 +265,7 @@ export class SolanaPaymentClient {
       }
 
       // Wait for confirmation
-      await this.connection.confirmTransaction(signature, 'confirmed');
+      await (this.connection as Connection).confirmTransaction(signature, 'confirmed');
 
       return {
         signature,

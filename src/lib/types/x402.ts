@@ -26,6 +26,19 @@ export interface PaymentProof {
   timestamp: number;
 }
 
+/**
+ * Solana-specific payment proof (signature-based)
+ */
+export interface SolanaPaymentProof {
+  signature: string;
+  from: string;
+  to: string;
+  amount: string; // atomic units (USDC = 6 decimals)
+  token: string; // mint address (e.g., USDC mint)
+  tokenSymbol?: string;
+  timestamp?: number;
+}
+
 export interface PaymentRequest {
   quote: PaymentQuote;
   proof?: PaymentProof; // If retrying with payment proof
