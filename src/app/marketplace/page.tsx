@@ -272,9 +272,6 @@ function ServiceCard({ service, index, currentNetwork }: { service: MarketplaceS
               serviceId: service.id,
               serviceName: service.name,
               proof: serviceResult.proof,
-              verifyPayload: { signature: serviceResult.signature, ...serviceResult.proof },
-              settlePayload: { signature: serviceResult.signature, ...serviceResult.proof },
-              routerSettled: false,
             }),
           });
 
@@ -306,9 +303,6 @@ function ServiceCard({ service, index, currentNetwork }: { service: MarketplaceS
               serviceId: service.id,
               serviceName: service.name,
               proof: serviceResult.proof,
-              verifyPayload: { signature: serviceResult.signature, ...serviceResult.proof },
-              settlePayload: { signature: serviceResult.signature, ...serviceResult.proof },
-              routerSettled: false,
             }),
           });
 
