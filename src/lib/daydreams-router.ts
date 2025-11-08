@@ -1,17 +1,14 @@
-import { createClient, DreamsClient } from '@daydreamsai/ai-sdk-provider';
+import { DaydreamsClient } from '@daydreamsai/ai-sdk-provider';
 
-let client: DreamsClient | null = null;
+let client: DaydreamsClient | null = null;
 
-export function getDaydreamsClient(): DreamsClient {
+export function getDaydreamsClient(): DaydreamsClient {
   if (client) return client;
 
   const baseUrl = process.env.NEXT_PUBLIC_DAYDREAMS_BASE_URL || 'https://api-beta.daydreams.systems';
 
-  client = createClient({
+  client = new DaydreamsClient({
     baseUrl,
-    store: ['console'],
-    logLevel: 'warn',
-    callback: (_event, _message) => {},
   });
 
   return client;
