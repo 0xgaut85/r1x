@@ -15,6 +15,7 @@ export class SolanaPaymentClient {
   private wallet: any; // Phantom or Solflare wallet adapter
   private rpcUrl: string;
   private connection: Connection;
+  private didFallbackToPublicRpc: boolean = false;
 
   constructor(wallet: any, rpcUrl?: string) {
     this.wallet = wallet;
@@ -112,6 +113,28 @@ export class SolanaPaymentClient {
       };
     } catch (error: any) {
       console.error('[SolanaPaymentClient] Transfer error:', error);
+      // Fallback: some RPC providers (e.g., Helius) may block browser requests (403).
+      // Retry once via public Solana RPC to complete the user flow.
+      const message: string = error?.message || '';
+      const needsFallback =
+        !this.didFallbackToPublicRpc &&
+        (message.includes('403') ||
+          message.toLowerCase().includes('access forbidden') ||
+          message.includes('Endpoint URL must start'));
+
+      if (needsFallback) {
+        try {
+          this.didFallbackToPublicRpc = true;
+          this.rpcUrl = 'https://api.mainnet-beta.solana.com';
+          this.connection = new Connection(this.rpcUrl, 'confirmed');
+          // Retry once
+          return await this.transferUSDC(params);
+        } catch (retryErr: any) {
+          console.error('[SolanaPaymentClient] Fallback transfer error:', retryErr);
+          throw new Error(`Solana USDC transfer failed: ${retryErr?.message || 'Unknown error'}`);
+        }
+      }
+
       throw new Error(`Solana USDC transfer failed: ${error.message}`);
     }
   }
