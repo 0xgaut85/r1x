@@ -226,7 +226,23 @@ export function parsePaymentProof(xPaymentHeader: string | undefined): PaymentPr
       };
     }
     
-    // Handle legacy format (direct transactionHash, from, to, amount)
+      // Handle Solana payment proof format (signature, from, to, amount)
+      if (proof.signature && proof.from && proof.to && proof.amount && !proof.transactionHash) {
+        // Solana proof - use signature as transactionHash
+        return {
+          transactionHash: proof.signature, // Solana uses signature as transaction identifier
+          settlementHash: proof.settlementHash || proof.signature,
+          blockNumber: undefined, // Solana doesn't use block numbers the same way
+          from: proof.from,
+          to: proof.to,
+          amount: proof.amount.toString(),
+          token: proof.token || 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', // USDC on Solana
+          timestamp: proof.timestamp || Date.now(),
+          chainId: 0, // Solana uses chainId 0
+        };
+      }
+      
+      // Handle legacy format (direct transactionHash, from, to, amount)
     if (proof.transactionHash && proof.from && proof.to && proof.amount) {
       return {
         transactionHash: proof.transactionHash,
@@ -302,23 +318,23 @@ async function ensureService(
     return existing.id;
   }
 
-  // Create new service
-  const service = await prisma.service.create({
-    data: {
-      serviceId,
-      name: serviceName,
-      description: `Paid service: ${serviceName}`,
-      category: 'AI Agent',
-      merchant: merchantAddress.toLowerCase(),
-      network: 'base',
-      chainId: BASE_CHAIN_ID,
-      token: USDC_BASE_ADDRESS,
-      tokenSymbol: 'USDC',
-      price: price,
-      priceDisplay: priceDisplay,
-      available: true,
-    },
-  });
+    // Create new service
+    const service = await prisma.service.create({
+      data: {
+        serviceId,
+        name: serviceName,
+        description: `Paid service: ${serviceName}`,
+        category: 'AI Agent',
+        merchant: merchantAddress.toLowerCase(),
+        network: proof.chainId === 0 ? 'solana' : 'base', // Detect network from chainId
+        chainId: proof.chainId || BASE_CHAIN_ID,
+        token: proof.token || (proof.chainId === 0 ? 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' : USDC_BASE_ADDRESS),
+        tokenSymbol: 'USDC',
+        price: price,
+        priceDisplay: priceDisplay,
+        available: true,
+      },
+    });
 
   console.log('[Save Transaction] Created service:', service.id);
   return service.id;

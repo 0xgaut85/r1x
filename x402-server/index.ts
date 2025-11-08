@@ -12,6 +12,7 @@ import { paymentMiddleware, Resource } from 'x402-express';
 import Anthropic from '@anthropic-ai/sdk';
 import { parsePaymentProof, saveTransaction } from './save-transaction';
 import { x402scanResponseTransformer } from './x402scan-response';
+import { solanaPaymentMiddleware } from './solana-payment-middleware';
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
@@ -103,6 +104,10 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+
+// Solana payment middleware - runs BEFORE PayAI middleware
+// If Solana payment verified, request continues; if Base, PayAI middleware handles it
+app.use(solanaPaymentMiddleware({ route: '/api/r1x-agent/chat', price: '$0.25' }));
 
 // DISABLED: x402scan transformer - following PayAI docs exactly
 // app.use(x402scanResponseTransformer);
@@ -261,12 +266,16 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
 // Routes réelles - le middleware vérifie le paiement avant d'arriver ici
 app.post('/api/r1x-agent/chat', async (req, res) => {
-  // Le paiement est déjà vérifié par le middleware PayAI
-  // Si le middleware a déjà envoyé une réponse (erreur de settlement, etc.), on ne fait rien
+  // Payment is already verified by middleware (PayAI for Base, Solana middleware for Solana)
+  // If the middleware has already sent a response (error, etc.), skip
   if (res.headersSent) {
     console.log('[x402-server] Response already sent by middleware, skipping route handler');
     return;
   }
+
+  // Check if this was a Solana payment
+  const isSolana = (req as any).solanaPaymentVerified === true;
+  const network = req.body?.network || (isSolana ? 'solana' : 'base');
 
   // On peut maintenant traiter la requête chat
   try {
@@ -274,20 +283,31 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
       hasMessages: !!req.body.messages,
       messageCount: req.body.messages?.length || 0,
       hasPayment: !!req.headers['x-payment'],
+      network,
+      isSolana,
     });
 
     // Parse and save transaction to database (non-blocking, with timeout)
     const xPaymentHeader = typeof req.headers['x-payment'] === 'string' ? req.headers['x-payment'] as string : undefined;
     if (xPaymentHeader) {
       console.log('[x402-server] X-Payment header present, saving transaction...');
-      const paymentProof = parsePaymentProof(xPaymentHeader);
+      
+      let paymentProof: any;
+      if (isSolana) {
+        // Use Solana proof from middleware
+        paymentProof = (req as any).solanaPaymentProof;
+      } else {
+        // Parse PayAI proof
+        paymentProof = parsePaymentProof(xPaymentHeader);
+      }
       
       if (paymentProof) {
-        // Try to get settlement hash from res.locals (if PayAI middleware exposes it)
-        // The PayAI middleware might expose settlement info in res.locals
-        const settlementHash = (res.locals as any)?.settlement?.transactionHash || 
-                               (res.locals as any)?.settlementHash ||
-                               (req.headers['x-settlement-hash'] as string | undefined);
+        // Get settlement hash
+        const settlementHash = isSolana
+          ? (req as any).solanaSettlementHash
+          : ((res.locals as any)?.settlement?.transactionHash || 
+             (res.locals as any)?.settlementHash ||
+             (req.headers['x-settlement-hash'] as string | undefined));
         
         // Create proof object with settlement hash if available
         const proofWithSettlement: any = {
@@ -353,12 +373,15 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
       const prisma = new PrismaClient();
       const { formatUnits } = await import('viem');
       
-      // Fetch database services
+      // Fetch database services (both Base and Solana)
       const dbServices = await prisma.service.findMany({
         where: {
           available: true,
-          network: 'base',
-          chainId: 8453,
+          // Include both Base and Solana services
+          OR: [
+            { network: 'base', chainId: 8453 },
+            { network: 'solana', chainId: 0 },
+          ],
         },
         select: {
           serviceId: true,
