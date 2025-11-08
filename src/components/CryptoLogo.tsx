@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { getRuntimeConfig } from '@/lib/runtime-config';
 
 interface CryptoLogoProps {
   symbol: string; // Token symbol (e.g., 'USDC', 'BASE', 'ETH')
@@ -9,9 +10,8 @@ interface CryptoLogoProps {
   fallback?: string; // Fallback text or symbol
 }
 
-// LogoKit API key - can be set via NEXT_PUBLIC_LOGOKIT_API_KEY env var
-// Defaults to provided key if not set
-const LOGOKIT_API_KEY = process.env.NEXT_PUBLIC_LOGOKIT_API_KEY || 'pk_fr8612cc333de53ac8f39b';
+// Runtime-loaded LogoKit API key from Railway (client-safe)
+let LOGOKIT_API_KEY: string | null = null;
 
 /**
  * CryptoLogo component - displays crypto logos using logokit.com
@@ -25,6 +25,19 @@ export default function CryptoLogo({
   fallback 
 }: CryptoLogoProps) {
   const [error, setError] = useState(false);
+  const [apiKey, setApiKey] = useState<string | null>(LOGOKIT_API_KEY);
+
+  useEffect(() => {
+    if (apiKey) return;
+    getRuntimeConfig()
+      .then(cfg => {
+        LOGOKIT_API_KEY = cfg.logokitApiKey || null;
+        setApiKey(LOGOKIT_API_KEY);
+      })
+      .catch(() => {
+        // Ignore, will use fallback behavior
+      });
+  }, [apiKey]);
 
   if (!symbol) {
     return null;
@@ -35,7 +48,7 @@ export default function CryptoLogo({
   
   // Build logokit API URL
   // Format: https://img.logokit.com/crypto/{symbol}?token={api_key}&size={size}
-  const logoUrl = `https://img.logokit.com/crypto/${normalizedSymbol}?token=${LOGOKIT_API_KEY}&size=${size}`;
+  const logoUrl = `https://img.logokit.com/crypto/${normalizedSymbol}?token=${apiKey || ''}&size=${size}`;
 
   // If error, show fallback
   if (error) {

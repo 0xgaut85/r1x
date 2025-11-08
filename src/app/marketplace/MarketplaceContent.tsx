@@ -14,6 +14,7 @@ import { X402Client } from '@/lib/payments/x402Client';
 import { getX402ServerUrlAsync } from '@/lib/x402-server-url';
 import { MarketplaceService } from '@/lib/types/x402';
 import { SolanaPaymentClient } from '@/lib/solana-payment-client';
+import { getRuntimeConfig } from '@/lib/runtime-config';
 
 // Dynamically import Header to prevent SSR issues with WalletProvider context
 const Header = dynamic(() => import('@/components/Header'), { ssr: false });
@@ -237,6 +238,11 @@ const ServiceCard = memo(function ServiceCard({
       // Solana purchase flow
       setIsProcessing(true);
       try {
+        // Load runtime config from Railway
+        const runtime = await getRuntimeConfig();
+        const feePercentage = parseFloat(runtime.platformFeePercentage || '5');
+        const solanaFeeRecipient = runtime.solanaFeeRecipient || 'FJ1D5BAoHJpTfahmd8Ridq6kDciJq8d5XNU7WnwKExoz';
+
         // Get Solana wallet (Phantom or Solflare)
         const solanaWallet = (window as any).phantom?.solana || (window as any).solflare;
         if (!solanaWallet || !solanaWallet.isConnected) {
@@ -250,7 +256,6 @@ const ServiceCard = memo(function ServiceCard({
         const solanaClient = new SolanaPaymentClient(solanaWallet);
 
         const basePrice = parseFloat(service.price);
-        const feePercentage = parseFloat(process.env.NEXT_PUBLIC_PLATFORM_FEE_PERCENTAGE || '5');
         
         // Calculate fee (only for external services)
         let feeAmount = '0';
@@ -262,7 +267,7 @@ const ServiceCard = memo(function ServiceCard({
         // For our services: just pay service (no separate fee)
         if (service.isExternal && parseFloat(feeAmount) > 0) {
           // Pay fee first
-          const feeRecipient = process.env.NEXT_PUBLIC_SOLANA_FEE_RECIPIENT_ADDRESS || 'FJ1D5BAoHJpTfahmd8Ridq6kDciJq8d5XNU7WnwKExoz';
+          const feeRecipient = solanaFeeRecipient;
           const feeResult = await solanaClient.transferUSDC({
             to: feeRecipient,
             amount: feeAmount,
@@ -359,7 +364,9 @@ const ServiceCard = memo(function ServiceCard({
     setIsProcessing(true);
     try {
       const basePrice = parseFloat(service.price);
-      const feePercentage = parseFloat(process.env.NEXT_PUBLIC_PLATFORM_FEE_PERCENTAGE || '5');
+      // Load runtime config for platform fee percentage
+      const runtime = await getRuntimeConfig();
+      const feePercentage = parseFloat(runtime.platformFeePercentage || '5');
       
       // Calculate fee (only for external services)
       let feeAmount = '0';

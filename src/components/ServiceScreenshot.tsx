@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getRuntimeConfig } from '@/lib/runtime-config';
 
 interface ServiceScreenshotProps {
   url: string; // Service endpoint URL or website URL
@@ -10,9 +11,8 @@ interface ServiceScreenshotProps {
   height?: number;
 }
 
-// ApiFlash access key - can be set via NEXT_PUBLIC_APIFLASH_ACCESS_KEY env var
-// Defaults to provided key if not set
-const APIFLASH_ACCESS_KEY = process.env.NEXT_PUBLIC_APIFLASH_ACCESS_KEY || 'ce5f48b2fe794fadb9c837e7778cb844';
+// ApiFlash access key loaded at runtime from Railway
+let APIFLASH_ACCESS_KEY: string | null = null;
 const APIFLASH_BASE_URL = 'https://api.apiflash.com/v1/urltoimage';
 
 /**
@@ -29,6 +29,19 @@ export default function ServiceScreenshot({
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [accessKey, setAccessKey] = useState<string | null>(APIFLASH_ACCESS_KEY);
+
+  useEffect(() => {
+    if (accessKey) return;
+    getRuntimeConfig()
+      .then(cfg => {
+        APIFLASH_ACCESS_KEY = (cfg as any).apiflashAccessKey || (cfg as any).APIFLASH_ACCESS_KEY || null;
+        setAccessKey(APIFLASH_ACCESS_KEY);
+      })
+      .catch(() => {
+        // Ignore
+      });
+  }, [accessKey]);
 
   useEffect(() => {
     if (!url) {
@@ -90,7 +103,7 @@ export default function ServiceScreenshot({
     // Use a stable desktop viewport and disable full-page scroll to keep the hero section centered
     const viewportW = 1200;
     const viewportH = 800;
-    const apiUrl = `${APIFLASH_BASE_URL}?access_key=${APIFLASH_ACCESS_KEY}`+
+    const apiUrl = `${APIFLASH_BASE_URL}?access_key=${accessKey || ''}`+
       `&url=${encodeURIComponent(normalizedUrl)}`+
       `&width=${width}&height=${height}`+
       `&viewport_width=${viewportW}&viewport_height=${viewportH}`+

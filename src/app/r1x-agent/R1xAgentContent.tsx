@@ -1407,9 +1407,10 @@ export default function R1xAgentContent() {
         }
 
         // Pay fixed 0.25 USDC agent fee to platform (Solana)
-        const feeRecipient =
-          process.env.NEXT_PUBLIC_SOLANA_FEE_RECIPIENT_ADDRESS ||
-          'FJ1D5BAoHJpTfahmd8Ridq6kDciJq8d5XNU7WnwKExoz';
+        // Load runtime config from Railway
+        const { getRuntimeConfig } = await import('@/lib/runtime-config');
+        const runtimeCfg = await getRuntimeConfig();
+        const feeRecipient = runtimeCfg.solanaFeeRecipient || 'FJ1D5BAoHJpTfahmd8Ridq6kDciJq8d5XNU7WnwKExoz';
         const solanaClient = new SolanaPaymentClient(solanaWallet);
 
         const feeResult = await solanaClient.transferUSDC({
