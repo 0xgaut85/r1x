@@ -21,47 +21,40 @@ const metadata = {
   icons: ['/logosvg.svg'],
 };
 
-// Ensure Solana RPC URL is always valid (never empty/undefined)
-// Use QuickNode URL from Railway if available, otherwise fallback
-const getInitialSolanaRpcUrl = (): string => {
-  // Server-side: use env var directly (available at runtime)
+// Get Solana RPC URL from Railway env vars ONLY (no hardcoded fallbacks)
+// Client-side: fetch from Railway API route at runtime
+// Server-side: use env var directly
+const getSolanaRpcUrlSync = (): string | null => {
+  // Server-side: use env var directly
   if (typeof window === 'undefined') {
-    return process.env.SOLANA_RPC_URL || 
-           process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 
-           'https://api.mainnet-beta.solana.com';
+    const rpcUrl = process.env.SOLANA_RPC_URL || process.env.NEXT_PUBLIC_SOLANA_RPC_URL;
+    if (!rpcUrl || !rpcUrl.trim().startsWith('http')) {
+      console.error('[WalletProvider] SOLANA_RPC_URL not set or invalid in Railway');
+      return null;
+    }
+    return rpcUrl.trim();
   }
   
-  // Client-side: use fallback that's guaranteed to be valid
-  // The real RPC URL will be fetched async and updated
-  const fallback = 'https://api.mainnet-beta.solana.com';
-  
-  // Validate fallback is a proper URL
-  if (!fallback.startsWith('http://') && !fallback.startsWith('https://')) {
-    console.error('[WalletProvider] Invalid fallback RPC URL:', fallback);
-    return 'https://api.mainnet-beta.solana.com'; // Force valid URL
+  // Client-side: try NEXT_PUBLIC_* first (available at build time)
+  const publicRpcUrl = process.env.NEXT_PUBLIC_SOLANA_RPC_URL;
+  if (publicRpcUrl && publicRpcUrl.trim().startsWith('http')) {
+    return publicRpcUrl.trim();
   }
   
-  return fallback;
+  // Not available synchronously - will fetch async
+  return null;
 };
 
-let solanaRpcUrl = getInitialSolanaRpcUrl();
+let solanaRpcUrl: string | null = getSolanaRpcUrlSync();
 
-// Validate RPC URL before using it
-if (!solanaRpcUrl || (!solanaRpcUrl.startsWith('http://') && !solanaRpcUrl.startsWith('https://'))) {
-  console.error('[WalletProvider] Invalid RPC URL detected:', solanaRpcUrl);
-  solanaRpcUrl = 'https://api.mainnet-beta.solana.com'; // Force valid URL
-}
-
-// Configure Solana network with RPC URL (always valid)
-const solanaNetwork = { 
-  ...solana, 
-  rpcUrl: solanaRpcUrl.trim() // Ensure no whitespace
-} as any;
-
-// Validate network object before passing to Reown
-if (!solanaNetwork.rpcUrl || (!solanaNetwork.rpcUrl.startsWith('http://') && !solanaNetwork.rpcUrl.startsWith('https://'))) {
-  console.error('[WalletProvider] Invalid RPC URL in network config:', solanaNetwork.rpcUrl);
-  solanaNetwork.rpcUrl = 'https://api.mainnet-beta.solana.com';
+// Only initialize Solana network if we have a valid RPC URL from Railway
+// Otherwise, initialize without Solana and add it later when RPC URL is fetched
+let solanaNetwork: any = null;
+if (solanaRpcUrl && solanaRpcUrl.startsWith('http')) {
+  solanaNetwork = { 
+    ...solana, 
+    rpcUrl: solanaRpcUrl
+  } as any;
 }
 
 // Build networks array - only include Solana if we have RPC URL
