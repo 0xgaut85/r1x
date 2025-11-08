@@ -145,37 +145,24 @@ export async function preflight402Endpoint(endpoint: string): Promise<PreflightR
     const accept = data.accepts[0];
 
     // Extract key fields
+    const network = accept.network || undefined;
+    const chainId = accept.chainId || (network === 'base' ? 8453 : network === 'solana' ? 0 : undefined);
+
     const result: PreflightResult = {
       success: true,
       schema: accept,
       payTo: accept.payTo,
       facilitatorUrl: accept.facilitatorUrl || accept.facilitator,
       tokenAddress: accept.asset || accept.token,
-      network: accept.network || 'base',
-      chainId: accept.chainId || (accept.network === 'base' ? 8453 : undefined),
+      network,
+      chainId,
       maxAmountRequired: accept.maxAmountRequired || accept.amount,
     };
 
-    // Extract method from outputSchema if present
-    if (accept.outputSchema?.input?.method) {
-      const m = String(accept.outputSchema.input.method).toUpperCase();
-      if (m === 'GET' || m === 'POST') {
-        result.method = m as 'GET' | 'POST';
-      }
-    }
-
-    // Validate Base/USDC if required (can be relaxed later)
-    if (result.network !== 'base') {
-      return {
-        success: false,
-        error: `Only Base network is currently supported (got ${result.network})`,
-      };
-    }
-
-    const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
-    if (result.tokenAddress && result.tokenAddress.toLowerCase() !== USDC_BASE.toLowerCase()) {
-      // Warn but don't fail - allow other tokens
-      console.warn(`[Preflight] Token is not USDC: ${result.tokenAddress}`);
+    // Token warnings (do not fail)
+    const USDC_BASE = '0x833589fCD6eDb6eDb6E08f4c7C32D4f71b54bdA02913'.toLowerCase();
+    if (result.network === 'base' && result.tokenAddress && result.tokenAddress.toLowerCase() !== USDC_BASE) {
+      console.warn(`[Preflight] Base token is not USDC: ${result.tokenAddress}`);
     }
 
     return result;
