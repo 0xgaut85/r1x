@@ -1,6 +1,14 @@
 'use client';
 
-import { Connection, PublicKey, Transaction, ComputeBudgetProgram, SendTransactionError } from '@solana/web3.js';
+import { 
+  Connection, 
+  PublicKey, 
+  Transaction, 
+  TransactionMessage,
+  VersionedTransaction,
+  ComputeBudgetProgram, 
+  SendTransactionError 
+} from '@solana/web3.js';
 import {
   getAssociatedTokenAddress,
   createTransferInstruction,
@@ -199,22 +207,19 @@ export class SolanaPaymentClient {
       );
 
       // Attempts with escalating priority fees to satisfy tip account write-lock
-      // CRITICAL: Priority fee instructions MUST be added FIRST before any other instructions
-      // This ensures the transaction can write-lock tip accounts (required for Solana v0)
-      // NOTE: Using Transaction (not VersionedTransaction) for wallet compatibility
-      // Transaction class supports priority fees but may need explicit configuration
+      // CRITICAL: Must use VersionedTransaction (v0) for tip account write-locking
+      // Legacy Transaction class does NOT properly write-lock tip accounts even with priority fees
       const attemptSend = async (microLamports: number): Promise<string> => {
-        // Create transaction with priority fees (required for Solana v0 transactions)
-        // Using Transaction class (legacy format) for Phantom/Solflare compatibility
-        // Both Transaction and VersionedTransaction support priority fees, but Transaction
-        // is more widely supported by wallet adapters
-        const transaction = new Transaction();
-      
+        // Build v0 transaction with priority fees (REQUIRED for tip account write-lock)
+        
+        // Build instructions array: priority fees FIRST, then transfer
+        const instructions = [];
+        
         // CRITICAL: Add compute budget instructions FIRST (before any other instructions)
         // This fixes "Transaction must write lock at least one tip account" error
         // Higher compute units for ATA creation (increase to 500k/300k for safety)
         const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
-          units: needCreateRecipientAta ? 500_000 : 300_000, // Increased for better success rate
+          units: needCreateRecipientAta ? 500_000 : 300_000,
         });
         
         // Priority fee MUST be set to write-lock tip accounts
@@ -224,12 +229,12 @@ export class SolanaPaymentClient {
         });
         
         // Add priority fee instructions FIRST (critical for tip account write-lock)
-        transaction.add(modifyComputeUnits);
-        transaction.add(addPriorityFee);
+        instructions.push(modifyComputeUnits);
+        instructions.push(addPriorityFee);
 
         // Create recipient ATA if needed
         if (needCreateRecipientAta) {
-          transaction.add(
+          instructions.push(
             createAssociatedTokenAccountInstruction(
               fromPubkey,       // payer
               toTokenAccount,   // ata to create
@@ -239,11 +244,11 @@ export class SolanaPaymentClient {
           );
         }
 
-        transaction.add(transferInstruction);
+        instructions.push(transferInstruction);
 
-        // Get recent blockhash with lastValidBlockHeight (required for v0 transactions)
+        // Get recent blockhash with lastValidBlockHeight (REQUIRED for v0 transactions)
         let blockhash;
-        let lastValidBlockHeight: number | undefined;
+        let lastValidBlockHeight: number;
         try {
           const blockhashResult = await (this.connection as Connection).getLatestBlockhash('confirmed');
           blockhash = blockhashResult.blockhash;
@@ -279,63 +284,29 @@ export class SolanaPaymentClient {
           }
         }
 
-        transaction.recentBlockhash = blockhash;
-        transaction.feePayer = fromPubkey;
+        // Create v0 TransactionMessage (REQUIRED for tip account write-lock)
+        const messageV0 = new TransactionMessage({
+          payerKey: fromPubkey,
+          recentBlockhash: blockhash,
+          instructions,
+        }).compileToV0Message();
         
-        // Set lastValidBlockHeight if available (helps with transaction validity)
-        // This is critical for v0 transactions and prevents stale transactions
-        if (lastValidBlockHeight !== undefined) {
-          (transaction as any).lastValidBlockHeight = lastValidBlockHeight;
-        }
+        // Create VersionedTransaction (v0 format)
+        const transaction = new VersionedTransaction(messageV0);
         
-        // CRITICAL: Ensure transaction is properly configured for v0 transactions
-        // Transaction class supports priority fees, but we need to ensure:
-        // 1. Priority fees are first (already done above)
-        // 2. Transaction has valid blockhash (already set)
-        // 3. Transaction has fee payer (already set)
-        // 4. Transaction has lastValidBlockHeight (set above if available)
-        
-        // Verify transaction structure before signing
-        if (transaction.instructions.length === 0) {
-          throw new Error('Transaction has no instructions');
-        }
-        
-        // Ensure compute budget instructions are first
-        const firstInstruction = transaction.instructions[0];
-        if (!firstInstruction.programId.equals(ComputeBudgetProgram.programId)) {
-          throw new Error('CRITICAL: Compute budget instructions must be first in transaction');
-        }
-
         // Verify transaction structure before signing (debug)
         if (process.env.NODE_ENV !== 'production') {
-          const instructions = transaction.instructions;
-          const hasComputeBudget = instructions.some((ix: any) => 
-            ix.programId.equals(ComputeBudgetProgram.programId)
-          );
-          console.log('[SolanaPaymentClient] Transaction structure:', {
+          const compiledInstructions = messageV0.compiledInstructions;
+          console.log('[SolanaPaymentClient] v0 Transaction structure:', {
             instructionCount: instructions.length,
-            hasComputeBudget,
-            firstInstructionProgram: instructions[0]?.programId.toString(),
+            compiledInstructionCount: compiledInstructions.length,
             priorityFee: microLamports,
+            version: 0,
           });
         }
 
-        // Sign transaction with wallet
+        // Sign transaction with wallet (Phantom/Solflare support signTransaction for VersionedTransaction)
         const signedTransaction = await this.wallet.signTransaction(transaction);
-
-        // Verify signed transaction still has priority fees (some wallets may strip them)
-        const signedInstructions = signedTransaction.instructions;
-        const signedHasComputeBudget = signedInstructions.some((ix: any) => 
-          ix.programId.equals(ComputeBudgetProgram.programId)
-        );
-        if (!signedHasComputeBudget) {
-          // CRITICAL: If wallet stripped compute budget instructions, transaction will fail
-          // This is a known issue with some wallet versions
-          const walletName = this.wallet?.isPhantom ? 'Phantom' : this.wallet?.isSolflare ? 'Solflare' : 'Unknown';
-          const errorMsg = `Wallet (${walletName}) stripped compute budget instructions. Please update your wallet to the latest version.`;
-          console.error('[SolanaPaymentClient]', errorMsg);
-          throw new Error(errorMsg);
-        }
         
         // Verify transaction serialization doesn't drop instructions
         const serialized = signedTransaction.serialize();
@@ -344,9 +315,7 @@ export class SolanaPaymentClient {
         }
         
         if (process.env.NODE_ENV !== 'production') {
-          console.log('[SolanaPaymentClient] Transaction verification:', {
-            instructionCount: signedInstructions.length,
-            hasComputeBudget: signedHasComputeBudget,
+          console.log('[SolanaPaymentClient] v0 Transaction signed:', {
             serializedLength: serialized.length,
             priorityFee: microLamports,
           });
