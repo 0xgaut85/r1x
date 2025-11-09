@@ -173,10 +173,19 @@ export function solanaPaymentMiddleware(
       // Payment proof already extracted above
       const paymentProof = paymentHeader;
       
-      // Get settlement hash from settleResult if available, otherwise from paymentProof
-      const settlementHash = (settleResult && typeof settleResult === 'object' && 'transaction' in settleResult)
-        ? (settleResult as any).transaction
-        : paymentProof || '';
+      // Get settlement hash from settleResult if available, otherwise extract signature from paymentProof
+      let settlementHash: string = '';
+      if (settleResult && typeof settleResult === 'object' && 'transaction' in settleResult) {
+        settlementHash = (settleResult as any).transaction;
+      } else if (paymentProof) {
+        // Extract signature from payment proof object
+        if (typeof paymentProof === 'string') {
+          settlementHash = paymentProof;
+        } else if (typeof paymentProof === 'object' && paymentProof !== null) {
+          const proofObj = paymentProof as any;
+          settlementHash = proofObj.signature || proofObj.data?.signature || proofObj.transactionHash || '';
+        }
+      }
 
       // Payment verified and settled via PayAI x402-solana - attach proof to request and continue
       // COMPLETELY ISOLATED from EVM/PayAI routes - this only handles Solana
