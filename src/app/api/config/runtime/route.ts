@@ -10,7 +10,8 @@ export async function GET() {
   const platformFeePercentage = process.env.PLATFORM_FEE_PERCENTAGE || process.env.NEXT_PUBLIC_PLATFORM_FEE_PERCENTAGE || '5';
   const solanaFeeRecipient = process.env.SOLANA_FEE_RECIPIENT_ADDRESS || process.env.NEXT_PUBLIC_SOLANA_FEE_RECIPIENT_ADDRESS || '';
   const payaiFacilitatorUrl = process.env.FACILITATOR_URL || ''; // Railway env only - no hardcoded fallback
-  const daydreamsFacilitatorUrl = process.env.DAYDREAMS_FACILITATOR_URL || ''; // Railway env only - no hardcoded fallback
+  // Official Daydreams facilitator: https://facilitator.daydreams.systems/
+  const daydreamsFacilitatorUrl = process.env.DAYDREAMS_FACILITATOR_URL || 'https://facilitator.daydreams.systems';
   const x402ServerUrl = process.env.X402_SERVER_URL || process.env.NEXT_PUBLIC_X402_SERVER_URL || '';
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
   const logokitApiKey = process.env.NEXT_PUBLIC_LOGOKIT_API_KEY || '';

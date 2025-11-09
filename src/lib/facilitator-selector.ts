@@ -33,7 +33,8 @@ export interface FacilitatorConfig {
 export function getFacilitatorConfig(network: Network): FacilitatorConfig {
   // Solana network uses Daydreams facilitator
   if (network === 'solana') {
-    const daydreamsUrl = process.env.DAYDREAMS_FACILITATOR_URL;
+    // Official Daydreams facilitator: https://facilitator.daydreams.systems/
+    const daydreamsUrl = process.env.DAYDREAMS_FACILITATOR_URL || 'https://facilitator.daydreams.systems';
     if (!daydreamsUrl) {
       throw new Error('DAYDREAMS_FACILITATOR_URL not set in Railway. Required for Solana network.');
     }

@@ -23,9 +23,10 @@ config();
 // Facilitator configuration - PayAI for EVM networks (Base)
 // Note: x402-express middleware currently supports PayAI facilitator for EVM networks
 // Solana/Daydreams support will be added separately
-// Railway env vars only - no hardcoded fallbacks
+// Railway env vars with official fallbacks
 const facilitatorUrl = process.env.FACILITATOR_URL as Resource | undefined;
-const daydreamsFacilitatorUrl = process.env.DAYDREAMS_FACILITATOR_URL;
+// Official Daydreams facilitator: https://facilitator.daydreams.systems/
+const daydreamsFacilitatorUrl = process.env.DAYDREAMS_FACILITATOR_URL || 'https://facilitator.daydreams.systems';
 const payTo = process.env.MERCHANT_ADDRESS as `0x${string}` | undefined;
 const cdpApiKeyId = process.env.CDP_API_KEY_ID;
 const cdpApiKeySecret = process.env.CDP_API_KEY_SECRET;
