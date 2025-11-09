@@ -46,8 +46,10 @@ export interface PayAIService {
 /**
  * Fetch services from PayAI facilitator
  * PayAI facilitator API endpoints: /verify, /settle, /list
- * Service discovery via /list endpoint (official PayAI API)
+ * Service discovery via /list endpoint (official PayAI facilitator API)
  * Documentation: https://docs.payai.network/x402/facilitators/introduction
+ * 
+ * Returns ALL services from facilitator - no filtering applied
  */
 export async function fetchPayAIServices(): Promise<PayAIService[]> {
   // Feature flag to enable/disable external facilitator calls
@@ -79,7 +81,7 @@ export async function fetchPayAIServices(): Promise<PayAIService[]> {
     console.log(`[PayAI] Fetching from: ${url}`);
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout (increased from 15s)
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
     // PayAI facilitator may require CDP API key authentication for Base mainnet
     const headers: Record<string, string> = {
@@ -161,30 +163,10 @@ export async function fetchPayAIServices(): Promise<PayAIService[]> {
       }
     }
     
-    // Filter for PayAI services (might have @PayAI tag or identifier)
+    // Don't filter services - include ALL services from facilitator
+    // Per PayAI docs, /list returns all registered resources from the facilitator
     if (services.length > 0) {
-      // PayAI services might be tagged or identified in metadata
-      const payaiServices = services.filter((service: any) => {
-        const serviceStr = JSON.stringify(service).toLowerCase();
-        return (
-          serviceStr.includes('payai') ||
-          serviceStr.includes('@payai') ||
-          service?.facilitator === PAYAI_FACILITATOR_URL ||
-          service?.provider === 'payai' ||
-          service?.tags?.includes('payai') ||
-          service?.tags?.includes('@payai') ||
-          true // Include all for now, filter later if needed
-        );
-      });
-      
-      if (payaiServices.length < services.length) {
-        console.log(`[PayAI] Filtered ${payaiServices.length} PayAI services from ${services.length} total`);
-        services = payaiServices;
-      }
-    }
-
-    if (services.length > 0) {
-      console.log(`[PayAI] Found ${services.length} services from /list`);
+      console.log(`[PayAI] Found ${services.length} total services from facilitator /list endpoint - no filtering applied`);
       const normalized = services.map((service: any) => normalizePayAIService(service));
       console.log(`[PayAI] Normalized services sample:`, normalized.slice(0, 3).map(s => ({ id: s.id, name: s.name, token: s.tokenSymbol })));
       // Reset circuit breaker on success
@@ -193,7 +175,7 @@ export async function fetchPayAIServices(): Promise<PayAIService[]> {
       return normalized;
     }
     
-    console.warn(`[PayAI] No services found in /list response. Response structure:`, Object.keys(data));
+    console.warn(`[PayAI] No services found in /list response. Response structure:`, data ? Object.keys(data) : 'no data');
     return [];
   } catch (error: any) {
     const isTimeout = error.name === 'AbortError' || 
