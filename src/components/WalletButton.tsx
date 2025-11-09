@@ -3,7 +3,6 @@
 import { motion } from 'framer-motion';
 import { modal } from '@/lib/wallet-provider';
 import { useWallet } from '@/hooks/useWallet';
-import { useAppKitAccount } from '@reown/appkit/react';
 
 interface WalletButtonProps {
   variant?: 'default' | 'agent' | 'panel';
@@ -13,21 +12,9 @@ interface WalletButtonProps {
 export default function WalletButton({ variant = 'default', className = '' }: WalletButtonProps) {
   // Always call hooks in the same order - wagmi will handle provider check
   const { address, isConnected } = useWallet();
-  const { isConnected: isSolanaConnected } = useAppKitAccount({ namespace: 'solana' } as any);
 
   const handleClick = () => {
-    try {
-      if (isSolanaConnected) {
-        // Open Account view for Solana when already connected so user can Disconnect
-        (modal as any).open?.({ view: 'Account', namespace: 'solana' });
-        return;
-      }
-      // Otherwise open Connect view targeted to Solana
-      (modal as any).open?.({ view: 'Connect', namespace: 'solana' });
-    } catch {
-      // Fallback to generic open if options are not supported
-      modal.open();
-    }
+    modal.open();
   };
 
   // Agent variant (dark background, top-right)
