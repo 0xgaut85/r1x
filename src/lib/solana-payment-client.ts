@@ -285,11 +285,13 @@ export class SolanaPaymentClient {
         }
 
         // Create v0 TransactionMessage (REQUIRED for tip account write-lock)
+        // CRITICAL: Must pass empty array [] to compileToV0Message() for tip account write-locks to work
+        // Without this parameter, the v0 message doesn't properly encode tip account access
         const messageV0 = new TransactionMessage({
           payerKey: fromPubkey,
           recentBlockhash: blockhash,
           instructions,
-        }).compileToV0Message();
+        }).compileToV0Message([]); // Empty array = no address lookup tables, but enables tip accounts
         
         // Create VersionedTransaction (v0 format)
         const transaction = new VersionedTransaction(messageV0);
