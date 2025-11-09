@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
-const APIFLASH_ACCESS_KEY = process.env.APIFLASH_ACCESS_KEY || process.env.NEXT_PUBLIC_APIFLASH_ACCESS_KEY || 'ce5f48b2fe794fadb9c837e7778cb844';
+const APIFLASH_ACCESS_KEY = process.env.APIFLASH_ACCESS_KEY || process.env.NEXT_PUBLIC_APIFLASH_ACCESS_KEY || '622465fef52c4978a2a46763e5ed3c2e';
 const APIFLASH_BASE_URL = 'https://api.apiflash.com/v1/urltoimage';
 
 export async function GET(request: NextRequest) {
