@@ -33,6 +33,9 @@ async function verifyPaymentWithDaydreams(
       payer: from,
     };
 
+    console.log('[Daydreams] Sending verify request to:', `${DAYDREAMS_FACILITATOR_URL}/verify`);
+    console.log('[Daydreams] Request body:', JSON.stringify(verifyRequest, null, 2));
+
     const response = await fetch(`${DAYDREAMS_FACILITATOR_URL}/verify`, {
       method: 'POST',
       headers: {
