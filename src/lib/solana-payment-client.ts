@@ -4,7 +4,6 @@ import {
   Connection, 
   PublicKey, 
   Transaction,
-  sendAndConfirmTransaction,
   SendTransactionError
 } from '@solana/web3.js';
 import {
@@ -270,19 +269,28 @@ export class SolanaPaymentClient {
         // Sign with wallet (per Helius official docs)
         const signedTransaction = await this.wallet.signTransaction(transaction);
 
-        // Send and confirm using sendAndConfirmTransaction (per Helius docs)
-        // Helius docs: "Set maxRetries to 0 for staked connection usage"
-        const signature = await sendAndConfirmTransaction(
-          this.connection as Connection,
-          signedTransaction,
-          [], // No additional signers - wallet already signed
-          {
-            skipPreflight: true, // Per Helius docs - bypass simulation
-            maxRetries: 0, // Per Helius docs - for staked connection usage
-          }
+        // Send with sendRawTransaction (per Helius official docs)
+        const signature = await (this.connection as Connection).sendRawTransaction(
+          signedTransaction.serialize(),
+          { skipPreflight: true }
         );
-        
-        return signature;
+
+        // Manually poll for confirmation (per Helius official docs pattern)
+        // 15 second timeout, 3 second retry interval
+        const timeout = 15000;
+        const interval = 3000;
+        let elapsed = 0;
+
+        while (elapsed < timeout) {
+          const status = await (this.connection as Connection).getSignatureStatuses([signature]);
+          if (status?.value[0]?.confirmationStatus === 'confirmed' || status?.value[0]?.confirmationStatus === 'finalized') {
+            return signature;
+          }
+          await new Promise(resolve => setTimeout(resolve, interval));
+          elapsed += interval;
+        }
+
+        throw new Error(`Transaction confirmation timeout: ${signature}`);
       };
 
       // Minimal path: build and send once (skip preflight)
