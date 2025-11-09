@@ -32,7 +32,10 @@ function useSolanaWallet() {
       const wallet = phantom || solflare;
       
       if (wallet && wallet.isConnected && wallet.publicKey) {
-        const addr = wallet.publicKey.toString();
+        // Phantom publicKey is an object - use toBase58() method
+        const addr = typeof wallet.publicKey.toBase58 === 'function' 
+          ? wallet.publicKey.toBase58() 
+          : wallet.publicKey.toString();
         // Always update if different (triggers re-render)
         setSolanaAddress(addr);
         setIsSolanaConnected(true);

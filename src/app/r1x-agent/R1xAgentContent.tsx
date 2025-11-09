@@ -1435,15 +1435,34 @@ export default function R1xAgentContent() {
             throw new Error('No payment requirements in 402 response');
           }
 
-          // Import x402 client utilities
+          // Import x402 utilities
           const { createPaymentHeader } = await import('x402/client');
+          const { createSignerFromBase58 } = await import('x402/shared/svm');
+          const { getSolanaRpcUrl } = await import('@/lib/solana-rpc-config');
+          
+          // Get RPC URL for Solana signer
+          const rpcUrl = await getSolanaRpcUrl();
+          
+          // Create x402-compatible Solana signer from Phantom/Solflare wallet
+          // The wallet has signTransaction and signMessage methods
+          const publicKeyBase58 = solanaWallet.publicKey.toBase58 
+            ? solanaWallet.publicKey.toBase58() 
+            : solanaWallet.publicKey.toString();
+          
+          // Create signer with wallet's signing capabilities
+          const signer = {
+            address: publicKeyBase58 as any,
+            signTransaction: solanaWallet.signTransaction.bind(solanaWallet),
+            signMessage: solanaWallet.signMessage.bind(solanaWallet),
+            publicKey: solanaWallet.publicKey,
+          };
 
-          // Use Phantom/Solflare wallet directly as signer
-          // x402 client will handle Solana wallet signing
+          // Generate x402 payment header
           const paymentHeader = await createPaymentHeader(
-            solanaWallet as any, // Phantom/Solflare implements wallet-standard interface
+            signer as any,
             paymentRequired.x402Version || 1,
-            requirement
+            requirement,
+            { rpcUrl } // Provide RPC URL for Solana network
           );
 
           // Retry request with X-Payment header
