@@ -13,19 +13,22 @@ export function getExplorerUrl(
 ): string | null {
   if (!hash) return null;
 
-  // Determine network from chainId if network not provided
-  const isSolana = network === 'solana' || chainId === 0 || chainId === null;
-  
-  // Solana uses Solscan
-  if (isSolana) {
-    // Solana signatures are base58 encoded, not hex
-    // Remove any 0x prefix if present (shouldn't be for Solana, but just in case)
-    const cleanHash = hash.startsWith('0x') ? hash.slice(2) : hash;
-    return `https://solscan.io/tx/${cleanHash}`;
+  const isHexHash = typeof hash === 'string' && /^0x[0-9a-fA-F]{64}$/.test(hash);
+
+  // Prefer signature format detection: non-hex => Solana
+  if (!isHexHash) {
+    const cleanSig = hash.startsWith('0x') ? hash.slice(2) : hash;
+    return `https://solscan.io/tx/${cleanSig}`;
   }
-  
-  // Base/EVM networks use Basescan
-  // Base chainId is 8453
+
+  // Fall back to explicit network hints
+  const isSolana = network === 'solana' || chainId === 0 || chainId === null;
+  if (isSolana) {
+    const cleanSig = hash.startsWith('0x') ? hash.slice(2) : hash;
+    return `https://solscan.io/tx/${cleanSig}`;
+  }
+
+  // Default EVM/Base
   const cleanHash = hash.startsWith('0x') ? hash : `0x${hash}`;
   return `https://basescan.org/tx/${cleanHash}`;
 }
@@ -33,7 +36,9 @@ export function getExplorerUrl(
 /**
  * Get explorer label for display (e.g., "View on Solscan" or "View on BaseScan")
  */
-export function getExplorerLabel(network?: string | null, chainId?: number | null): string {
+export function getExplorerLabel(network?: string | null, chainId?: number | null, hash?: string | null): string {
+  const isHexHash = typeof hash === 'string' && /^0x[0-9a-fA-F]{64}$/.test(hash);
+  if (!isHexHash) return 'View on Solscan';
   const isSolana = network === 'solana' || chainId === 0 || chainId === null;
   return isSolana ? 'View on Solscan' : 'View on BaseScan';
 }
