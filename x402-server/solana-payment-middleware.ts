@@ -12,6 +12,7 @@ import { X402PaymentHandler } from 'x402-solana/server';
 // Configuration from environment variables
 const FACILITATOR_URL = process.env.FACILITATOR_URL; // PayAI facilitator (same as EVM)
 const SOLANA_FEE_RECIPIENT_ADDRESS = process.env.SOLANA_FEE_RECIPIENT_ADDRESS;
+const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || process.env.NEXT_PUBLIC_SOLANA_RPC_URL;
 const USDC_SOLANA_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'; // USDC on Solana mainnet
 
 // Initialize PayAI x402-solana payment handler
@@ -23,6 +24,8 @@ if (FACILITATOR_URL && SOLANA_FEE_RECIPIENT_ADDRESS) {
       network: 'solana', // Use mainnet (as per official docs: 'solana' | 'solana-devnet')
       treasuryAddress: SOLANA_FEE_RECIPIENT_ADDRESS,
       facilitatorUrl: FACILITATOR_URL,
+      // Provide RPC URL to avoid any implicit defaults
+      ...(SOLANA_RPC_URL && SOLANA_RPC_URL.startsWith('http') ? { rpcUrl: SOLANA_RPC_URL } : {}),
       // defaultToken is optional - omit it since TypeScript types may be incorrect
       // The asset address will be specified in createPaymentRequirements instead
     });

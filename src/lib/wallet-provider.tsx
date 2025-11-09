@@ -79,18 +79,20 @@ if (!finalSolanaRpcUrl || typeof finalSolanaRpcUrl !== 'string' || !finalSolanaR
 }
 
 // Create Solana network with guaranteed valid RPC URL
-// Per Reown docs: spread default solana network and override rpcUrl
-// IMPORTANT: Set rpcUrl AFTER spreading to ensure it's not overwritten
+// Construct explicitly to avoid inheriting stale defaults
 const solanaNetwork: any = {
-  ...(solana as any),
-  rpcUrl: finalSolanaRpcUrl, // Explicitly set valid RPC URL
+  id: (solana as any)?.id || 'solana',
+  name: (solana as any)?.name || 'Solana',
+  nativeCurrency: (solana as any)?.nativeCurrency || {
+    name: 'SOL',
+    symbol: 'SOL',
+    decimals: 9,
+  },
+  rpcUrl: finalSolanaRpcUrl,
+  ...(((solana as any)?.blockExplorerUrl && typeof (solana as any).blockExplorerUrl === 'string')
+    ? { blockExplorerUrl: (solana as any).blockExplorerUrl }
+    : {}),
 };
-
-// Double-check rpcUrl is set correctly (defensive check)
-if (!solanaNetwork.rpcUrl || typeof solanaNetwork.rpcUrl !== 'string' || !solanaNetwork.rpcUrl.startsWith('http')) {
-  console.error('[WalletProvider] CRITICAL: solanaNetwork.rpcUrl is invalid after creation:', solanaNetwork.rpcUrl);
-  solanaNetwork.rpcUrl = finalSolanaRpcUrl; // Force set it again
-}
 
 // Build networks array - include Solana up-front so the modal can reflect Solana state
 const networks: any[] = [base, mainnet, solanaNetwork];
@@ -159,7 +161,13 @@ export const modal = createAppKit({
   themeVariables: {
     '--w3m-accent': '#FF4D00',
   },
-});
+  // Ensure AppKit uses our RPC at runtime as well (supported in AppKit)
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  customRpcUrls: {
+    solana: finalSolanaRpcUrl,
+  },
+} as any);
 
 // NOTE: Do not attempt to add adapters dynamically after initialization.
 // Per Reown docs, include all adapters and networks up-front so the modal
