@@ -241,35 +241,70 @@ if (cdpApiKeyId && cdpApiKeySecret) {
   console.warn('[x402-server] CDP_API_KEY_ID or CDP_API_KEY_SECRET missing - facilitator requests may fail on Base mainnet');
 }
 
-// EVM PayAI middleware (Base) - unmodified, direct per official PayAI docs
-app.use(
-  paymentMiddleware(
-    payTo,
-    {
-      'POST /api/r1x-agent/chat': {
-        price: '$0.25',
-        network: 'base',
-      },
-      'POST /api/x402/pay': {
-        price: '$0.01',
-        network: 'base',
-      },
-      'POST /api/r1x-agent/plan': {
-        price: '$0.01',
-        network: 'base',
-      },
-      'POST /api/fees/collect': {
-        price: '$1.00', // Max fee (validates actual amount in handler: 0.05 for free services, 5% for paid up to $20)
-        network: 'base',
-      },
-      'POST /api/fee': {
-        price: '$0.05', // Fixed $0.05 USDC fee for agent service calls
-        network: 'base',
-      },
+// Wrap PayAI middleware in error handler to catch facilitator fetch failures
+// This prevents the middleware from crashing the entire request if facilitator is unreachable
+const originalPaymentMiddleware = paymentMiddleware(
+  payTo,
+  {
+    'POST /api/r1x-agent/chat': {
+      price: '$0.25',
+      network: 'base',
     },
-    facilitatorConfig,
-  ),
+    'POST /api/x402/pay': {
+      price: '$0.01',
+      network: 'base',
+    },
+    'POST /api/r1x-agent/plan': {
+      price: '$0.01',
+      network: 'base',
+    },
+    'POST /api/fees/collect': {
+      price: '$1.00', // Max fee (validates actual amount in handler: 0.05 for free services, 5% for paid up to $20)
+      network: 'base',
+    },
+    'POST /api/fee': {
+      price: '$0.05', // Fixed $0.05 USDC fee for agent service calls
+      network: 'base',
+    },
+  },
+  facilitatorConfig,
 );
+
+// Wrap middleware with error handling
+app.use((req, res, next) => {
+  try {
+    originalPaymentMiddleware(req, res, (err) => {
+      if (err) {
+        console.error('[x402-server] PayAI middleware error:', {
+          message: err.message,
+          stack: err.stack,
+          path: req.path,
+        });
+        // If middleware throws, send 500 error instead of crashing
+        if (!res.headersSent) {
+          res.status(500).json({
+            error: 'Payment middleware error',
+            message: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error',
+          });
+        }
+        return;
+      }
+      next();
+    });
+  } catch (error: any) {
+    console.error('[x402-server] PayAI middleware exception:', {
+      message: error.message,
+      stack: error.stack,
+      path: req.path,
+    });
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: 'Payment middleware exception',
+        message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+      });
+    }
+  }
+});
 
 // Error handler - only catches errors that middleware doesn't handle
 // Payment middleware handles settlement errors internally, but may throw if something goes wrong
