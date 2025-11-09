@@ -838,10 +838,36 @@ app.post('/api/r1x-agent/chat/solana', async (req, res) => {
     return;
   }
 
+  // Check if payment was verified by middleware
+  const isPaymentVerified = (req as any).solanaPaymentVerified === true;
+  if (!isPaymentVerified) {
+    console.error('[x402-server] Solana payment not verified by middleware:', {
+      solanaPaymentVerified: (req as any).solanaPaymentVerified,
+      headersSent: res.headersSent,
+      path: req.path,
+      hasXPayment: !!req.headers['x-payment'],
+    });
+    // Don't return error here - middleware should have handled it
+    // But if we reach here, something went wrong
+    if (!res.headersSent) {
+      return res.status(402).json({ 
+        error: 'Payment required',
+        details: 'Payment verification failed or missing'
+      });
+    }
+    return;
+  }
+
   try {
+    console.log('[x402-server] Processing Solana chat request:', {
+      hasMessages: !!req.body?.messages,
+      messageCount: req.body?.messages?.length || 0,
+      paymentVerified: isPaymentVerified,
+    });
+
     // Reuse the same chat implementation by forwarding to the main handler context
     // Mark as solana for downstream processing
-    (req as any).solanaPaymentVerified = (req as any).solanaPaymentVerified ?? false;
+    (req as any).solanaPaymentVerified = true;
 
     // Minimal duplication: call Anthropic logic directly (same as /chat)
     const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -851,7 +877,11 @@ app.post('/api/r1x-agent/chat/solana', async (req, res) => {
     }
 
     if (!req.body.messages || !Array.isArray(req.body.messages)) {
-      console.error('[x402-server] Invalid messages format (solana):', req.body);
+      console.error('[x402-server] Invalid messages format (solana):', {
+        body: req.body,
+        messagesType: typeof req.body?.messages,
+        isArray: Array.isArray(req.body?.messages),
+      });
       return res.status(400).json({ error: 'Invalid messages format' });
     }
 

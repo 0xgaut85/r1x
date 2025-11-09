@@ -46,19 +46,27 @@ export function solanaPaymentMiddleware(
 ) {
   return async (req: Request, res: Response, next: NextFunction) => {
     // Only handle requests matching this route - COMPLETE ISOLATION
-    if (req.path !== routeConfig.route || req.method !== 'POST') {
+    // Use req.path or req.url (without query string) for matching
+    const requestPath = req.path || req.url?.split('?')[0] || '';
+    if (requestPath !== routeConfig.route || req.method !== 'POST') {
       return next();
     }
 
     // Check if this is a Solana request
-    const network = req.body?.network || req.headers['x-network'] || 'base';
+    const network = req.body?.network || req.headers['x-network'] || 'solana'; // Default to 'solana' for /solana route
     if (network !== 'solana') {
       // Not Solana - let PayAI EVM middleware handle it
+      console.warn('[x402-solana] Request to /solana route but network is not solana:', network);
       return next();
     }
 
     // If x402 handler not initialized, return error
     if (!x402Handler) {
+      console.error('[x402-solana] Payment handler not initialized:', {
+        hasFacilitatorUrl: !!FACILITATOR_URL,
+        hasSolanaFeeRecipient: !!SOLANA_FEE_RECIPIENT_ADDRESS,
+        path: requestPath,
+      });
       return res.status(500).json({ 
         error: 'Solana payment handler not configured',
         details: 'FACILITATOR_URL or SOLANA_FEE_RECIPIENT_ADDRESS missing'
@@ -66,6 +74,14 @@ export function solanaPaymentMiddleware(
     }
 
     try {
+      console.log('[x402-solana] Processing payment request:', {
+        path: requestPath,
+        method: req.method,
+        hasBody: !!req.body,
+        hasXPayment: !!req.headers['x-payment'],
+        network,
+      });
+
       // Extract X-Payment header using official package (per official docs)
       // Convert Express headers to plain object if needed (x402-solana expects standard headers)
       const headers = typeof req.headers === 'object' ? req.headers : {};
