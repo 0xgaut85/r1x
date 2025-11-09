@@ -21,9 +21,12 @@ if (FACILITATOR_URL && SOLANA_FEE_RECIPIENT_ADDRESS) {
   try {
     x402Handler = new X402PaymentHandler({
       network: 'solana', // Use mainnet
-      treasuryAddress: SOLANA_FEE_RECIPIENT_ADDRESS,
+      treasuryAddress: SOLANA_FEE_RECIPIENT_ADDRESS as any, // Solana addresses are base58, not hex
       facilitatorUrl: FACILITATOR_URL,
-      defaultToken: USDC_SOLANA_MINT,
+      defaultToken: {
+        address: USDC_SOLANA_MINT,
+        decimals: 6, // USDC has 6 decimals on Solana
+      },
     });
     console.log('[x402-solana] Payment handler initialized for Solana');
   } catch (error: any) {
@@ -77,7 +80,7 @@ export function solanaPaymentMiddleware(
           price: {
             amount: amountMicroUsdc,
             asset: {
-              address: USDC_SOLANA_MINT,
+              address: USDC_SOLANA_MINT as any, // Solana addresses are base58, not hex
             },
           },
           network: 'solana',
@@ -102,7 +105,7 @@ export function solanaPaymentMiddleware(
         price: {
           amount: amountMicroUsdc,
           asset: {
-            address: USDC_SOLANA_MINT,
+            address: USDC_SOLANA_MINT as any, // Solana addresses are base58, not hex
           },
         },
         network: 'solana',
@@ -116,26 +119,26 @@ export function solanaPaymentMiddleware(
       // Verify payment using official x402-solana package
       const verifyResult = await x402Handler.verifyPayment(xPaymentHeader, paymentRequirements);
       
-      if (!verifyResult.verified) {
+      if (!verifyResult.isValid) {
         return res.status(400).json({ 
           error: 'Payment verification failed', 
-          details: verifyResult.reason || 'Verification failed'
+          details: verifyResult.invalidReason || 'Verification failed'
         });
       }
 
       // Settle payment using official x402-solana package
       const settleResult = await x402Handler.settlePayment(xPaymentHeader, paymentRequirements);
       
-      if (!settleResult.settled) {
+      if (!settleResult.success) {
         return res.status(400).json({ 
           error: 'Payment settlement failed', 
-          details: settleResult.reason || 'Settlement failed'
+          details: settleResult.errorReason || 'Settlement failed'
         });
       }
 
       // Extract payment proof from header for downstream processing
       const paymentProof = x402Handler.extractPayment({ 'x-payment': xPaymentHeader });
-      const settlementHash = settleResult.settlementHash || paymentProof?.signature || '';
+      const settlementHash = settleResult.transaction || paymentProof || '';
 
       // Payment verified and settled via PayAI x402-solana - attach proof to request and continue
       // COMPLETELY ISOLATED from EVM/PayAI routes - this only handles Solana
@@ -152,7 +155,7 @@ export function solanaPaymentMiddleware(
       }));
 
       console.log('[x402-solana] Payment verified and settled:', {
-        signature: settlementHash.substring(0, 20) + '...',
+        signature: typeof settlementHash === 'string' ? settlementHash.substring(0, 20) + '...' : settlementHash,
         amount: amountMicroUsdc,
         network: 'solana',
       });
