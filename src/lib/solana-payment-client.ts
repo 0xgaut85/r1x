@@ -204,9 +204,9 @@ export class SolanaPaymentClient {
       
         // CRITICAL: Add compute budget instructions FIRST (before any other instructions)
         // This fixes "Transaction must write lock at least one tip account" error
-        // Higher compute units for ATA creation (400k vs 200k)
+        // Higher compute units for ATA creation (increase to 500k/300k for safety)
         const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
-          units: needCreateRecipientAta ? 400_000 : 200_000,
+          units: needCreateRecipientAta ? 500_000 : 300_000, // Increased for better success rate
         });
         
         // Priority fee MUST be set to write-lock tip accounts
@@ -233,11 +233,13 @@ export class SolanaPaymentClient {
 
         transaction.add(transferInstruction);
 
-        // Get recent blockhash (may also fail with RPC errors)
+        // Get recent blockhash with lastValidBlockHeight (required for v0 transactions)
         let blockhash;
+        let lastValidBlockHeight: number | undefined;
         try {
           const blockhashResult = await (this.connection as Connection).getLatestBlockhash('confirmed');
           blockhash = blockhashResult.blockhash;
+          lastValidBlockHeight = blockhashResult.lastValidBlockHeight;
         } catch (blockhashError: any) {
           const errorMsg = String(blockhashError?.message || '');
           const errorString = JSON.stringify(blockhashError || {});
@@ -271,15 +273,44 @@ export class SolanaPaymentClient {
 
         transaction.recentBlockhash = blockhash;
         transaction.feePayer = fromPubkey;
+        
+        // Set lastValidBlockHeight if available (helps with transaction validity)
+        if (lastValidBlockHeight !== undefined) {
+          (transaction as any).lastValidBlockHeight = lastValidBlockHeight;
+        }
+
+        // Verify transaction structure before signing (debug)
+        if (process.env.NODE_ENV !== 'production') {
+          const instructions = transaction.instructions;
+          const hasComputeBudget = instructions.some((ix: any) => 
+            ix.programId.equals(ComputeBudgetProgram.programId)
+          );
+          console.log('[SolanaPaymentClient] Transaction structure:', {
+            instructionCount: instructions.length,
+            hasComputeBudget,
+            firstInstructionProgram: instructions[0]?.programId.toString(),
+            priorityFee: microLamports,
+          });
+        }
 
         // Sign transaction with wallet
         const signedTransaction = await this.wallet.signTransaction(transaction);
 
+        // Verify signed transaction still has priority fees (some wallets may strip them)
+        const signedInstructions = signedTransaction.instructions;
+        const signedHasComputeBudget = signedInstructions.some((ix: any) => 
+          ix.programId.equals(ComputeBudgetProgram.programId)
+        );
+        if (!signedHasComputeBudget && process.env.NODE_ENV !== 'production') {
+          console.warn('[SolanaPaymentClient] WARNING: Signed transaction missing compute budget instructions!');
+        }
+
         // Send transaction (may also fail with RPC errors)
+        // Try skipPreflight: true if tip account error occurs (simulation may fail even if tx would succeed)
         let signature;
         try {
           signature = await (this.connection as Connection).sendRawTransaction(signedTransaction.serialize(), {
-            skipPreflight: false,
+            skipPreflight: false, // First try with preflight (catches real errors)
             maxRetries: 3,
           });
         } catch (sendError: any) {
@@ -316,7 +347,29 @@ export class SolanaPaymentClient {
               );
             }
           } else {
-            throw sendError;
+            // Check if it's a tip account error - try with skipPreflight: true
+            const emsg = String(sendError?.message || '');
+            const tipLockError = emsg.toLowerCase().includes('write lock at least one tip account') ||
+                                 emsg.toLowerCase().includes('tip account') ||
+                                 emsg.toLowerCase().includes('simulation failed');
+            
+            if (tipLockError) {
+              // Simulation failed but transaction might succeed - try without preflight
+              if (process.env.NODE_ENV !== 'production') {
+                console.warn('[SolanaPaymentClient] Simulation failed, retrying with skipPreflight: true');
+              }
+              try {
+                signature = await (this.connection as Connection).sendRawTransaction(signedTransaction.serialize(), {
+                  skipPreflight: true, // Skip simulation - transaction might still succeed
+                  maxRetries: 3,
+                });
+              } catch (retryError: any) {
+                // Still failed - throw original error
+                throw sendError;
+              }
+            } else {
+              throw sendError;
+            }
           }
         }
 
