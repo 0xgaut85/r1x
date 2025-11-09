@@ -42,6 +42,9 @@ export class SolanaPaymentClient {
       });
       // Do not initialize placeholder connection; wait for runtime RPC
     }
+    
+    // NOTE: QuickNode RPC supports v0 transactions and priority fees
+    // If using a different RPC provider, verify v0 transaction support
   }
 
   private logRpcUrl() {
@@ -198,8 +201,13 @@ export class SolanaPaymentClient {
       // Attempts with escalating priority fees to satisfy tip account write-lock
       // CRITICAL: Priority fee instructions MUST be added FIRST before any other instructions
       // This ensures the transaction can write-lock tip accounts (required for Solana v0)
+      // NOTE: Using Transaction (not VersionedTransaction) for wallet compatibility
+      // Transaction class supports priority fees but may need explicit configuration
       const attemptSend = async (microLamports: number): Promise<string> => {
         // Create transaction with priority fees (required for Solana v0 transactions)
+        // Using Transaction class (legacy format) for Phantom/Solflare compatibility
+        // Both Transaction and VersionedTransaction support priority fees, but Transaction
+        // is more widely supported by wallet adapters
         const transaction = new Transaction();
       
         // CRITICAL: Add compute budget instructions FIRST (before any other instructions)
@@ -275,8 +283,27 @@ export class SolanaPaymentClient {
         transaction.feePayer = fromPubkey;
         
         // Set lastValidBlockHeight if available (helps with transaction validity)
+        // This is critical for v0 transactions and prevents stale transactions
         if (lastValidBlockHeight !== undefined) {
           (transaction as any).lastValidBlockHeight = lastValidBlockHeight;
+        }
+        
+        // CRITICAL: Ensure transaction is properly configured for v0 transactions
+        // Transaction class supports priority fees, but we need to ensure:
+        // 1. Priority fees are first (already done above)
+        // 2. Transaction has valid blockhash (already set)
+        // 3. Transaction has fee payer (already set)
+        // 4. Transaction has lastValidBlockHeight (set above if available)
+        
+        // Verify transaction structure before signing
+        if (transaction.instructions.length === 0) {
+          throw new Error('Transaction has no instructions');
+        }
+        
+        // Ensure compute budget instructions are first
+        const firstInstruction = transaction.instructions[0];
+        if (!firstInstruction.programId.equals(ComputeBudgetProgram.programId)) {
+          throw new Error('CRITICAL: Compute budget instructions must be first in transaction');
         }
 
         // Verify transaction structure before signing (debug)
@@ -301,8 +328,28 @@ export class SolanaPaymentClient {
         const signedHasComputeBudget = signedInstructions.some((ix: any) => 
           ix.programId.equals(ComputeBudgetProgram.programId)
         );
-        if (!signedHasComputeBudget && process.env.NODE_ENV !== 'production') {
-          console.warn('[SolanaPaymentClient] WARNING: Signed transaction missing compute budget instructions!');
+        if (!signedHasComputeBudget) {
+          // CRITICAL: If wallet stripped compute budget instructions, transaction will fail
+          // This is a known issue with some wallet versions
+          const walletName = this.wallet?.isPhantom ? 'Phantom' : this.wallet?.isSolflare ? 'Solflare' : 'Unknown';
+          const errorMsg = `Wallet (${walletName}) stripped compute budget instructions. Please update your wallet to the latest version.`;
+          console.error('[SolanaPaymentClient]', errorMsg);
+          throw new Error(errorMsg);
+        }
+        
+        // Verify transaction serialization doesn't drop instructions
+        const serialized = signedTransaction.serialize();
+        if (serialized.length === 0) {
+          throw new Error('Transaction serialization failed - empty buffer');
+        }
+        
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[SolanaPaymentClient] Transaction verification:', {
+            instructionCount: signedInstructions.length,
+            hasComputeBudget: signedHasComputeBudget,
+            serializedLength: serialized.length,
+            priorityFee: microLamports,
+          });
         }
 
         // Send transaction (may also fail with RPC errors)
