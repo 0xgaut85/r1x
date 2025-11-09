@@ -20,13 +20,11 @@ let x402Handler: X402PaymentHandler | null = null;
 if (FACILITATOR_URL && SOLANA_FEE_RECIPIENT_ADDRESS) {
   try {
     x402Handler = new X402PaymentHandler({
-      network: 'solana', // Use mainnet
-      treasuryAddress: SOLANA_FEE_RECIPIENT_ADDRESS as any, // Solana addresses are base58, not hex
+      network: 'solana', // Use mainnet (as per official docs: 'solana' | 'solana-devnet')
+      treasuryAddress: SOLANA_FEE_RECIPIENT_ADDRESS,
       facilitatorUrl: FACILITATOR_URL,
-      defaultToken: {
-        address: USDC_SOLANA_MINT,
-        decimals: 6, // USDC has 6 decimals on Solana
-      },
+      // defaultToken is optional string (mint address) per official docs
+      defaultToken: USDC_SOLANA_MINT,
     });
     console.log('[x402-solana] Payment handler initialized for Solana');
   } catch (error: any) {
@@ -78,11 +76,10 @@ export function solanaPaymentMiddleware(
         
         const paymentRequirements = await x402Handler.createPaymentRequirements({
           price: {
-            amount: amountMicroUsdc,
+            amount: amountMicroUsdc, // String in micro-units per official docs
             asset: {
-              address: USDC_SOLANA_MINT as any, // Solana addresses are base58, not hex
-              decimals: 6, // USDC has 6 decimals on Solana
-            } as any, // Solana asset type differs from EVM
+              address: USDC_SOLANA_MINT, // USDC mint address
+            },
           },
           network: 'solana',
           config: {
@@ -93,12 +90,13 @@ export function solanaPaymentMiddleware(
         });
 
         // Use official create402Response method from x402-solana
+        // Returns { body, status } per official docs
         const response402 = x402Handler.create402Response(paymentRequirements);
         
         // Log the response to debug format
         console.log('[x402-solana] 402 response:', JSON.stringify(response402, null, 2));
         
-        res.status(402).json(response402);
+        res.status(response402.status).json(response402.body);
         return;
       }
 
@@ -108,11 +106,10 @@ export function solanaPaymentMiddleware(
       
       const paymentRequirements = await x402Handler.createPaymentRequirements({
         price: {
-          amount: amountMicroUsdc,
+          amount: amountMicroUsdc, // String in micro-units per official docs
           asset: {
-            address: USDC_SOLANA_MINT as any, // Solana addresses are base58, not hex
-            decimals: 6, // USDC has 6 decimals on Solana
-          } as any, // Solana asset type differs from EVM
+            address: USDC_SOLANA_MINT, // USDC mint address
+          },
         },
         network: 'solana',
         config: {
@@ -123,28 +120,41 @@ export function solanaPaymentMiddleware(
       });
 
       // Verify payment using official x402-solana package
-      const verifyResult = await x402Handler.verifyPayment(xPaymentHeader, paymentRequirements);
+      // Per official docs: returns boolean or result object
+      const verified = await x402Handler.verifyPayment(xPaymentHeader, paymentRequirements);
       
-      if (!verifyResult.isValid) {
-        return res.status(400).json({ 
-          error: 'Payment verification failed', 
-          details: verifyResult.invalidReason || 'Verification failed'
+      // Handle both boolean and object return types (checking actual implementation)
+      const isValid = typeof verified === 'boolean' ? verified : (verified as any)?.isValid ?? false;
+      if (!isValid) {
+        const reason = typeof verified === 'object' && verified !== null 
+          ? (verified as any).invalidReason || 'Verification failed'
+          : 'Verification failed';
+        return res.status(402).json({ 
+          error: 'Invalid payment',
+          details: reason
         });
       }
 
       // Settle payment using official x402-solana package
+      // Per official docs: settlePayment may return result object
       const settleResult = await x402Handler.settlePayment(xPaymentHeader, paymentRequirements);
       
-      if (!settleResult.success) {
+      // Handle settlement errors if result object is returned
+      if (settleResult && typeof settleResult === 'object' && 'success' in settleResult && !settleResult.success) {
         return res.status(400).json({ 
           error: 'Payment settlement failed', 
-          details: settleResult.errorReason || 'Settlement failed'
+          details: (settleResult as any).errorReason || 'Settlement failed'
         });
       }
 
       // Extract payment proof from header for downstream processing
-      const paymentProof = x402Handler.extractPayment({ 'x-payment': xPaymentHeader });
-      const settlementHash = settleResult.transaction || paymentProof || '';
+      // Per official docs: extractPayment(req.headers) - pass actual headers object
+      const paymentProof = x402Handler.extractPayment(req.headers);
+      
+      // Get settlement hash from settleResult if available, otherwise from paymentProof
+      const settlementHash = (settleResult && typeof settleResult === 'object' && 'transaction' in settleResult)
+        ? (settleResult as any).transaction
+        : paymentProof || '';
 
       // Payment verified and settled via PayAI x402-solana - attach proof to request and continue
       // COMPLETELY ISOLATED from EVM/PayAI routes - this only handles Solana
