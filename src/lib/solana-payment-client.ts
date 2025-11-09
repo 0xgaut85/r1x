@@ -134,24 +134,24 @@ export class SolanaPaymentClient {
     // Convert amount to atomic units (USDC has 6 decimals on Solana)
     const amountAtomic = BigInt(usdcToAtomic(amount));
 
+    try {
+      // Ensure payer has some SOL for fees (priority + ATA creation + Jito tip)
       try {
-        // Ensure payer has some SOL for fees (priority + ATA creation + Jito tip)
-        try {
-          const lamports = await (this.connection as Connection).getBalance(fromPubkey, 'confirmed');
-          // Require at least ~0.001 SOL to cover:
-          // - Jito tip (0.00001 SOL)
-          // - Priority fees (0.0001-0.001 SOL)
-          // - ATA creation if needed (0.002 SOL)
-          // - Base transaction fee (0.000005 SOL)
-          if (lamports < 1_000_000) { // 0.001 SOL
-            throw new Error('Insufficient SOL for fees. Please keep at least 0.001 SOL for priority fees, Jito tip, and potential ATA creation.');
-          }
-        } catch (balErr: any) {
-          // Non-fatal check; continue if balance fails to fetch
-          if (process.env.NODE_ENV !== 'production') {
-            console.warn('[SolanaPaymentClient] Balance check failed:', balErr?.message || balErr);
-          }
+        const lamports = await (this.connection as Connection).getBalance(fromPubkey, 'confirmed');
+        // Require at least ~0.001 SOL to cover:
+        // - Jito tip (0.00001 SOL)
+        // - Priority fees (0.0001-0.001 SOL)
+        // - ATA creation if needed (0.002 SOL)
+        // - Base transaction fee (0.000005 SOL)
+        if (lamports < 1_000_000) { // 0.001 SOL
+          throw new Error('Insufficient SOL for fees. Please keep at least 0.001 SOL for priority fees, Jito tip, and potential ATA creation.');
         }
+      } catch (balErr: any) {
+        // Non-fatal check; continue if balance fails to fetch
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[SolanaPaymentClient] Balance check failed:', balErr?.message || balErr);
+        }
+      }
 
       // Get associated token accounts
       const fromTokenAccount = await getAssociatedTokenAddress(mintPubkey, fromPubkey);
