@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { MarketplaceService } from '@/lib/types/x402';
-import { syncPayAIServices, fetchPayAIServices } from '@/lib/payai-sync';
+import { fetchPayAIServices } from '@/lib/payai-sync';
 import { formatUnits } from 'viem';
 
 export async function GET(request: NextRequest) {
@@ -114,63 +114,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // If no services found and sync not skipped, trigger PayAI sync (works for both EVM and Solana)
-    if (services.length === 0 && !skipSync) {
-      console.log(`No services found for network='${network}', triggering PayAI sync...`);
-      try {
-        const syncResult = await syncPayAIServices();
-        console.log(`[Marketplace] PayAI sync completed: ${syncResult.synced} services synced, ${syncResult.errors} errors`);
-        
-        // Query again after sync - use same fallback logic
-        try {
-          services = await prisma.service.findMany({
-            where,
-            orderBy: { createdAt: 'desc' },
-          });
-        } catch (syncQueryError: any) {
-          // If migration still not applied, use safe query
-          if (syncQueryError.code === 'P2022' || syncQueryError.message?.includes('does not exist')) {
-            const safeWhere: any = {
-              available: where.available,
-              network: where.network,
-              chainId: where.chainId,
-            };
-            if (where.category) safeWhere.category = where.category;
-            if (where.merchant) safeWhere.merchant = where.merchant;
-            if (where.OR) safeWhere.OR = where.OR;
-            
-            services = await prisma.service.findMany({
-              where: safeWhere,
-              select: {
-                id: true,
-                serviceId: true,
-                name: true,
-                description: true,
-                category: true,
-                merchant: true,
-                network: true,
-                chainId: true,
-                token: true,
-                tokenSymbol: true,
-                price: true,
-                priceDisplay: true,
-                endpoint: true,
-                available: true,
-                metadata: true,
-                createdAt: true,
-                updatedAt: true,
-              },
-              orderBy: { createdAt: 'desc' },
-            });
-          } else {
-            throw syncQueryError;
-          }
-        }
-      } catch (syncError: any) {
-        console.error('Sync error:', syncError);
-        // Continue with empty services if sync fails
-      }
-    }
+    // Note: We no longer trigger syncPayAIServices() here to avoid blocking requests and concurrent sync issues
+    // PayAI services are fetched in real-time below (line ~211) via fetchPayAIServices()
+    // Database sync should be done via cron job or manual /api/sync/payai endpoint
 
     // Convert database services to MarketplaceService format
     const dbServices: MarketplaceService[] = services.map((service: any) => {
