@@ -4,7 +4,7 @@ import { useAccount, useWalletClient, usePublicClient, useChainId } from 'wagmi'
 import { parseUnits, formatUnits } from 'viem';
 import { base } from 'viem/chains';
 import { parseAbi } from 'viem';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 const USDC_BASE_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as `0x${string}`;
 const USDC_DECIMALS = 6;
@@ -105,12 +105,56 @@ function useSolanaWallet() {
   return { solanaAddress, isSolanaConnected };
 }
 
+/**
+ * Disconnect Solana wallets (Phantom/Solflare) programmatically
+ */
+function disconnectSolanaWallets(): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const phantom = (window as any).phantom?.solana;
+    const solflare = (window as any).solflare;
+
+    // Disconnect Phantom if connected
+    if (phantom && phantom.isConnected) {
+      phantom.disconnect().catch((err: any) => {
+        console.warn('[useWallet] Failed to disconnect Phantom:', err);
+      });
+    }
+
+    // Disconnect Solflare if connected
+    if (solflare && solflare.isConnected) {
+      solflare.disconnect().catch((err: any) => {
+        console.warn('[useWallet] Failed to disconnect Solflare:', err);
+      });
+    }
+  } catch (error) {
+    console.warn('[useWallet] Error disconnecting Solana wallets:', error);
+  }
+}
+
 export function useWallet() {
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
   const chainId = useChainId();
   const { solanaAddress, isSolanaConnected } = useSolanaWallet();
+  
+  // Track previous EVM connection state to detect disconnection
+  const prevEVMConnectedRef = useRef<boolean>(isConnected);
+
+  // Listen for EVM disconnection and disconnect Solana wallets
+  useEffect(() => {
+    // Check if EVM was connected but is now disconnected
+    if (prevEVMConnectedRef.current && !isConnected) {
+      // EVM wallet was disconnected - also disconnect Solana wallets
+      console.log('[useWallet] EVM wallet disconnected, disconnecting Solana wallets');
+      disconnectSolanaWallets();
+    }
+    
+    // Update previous state
+    prevEVMConnectedRef.current = isConnected;
+  }, [isConnected]);
 
   // Combined connection status: EVM OR Solana
   // Prefer EVM address when EVM is connected; otherwise fall back to Solana.
