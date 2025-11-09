@@ -165,7 +165,8 @@ export const modal = createAppKit({
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   customRpcUrls: {
-    solana: finalSolanaRpcUrl,
+    // Use the actual network id as key (matches @reown/appkit/networks)
+    [(solanaNetwork as any).id]: finalSolanaRpcUrl,
   },
 } as any);
 
