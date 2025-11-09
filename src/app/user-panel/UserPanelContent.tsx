@@ -17,6 +17,7 @@ import { modal } from '@/lib/wallet-provider';
 import { X402Client } from '@/lib/payments/x402Client';
 import { getX402ServerUrlAsync } from '@/lib/x402-server-url';
 import { formatUnits } from 'viem';
+import { getExplorerLabel } from '@/lib/explorer-url';
 
 interface UserStats {
   address: string;
@@ -77,6 +78,7 @@ interface Purchase {
     category: string | null;
     endpoint: string | null;
     websiteUrl: string | null;
+    network?: string | null;
   };
   amount: string;
   feeAmount: string;
@@ -473,7 +475,10 @@ export default function UserPanelContent() {
                                 rel="noopener noreferrer"
                                 className="text-[#FF4D00] hover:underline text-xs"
                               >
-                                View on BaseScan
+                                {getExplorerLabel(
+                                  purchase.service.network || null,
+                                  purchase.chainId
+                                )}
                               </a>
                             ) : (
                               <span className="text-gray-400 text-xs">Pending</span>

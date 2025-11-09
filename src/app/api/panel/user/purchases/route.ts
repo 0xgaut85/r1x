@@ -79,6 +79,7 @@ export async function GET(request: NextRequest) {
           category: tx.service.category,
           endpoint: tx.service.endpoint,
           websiteUrl: websiteUrl,
+          network: tx.service.network || null,
         },
       amount: tx.amount,
       feeAmount: tx.feeAmount,
