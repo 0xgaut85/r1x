@@ -142,7 +142,14 @@ export default function ResultDetailModal({ resultId, address, onClose }: Result
           {result?.blockExplorerUrl && (
             <div className="p-4 border-t border-[#1A1A1A]">
               <a
-                href={result.blockExplorerUrl}
+                href={(result.blockExplorerUrl && !result.blockExplorerUrl.includes('basescan.org/error'))
+                  ? result.blockExplorerUrl
+                  : (() => {
+                      const hash = result.settlementHash || result.transactionHash;
+                      if (!hash) return result.blockExplorerUrl || '#';
+                      const clean = hash.startsWith('0x') ? hash.slice(2) : hash;
+                      return `https://solscan.io/tx/${clean}`;
+                    })()}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-[#FF4D00] hover:text-[#FF6B35] transition-colors inline-flex items-center gap-1"

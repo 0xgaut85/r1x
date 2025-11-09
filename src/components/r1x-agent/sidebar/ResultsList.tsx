@@ -80,7 +80,14 @@ export default function ResultsList({ address, limit = 5 }: ResultsListProps) {
                 </p>
                 {result.blockExplorerUrl && (
                   <a
-                    href={result.blockExplorerUrl}
+                    href={(result.blockExplorerUrl && !result.blockExplorerUrl.includes('basescan.org/error'))
+                      ? result.blockExplorerUrl
+                      : (() => {
+                          const hash = result.settlementHash || result.transactionHash;
+                          if (!hash) return result.blockExplorerUrl || '#';
+                          const clean = hash.startsWith('0x') ? hash.slice(2) : hash;
+                          return `https://solscan.io/tx/${clean}`;
+                        })()}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[10px] text-[#FF4D00] hover:text-[#FF6B35] transition-colors mt-1 inline-block"

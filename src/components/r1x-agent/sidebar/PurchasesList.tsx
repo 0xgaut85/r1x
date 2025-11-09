@@ -90,7 +90,18 @@ export default function PurchasesList({ address, limit = 5 }: PurchasesListProps
                 </span>
                 {purchase.blockExplorerUrl && (
                   <a
-                    href={purchase.blockExplorerUrl}
+                    href={(purchase.blockExplorerUrl && !purchase.blockExplorerUrl.includes('basescan.org/error'))
+                      ? purchase.blockExplorerUrl
+                      : (() => {
+                          const hash = purchase.settlementHash || purchase.transactionHash;
+                          if (!hash) return purchase.blockExplorerUrl || '#';
+                          // If Solana (chainId 0) or non-hex signature, use Solscan
+                          if (purchase.chainId === 0 || !hash.startsWith('0x')) {
+                            const clean = hash.startsWith('0x') ? hash.slice(2) : hash;
+                            return `https://solscan.io/tx/${clean}`;
+                          }
+                          return purchase.blockExplorerUrl || '#';
+                        })()}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[#FF4D00] hover:text-[#FF6B35] transition-colors"

@@ -327,60 +327,8 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
       
       let paymentProof: any;
       if (isSolana) {
-        // Use Solana proof from middleware - transform to expected format
-        const solanaProof = (req as any).solanaPaymentProof;
-        const solanaSettlementHash = (req as any).solanaSettlementHash;
-        
-        // Extract signature from payment proof (x402-solana format)
-        // paymentHeader from extractPayment should have signature, from, to, amount, token
-        // settlementHash might be the signature string or the entire paymentProof object
-        let signature = '';
-        
-        if (solanaProof && typeof solanaProof === 'object') {
-          // Try to get signature from payment proof object
-          signature = solanaProof.signature || solanaProof.data?.signature || '';
-        }
-        
-        // If settlementHash is a string (signature), use it; otherwise try to extract from it
-        if (!signature && solanaSettlementHash) {
-          if (typeof solanaSettlementHash === 'string') {
-            signature = solanaSettlementHash;
-          } else if (typeof solanaSettlementHash === 'object' && solanaSettlementHash.signature) {
-            signature = solanaSettlementHash.signature;
-          }
-        }
-        
-        // Fallback: try to parse from X-Payment header if signature still not found
-        if (!signature) {
-          try {
-            const headerProof = parsePaymentProof(xPaymentHeader);
-            if (headerProof && headerProof.transactionHash) {
-              signature = headerProof.transactionHash;
-            }
-          } catch (e) {
-            // Ignore parse errors
-          }
-        }
-        
-        if (solanaProof && typeof solanaProof === 'object' && signature) {
-          paymentProof = {
-            transactionHash: signature,
-            settlementHash: signature, // Use signature as settlementHash for Solana
-            from: solanaProof.from || solanaProof.data?.from || '',
-            to: solanaProof.to || solanaProof.data?.to || '',
-            amount: solanaProof.amount || solanaProof.data?.amount || '0',
-            token: solanaProof.token || solanaProof.data?.token || 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
-            chainId: 0, // Solana uses chainId 0
-            timestamp: Date.now(),
-          };
-        } else {
-          // Fallback: try to parse from X-Payment header
-          paymentProof = parsePaymentProof(xPaymentHeader);
-          if (paymentProof) {
-            // Ensure chainId is 0 for Solana
-            paymentProof.chainId = 0;
-          }
-        }
+        // Use Solana proof from middleware
+        paymentProof = (req as any).solanaPaymentProof;
       } else {
         // Parse PayAI proof
         paymentProof = parsePaymentProof(xPaymentHeader);
