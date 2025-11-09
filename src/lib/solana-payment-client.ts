@@ -4,6 +4,7 @@ import {
   Connection, 
   PublicKey, 
   Transaction,
+  sendAndConfirmTransaction,
   SendTransactionError
 } from '@solana/web3.js';
 import {
@@ -269,45 +270,18 @@ export class SolanaPaymentClient {
         // Sign with wallet (per Helius official docs)
         const signedTransaction = await this.wallet.signTransaction(transaction);
 
-        // Send using Connection.sendRawTransaction (per Helius official docs)
-        let signature;
-        try {
-          signature = await (this.connection as Connection).sendRawTransaction(signedTransaction.serialize(), {
-            skipPreflight: true,
-            maxRetries: 3,
-          });
-        } catch (sendError: any) {
-          const errorMsg = String(sendError?.message || '');
-          const errorString = JSON.stringify(sendError || {});
-          const isRpcError = 
-            errorMsg.includes('403') ||
-            errorMsg.toLowerCase().includes('access forbidden') ||
-            errorMsg.includes('Endpoint URL must start') ||
-            errorString.includes('"code": 403') ||
-            errorString.includes('"code":403');
-          
-          if (isRpcError) {
-            if (this.rpcUrl.includes('helius-rpc.com')) {
-              throw new Error(
-                'Helius RPC returned 403. Please ensure your domain is allowlisted in Helius dashboard. ' +
-                'Domain: ' + (typeof window !== 'undefined' ? window.location.origin : 'unknown')
-              );
-            } else {
-              const currentRpc = this.rpcUrl.includes('quiknode') ? 'QuickNode' : 
-                                this.rpcUrl.includes('helius') ? 'Helius' : 
-                                'public Solana RPC';
-              throw new Error(
-                `Solana RPC error (403). Current RPC: ${currentRpc}. ` +
-                `Please ensure SOLANA_RPC_URL is set with Helius URL in Railway.`
-              );
-            }
-          } else {
-            throw sendError;
+        // Send and confirm using sendAndConfirmTransaction (per Helius docs)
+        // Helius docs: "Set maxRetries to 0 for staked connection usage"
+        const signature = await sendAndConfirmTransaction(
+          this.connection as Connection,
+          signedTransaction,
+          [], // No additional signers - wallet already signed
+          {
+            skipPreflight: true, // Per Helius docs - bypass simulation
+            maxRetries: 0, // Per Helius docs - for staked connection usage
           }
-        }
-
-        // Wait for confirmation
-        await (this.connection as Connection).confirmTransaction(signature, 'confirmed');
+        );
+        
         return signature;
       };
 
