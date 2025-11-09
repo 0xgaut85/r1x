@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { modal } from '@/lib/wallet-provider';
 import { useWallet } from '@/hooks/useWallet';
 import { useDisconnect } from '@reown/appkit/react';
-import { useAppKitConnection } from '@reown/appkit/react';
 
 interface WalletButtonProps {
   variant?: 'default' | 'agent' | 'panel';
@@ -16,36 +15,13 @@ export default function WalletButton({ variant = 'default', className = '' }: Wa
   const { address, isConnected, isSolanaConnected, isEVMConnected } = useWallet();
   const { disconnect } = useDisconnect();
   
-  // Use Reown's useAppKitConnection for Solana wallet disconnection
-  // Per official Reown docs: https://docs.reown.com/appkit/react/core/hooks
-  const { connection: solanaConnection, deleteConnection } = useAppKitConnection({
-    namespace: 'solana',
-    onSuccess({ hasDeletedWallet }) {
-      if (hasDeletedWallet) {
-        console.log('[WalletButton] Solana wallet disconnected');
-      }
-    },
-    onError(error) {
-      console.error('[WalletButton] Solana disconnect error:', error.message);
-    }
-  });
-
   const handleClick = () => {
     // If connected and clicked, disconnect the wallet
     if (isConnected) {
-      if (isSolanaConnected && solanaConnection) {
-        // Disconnect Solana wallet using Reown's deleteConnection
-        // Per official Reown docs: https://docs.reown.com/appkit/react/core/hooks
-        try {
-          deleteConnection({ 
-            address: solanaConnection.accounts[0]?.address, 
-            connectorId: solanaConnection.connectorId 
-          });
-        } catch (error) {
-          console.error('[WalletButton] Failed to disconnect Solana wallet:', error);
-          // Fallback: open modal to allow manual disconnect
-          modal.open();
-        }
+      if (isSolanaConnected) {
+        // Disconnect Solana wallet using useDisconnect with namespace
+        // Per official Reown docs: useDisconnect supports namespace parameter
+        disconnect({ namespace: 'solana' });
       } else if (isEVMConnected) {
         // Disconnect EVM wallet using Reown's disconnect hook
         disconnect();
