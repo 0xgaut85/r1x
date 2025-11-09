@@ -63,14 +63,39 @@ const getSolanaRpcUrlSync = (): string | null => {
 
 let solanaRpcUrl: string | null = getSolanaRpcUrlSync();
 
+// Debug logging to verify RPC URL is available
+if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+  console.log('[WalletProvider] NEXT_PUBLIC_SOLANA_RPC_URL:', process.env.NEXT_PUBLIC_SOLANA_RPC_URL ? 'SET' : 'NOT SET');
+  console.log('[WalletProvider] solanaRpcUrl from sync:', solanaRpcUrl ? solanaRpcUrl.substring(0, 50) + '...' : 'NULL');
+}
+
 // Only initialize Solana network if we have a valid RPC URL from Railway
-// Otherwise, initialize without Solana and add it later when RPC URL is fetched
+// IMPORTANT: Don't spread ...solana as it might have an invalid default RPC URL
+// Create a fresh network object with ONLY our valid RPC URL
 let solanaNetwork: any = null;
-if (solanaRpcUrl && solanaRpcUrl.startsWith('http')) {
-  solanaNetwork = { 
-    ...solana, 
-    rpcUrl: solanaRpcUrl
+if (solanaRpcUrl && solanaRpcUrl.trim().startsWith('http')) {
+  // Ensure RPC URL is trimmed and valid
+  const cleanRpcUrl = solanaRpcUrl.trim();
+  
+  // Create network object explicitly - don't spread solana to avoid inheriting bad defaults
+  solanaNetwork = {
+    id: 'solana',
+    name: 'Solana',
+    nativeCurrency: {
+      name: 'SOL',
+      symbol: 'SOL',
+      decimals: 9,
+    },
+    rpcUrl: cleanRpcUrl, // Explicitly set our QuickNode RPC URL
   } as any;
+  
+  if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+    console.log('[WalletProvider] ✅ Solana network initialized with RPC URL:', cleanRpcUrl.substring(0, 50) + '...');
+  }
+} else {
+  if (typeof window !== 'undefined') {
+    console.warn('[WalletProvider] ⚠️ Solana network NOT initialized - RPC URL not available:', solanaRpcUrl);
+  }
 }
 
 // Build networks array - only include Solana if we have RPC URL
@@ -84,10 +109,21 @@ const wagmiAdapter = new WagmiAdapter({
   projectId, // Must be set in Railway before build
 });
 
-// Only initialize SolanaAdapter if we have a valid RPC URL
+// Only initialize SolanaAdapter if we have a valid RPC URL AND network
 // This prevents "Endpoint URL must start with http:" errors
-// SolanaAdapter will be added later if RPC URL is fetched async
-const solanaAdapter = solanaNetwork ? new SolanaAdapter() : null;
+// SolanaAdapter reads RPC URL from the networks array passed to createAppKit
+// If solanaNetwork is null, SolanaAdapter won't be initialized, preventing errors
+const solanaAdapter = solanaNetwork && solanaNetwork.rpcUrl && solanaNetwork.rpcUrl.startsWith('http') 
+  ? new SolanaAdapter() 
+  : null;
+
+if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+  if (solanaAdapter) {
+    console.log('[WalletProvider] ✅ SolanaAdapter initialized');
+  } else {
+    console.warn('[WalletProvider] ⚠️ SolanaAdapter NOT initialized - no valid RPC URL');
+  }
+}
 
 // Create QueryClient with SSR-safe defaults
 const queryClient = new QueryClient({
@@ -132,9 +168,16 @@ if (typeof window !== 'undefined') {
         }
         
         solanaRpcUrl = rpcUrl.trim();
-        const newSolanaNetwork = { 
-          ...solana, 
-          rpcUrl: solanaRpcUrl
+        // Create network object explicitly - don't spread solana to avoid inheriting bad defaults
+        const newSolanaNetwork = {
+          id: 'solana',
+          name: 'Solana',
+          nativeCurrency: {
+            name: 'SOL',
+            symbol: 'SOL',
+            decimals: 9,
+          },
+          rpcUrl: solanaRpcUrl, // Explicitly set our QuickNode RPC URL
         } as any;
         
         const maskedRpc = rpcUrl.includes('quiknode')
