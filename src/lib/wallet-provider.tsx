@@ -84,7 +84,10 @@ const wagmiAdapter = new WagmiAdapter({
   projectId, // Must be set in Railway before build
 });
 
-const solanaAdapter = new SolanaAdapter();
+// Only initialize SolanaAdapter if we have a valid RPC URL
+// This prevents "Endpoint URL must start with http:" errors
+// SolanaAdapter will be added later if RPC URL is fetched async
+const solanaAdapter = solanaNetwork ? new SolanaAdapter() : null;
 
 // Create QueryClient with SSR-safe defaults
 const queryClient = new QueryClient({
@@ -97,8 +100,14 @@ const queryClient = new QueryClient({
 });
 
 // Initialize AppKit - projectId must be set in Railway before build
+// Only include SolanaAdapter if we have a valid RPC URL
+const adapters: any[] = [wagmiAdapter];
+if (solanaAdapter) {
+  adapters.push(solanaAdapter);
+}
+
 export const modal = createAppKit({
-  adapters: [wagmiAdapter, solanaAdapter],
+  adapters,
   networks: networks as any,
   projectId, // Must be set in Railway before build
   metadata,
@@ -111,7 +120,7 @@ export const modal = createAppKit({
   },
 });
 
-// Client-side: Fetch RPC URL from Railway and add Solana network if not already added
+// Client-side: Fetch RPC URL from Railway and add Solana network/adapter if not already added
 if (typeof window !== 'undefined') {
   // If Solana network wasn't added initially, fetch RPC URL and add it
   if (!solanaNetwork) {
@@ -138,10 +147,15 @@ if (typeof window !== 'undefined') {
           console.log('[WalletProvider] ✅ Solana RPC fetched from Railway:', maskedRpc);
         }
         
-        // Try to update AppKit networks
+        // Initialize SolanaAdapter now that we have a valid RPC URL
+        const newSolanaAdapter = new SolanaAdapter();
+        
+        // Update AppKit with Solana network and adapter
         if ((modal as any).setNetworks) {
           (modal as any).setNetworks([base, mainnet, newSolanaNetwork]);
         }
+        // Note: Reown AppKit doesn't support adding adapters dynamically after initialization
+        // The adapter will be available on next page load when NEXT_PUBLIC_SOLANA_RPC_URL is set
       })
       .catch((error) => {
         console.error('[WalletProvider] Failed to fetch Solana RPC URL from Railway:', error);
