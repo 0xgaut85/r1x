@@ -1,134 +1,41 @@
 /**
  * Solana payment verification middleware for Express server
- * Verifies Solana USDC payments via Daydreams facilitator (proper x402 protocol)
- * Runs before PayAI middleware - if Solana payment verified, skips PayAI
+ * Uses official PayAI x402-solana package
+ * COMPLETELY ISOLATED from EVM/PayAI routes - only handles /api/r1x-agent/chat/solana
  * 
- * Uses Daydreams facilitator /verify and /settle endpoints (same as PayAI for EVM)
+ * Based on: https://github.com/payainetwork/x402-solana
  */
 
 import { Request, Response, NextFunction } from 'express';
+import { X402PaymentHandler } from 'x402-solana/server';
 
-const DAYDREAMS_FACILITATOR_URL = process.env.DAYDREAMS_FACILITATOR_URL || 'https://facilitator.daydreams.systems';
+// Configuration from environment variables
+const FACILITATOR_URL = process.env.FACILITATOR_URL; // PayAI facilitator (same as EVM)
 const SOLANA_FEE_RECIPIENT_ADDRESS = process.env.SOLANA_FEE_RECIPIENT_ADDRESS;
-const SOLANA_CHAIN_ID = 0; // Solana uses chainId 0
-const USDC_SOLANA_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'; // USDC on Solana
+const USDC_SOLANA_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'; // USDC on Solana mainnet
 
-/**
- * Verify Solana payment with Daydreams facilitator (x402 protocol)
- */
-async function verifyPaymentWithDaydreams(
-  signature: string,
-  from: string,
-  to: string,
-  amount: string,
-  merchant: string
-): Promise<{ verified: boolean; error?: string; settlement?: { signature: string } }> {
+// Initialize PayAI x402-solana payment handler
+let x402Handler: X402PaymentHandler | null = null;
+
+if (FACILITATOR_URL && SOLANA_FEE_RECIPIENT_ADDRESS) {
   try {
-    const verifyRequest = {
-      signature: signature,
-      chainId: SOLANA_CHAIN_ID,
-      token: USDC_SOLANA_MINT,
-      amount: amount,
-      merchant: merchant,
-      payer: from,
-    };
-
-    console.log('[Daydreams] Sending verify request to:', `${DAYDREAMS_FACILITATOR_URL}/verify`);
-    console.log('[Daydreams] Request body:', JSON.stringify(verifyRequest, null, 2));
-
-    const response = await fetch(`${DAYDREAMS_FACILITATOR_URL}/verify`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'User-Agent': 'r1x-x402-server/1.0',
-      },
-      body: JSON.stringify(verifyRequest),
+    x402Handler = new X402PaymentHandler({
+      network: 'solana', // Use mainnet
+      treasuryAddress: SOLANA_FEE_RECIPIENT_ADDRESS,
+      facilitatorUrl: FACILITATOR_URL,
+      defaultToken: USDC_SOLANA_MINT,
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      return { verified: false, error: `Daydreams verification failed: ${response.status} ${errorText}` };
-    }
-
-    const data: any = await response.json();
-    if (data.verified === true || data.success === true || data.status === 'verified') {
-      return {
-        verified: true,
-        settlement: data.settlement || data.settlementHash ? {
-          signature: data.settlementHash || data.settlement?.signature || data.settlement?.transactionHash || signature,
-        } : undefined,
-      };
-    }
-
-    return { verified: false, error: data.reason || data.error || 'Verification returned false' };
+    console.log('[x402-solana] Payment handler initialized for Solana');
   } catch (error: any) {
-    console.error('[Daydreams] Verify fetch exception:', {
-      message: error.message,
-      cause: error.cause,
-      stack: error.stack?.substring(0, 500),
-    });
-    return { verified: false, error: error.message || 'Failed to verify payment with Daydreams facilitator' };
+    console.error('[x402-solana] Failed to initialize payment handler:', error.message);
   }
+} else {
+  console.warn('[x402-solana] Missing configuration - FACILITATOR_URL or SOLANA_FEE_RECIPIENT_ADDRESS not set');
 }
 
 /**
- * Settle Solana payment with Daydreams facilitator (x402 protocol)
- */
-async function settlePaymentWithDaydreams(
-  signature: string,
-  from: string,
-  to: string,
-  amount: string,
-  merchant: string
-): Promise<{ settled: boolean; error?: string; settlementHash?: string }> {
-  try {
-    const settleRequest = {
-      signature: signature,
-      chainId: SOLANA_CHAIN_ID,
-      token: USDC_SOLANA_MINT,
-      amount: amount,
-      merchant: merchant,
-      payer: from,
-    };
-
-    const response = await fetch(`${DAYDREAMS_FACILITATOR_URL}/settle`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'User-Agent': 'r1x-x402-server/1.0',
-      },
-      body: JSON.stringify(settleRequest),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      return { settled: false, error: `Daydreams settlement failed: ${response.status} ${errorText}` };
-    }
-
-    const data: any = await response.json();
-    if (data.settled === true || data.success === true || data.status === 'settled') {
-      return {
-        settled: true,
-        settlementHash: data.settlementHash || data.settlement?.signature || data.settlement?.transactionHash || signature,
-      };
-    }
-
-    return { settled: false, error: data.reason || data.error || 'Settlement returned false' };
-  } catch (error: any) {
-    console.error('[Daydreams] Settle fetch exception:', {
-      message: error.message,
-      cause: error.cause,
-      stack: error.stack?.substring(0, 500),
-    });
-    return { settled: false, error: error.message || 'Failed to settle payment with Daydreams facilitator' };
-  }
-}
-
-/**
- * Solana payment verification middleware
- * Checks if request is for Solana network and verifies payment via Daydreams facilitator (x402 protocol)
+ * Solana payment verification middleware using official x402-solana package
+ * COMPLETELY ISOLATED from EVM/PayAI routes - only handles /api/r1x-agent/chat/solana
  */
 export function solanaPaymentMiddleware(
   routeConfig: {
@@ -137,7 +44,7 @@ export function solanaPaymentMiddleware(
   }
 ) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    // Only handle requests matching this route
+    // Only handle requests matching this route - COMPLETE ISOLATION
     if (req.path !== routeConfig.route || req.method !== 'POST') {
       return next();
     }
@@ -145,108 +52,125 @@ export function solanaPaymentMiddleware(
     // Check if this is a Solana request
     const network = req.body?.network || req.headers['x-network'] || 'base';
     if (network !== 'solana') {
-      // Not Solana - let PayAI middleware handle it
+      // Not Solana - let PayAI EVM middleware handle it
       return next();
     }
 
-    // Check for Solana payment proof
-    const xPaymentHeader = typeof req.headers['x-payment'] === 'string' ? req.headers['x-payment'] as string : undefined;
-    if (!xPaymentHeader) {
-      // No payment header - return 402 Payment Required
-      const price = routeConfig.price;
-      const amountWei = Math.ceil(parseFloat(price.replace('$', '')) * 1_000_000).toString(); // USDC has 6 decimals
-      
-      res.status(402).json({
-        error: 'Payment required',
-        accepts: [{
-          network: 'solana',
-          asset: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', // USDC on Solana
-          amount: amountWei,
-          maxAmountRequired: amountWei,
-          payTo: SOLANA_FEE_RECIPIENT_ADDRESS || '',
-          tokenSymbol: 'USDC',
-        }],
+    // If x402 handler not initialized, return error
+    if (!x402Handler) {
+      return res.status(500).json({ 
+        error: 'Solana payment handler not configured',
+        details: 'FACILITATOR_URL or SOLANA_FEE_RECIPIENT_ADDRESS missing'
       });
-      return;
     }
 
-    // Parse payment proof
-    let proof: any;
     try {
-      proof = JSON.parse(xPaymentHeader);
-    } catch {
-      return res.status(400).json({ error: 'Invalid X-Payment header format' });
-    }
+      // Extract X-Payment header using official package
+      const xPaymentHeader = req.headers['x-payment'] as string | undefined;
+      
+      if (!xPaymentHeader) {
+        // No payment header - return 402 Payment Required using official package
+        const priceAmount = parseFloat(routeConfig.price.replace('$', ''));
+        const amountMicroUsdc = Math.ceil(priceAmount * 1_000_000).toString(); // USDC has 6 decimals
+        
+        const paymentRequirements = await x402Handler.createPaymentRequirements({
+          price: {
+            amount: amountMicroUsdc,
+            asset: {
+              address: USDC_SOLANA_MINT,
+            },
+          },
+          network: 'solana',
+          config: {
+            description: 'r1x Agent Chat - Solana',
+            resource: `${req.protocol}://${req.get('host')}${req.path}`,
+            mimeType: 'application/json',
+          },
+        });
 
-    // Validate proof structure
-    if (!proof.signature || !proof.from || !proof.to || !proof.amount) {
-      return res.status(400).json({ error: 'Invalid payment proof: missing required fields' });
-    }
+        const response402 = x402Handler.create402Response(paymentRequirements);
+        
+        res.status(402).json(response402);
+        return;
+      }
 
-    // Validate recipient matches expected address
-    const expectedRecipient = SOLANA_FEE_RECIPIENT_ADDRESS;
-    if (expectedRecipient && proof.to.toLowerCase() !== expectedRecipient.toLowerCase()) {
-      return res.status(400).json({ 
-        error: `Recipient mismatch: expected ${expectedRecipient}, got ${proof.to}` 
+      // Create payment requirements for verification
+      const priceAmount = parseFloat(routeConfig.price.replace('$', ''));
+      const amountMicroUsdc = Math.ceil(priceAmount * 1_000_000).toString();
+      
+      const paymentRequirements = await x402Handler.createPaymentRequirements({
+        price: {
+          amount: amountMicroUsdc,
+          asset: {
+            address: USDC_SOLANA_MINT,
+          },
+        },
+        network: 'solana',
+        config: {
+          description: 'r1x Agent Chat - Solana',
+          resource: `${req.protocol}://${req.get('host')}${req.path}`,
+          mimeType: 'application/json',
+        },
       });
-    }
 
-    // Verify payment with Daydreams facilitator (proper x402 protocol)
-    const verifyResult = await verifyPaymentWithDaydreams(
-      proof.signature,
-      proof.from,
-      proof.to,
-      proof.amount,
-      expectedRecipient || proof.to
-    );
-    
-    if (!verifyResult.verified) {
-      return res.status(400).json({ 
-        error: 'Payment verification failed', 
-        details: verifyResult.error 
+      // Verify payment using official x402-solana package
+      const verifyResult = await x402Handler.verifyPayment(xPaymentHeader, paymentRequirements);
+      
+      if (!verifyResult.verified) {
+        return res.status(400).json({ 
+          error: 'Payment verification failed', 
+          details: verifyResult.reason || 'Verification failed'
+        });
+      }
+
+      // Settle payment using official x402-solana package
+      const settleResult = await x402Handler.settlePayment(xPaymentHeader, paymentRequirements);
+      
+      if (!settleResult.settled) {
+        return res.status(400).json({ 
+          error: 'Payment settlement failed', 
+          details: settleResult.reason || 'Settlement failed'
+        });
+      }
+
+      // Extract payment proof from header for downstream processing
+      const paymentProof = x402Handler.extractPayment({ 'x-payment': xPaymentHeader });
+      const settlementHash = settleResult.settlementHash || paymentProof?.signature || '';
+
+      // Payment verified and settled via PayAI x402-solana - attach proof to request and continue
+      // COMPLETELY ISOLATED from EVM/PayAI routes - this only handles Solana
+      (req as any).solanaPaymentVerified = true;
+      (req as any).solanaPaymentProof = paymentProof;
+      (req as any).solanaSettlementHash = settlementHash;
+      
+      // Set X-Payment-Response header (similar to PayAI EVM middleware)
+      res.setHeader('X-Payment-Response', JSON.stringify({
+        verified: true,
+        settled: true,
+        settlementHash: settlementHash,
+        proof: paymentProof,
+      }));
+
+      console.log('[x402-solana] Payment verified and settled:', {
+        signature: settlementHash.substring(0, 20) + '...',
+        amount: amountMicroUsdc,
+        network: 'solana',
       });
-    }
 
-    // Settle payment with Daydreams facilitator (proper x402 protocol)
-    const settleResult = await settlePaymentWithDaydreams(
-      proof.signature,
-      proof.from,
-      proof.to,
-      proof.amount,
-      expectedRecipient || proof.to
-    );
-    
-    if (!settleResult.settled) {
-      return res.status(400).json({ 
-        error: 'Payment settlement failed', 
-        details: settleResult.error 
+      next();
+    } catch (error: any) {
+      console.error('[x402-solana] Payment middleware error:', {
+        message: error.message,
+        stack: error.stack?.substring(0, 500),
+        path: req.path,
       });
+      
+      if (!res.headersSent) {
+        res.status(500).json({
+          error: 'Payment processing error',
+          details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+        });
+      }
     }
-
-    const settlementHash = settleResult.settlementHash || proof.signature;
-
-    // Payment verified and settled via Daydreams facilitator - attach proof to request and continue
-    (req as any).solanaPaymentVerified = true;
-    (req as any).solanaPaymentProof = proof;
-    (req as any).solanaSettlementHash = settlementHash;
-    
-    // Set X-Payment-Response header (similar to PayAI middleware)
-    res.setHeader('X-Payment-Response', JSON.stringify({
-      verified: true,
-      settled: true,
-      settlementHash: settlementHash,
-      proof,
-    }));
-
-    console.log('[Solana] Payment verified and settled via Daydreams facilitator:', {
-      signature: proof.signature.substring(0, 20) + '...',
-      from: proof.from.substring(0, 10) + '...',
-      to: proof.to.substring(0, 10) + '...',
-      amount: proof.amount,
-      settlementHash: settlementHash.substring(0, 20) + '...',
-    });
-
-    next();
   };
 }
-

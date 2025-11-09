@@ -20,13 +20,10 @@ import { URL } from 'url';
 
 config();
 
-// Facilitator configuration - PayAI for EVM networks (Base)
-// Note: x402-express middleware currently supports PayAI facilitator for EVM networks
-// Solana/Daydreams support will be added separately
+// Facilitator configuration - PayAI for EVM networks (Base) and Solana
+// PayAI facilitator supports both EVM (Base) and Solana (chainId: 0)
 // Railway env vars with official fallbacks
 const facilitatorUrl = process.env.FACILITATOR_URL as Resource | undefined;
-// Official Daydreams facilitator: https://facilitator.daydreams.systems/
-const daydreamsFacilitatorUrl = process.env.DAYDREAMS_FACILITATOR_URL || 'https://facilitator.daydreams.systems';
 const payTo = process.env.MERCHANT_ADDRESS as `0x${string}` | undefined;
 const cdpApiKeyId = process.env.CDP_API_KEY_ID;
 const cdpApiKeySecret = process.env.CDP_API_KEY_SECRET;
@@ -39,8 +36,8 @@ if (!facilitatorUrl || !payTo) {
 }
 
 console.log('[x402-server] Facilitator configuration:');
-console.log(`  PayAI (EVM): ${facilitatorUrl}`);
-console.log(`  Daydreams (Solana): ${daydreamsFacilitatorUrl}`);
+console.log(`  PayAI (EVM Base): ${facilitatorUrl}`);
+console.log(`  PayAI (Solana): ${facilitatorUrl} (chainId: 0)`);
 
 const app = express();
 
@@ -108,16 +105,24 @@ app.use((req, res, next) => {
 app.use(express.json());
 
 // ISOLATED Solana payment middleware - handles ONLY /api/r1x-agent/chat/solana route
-// This runs BEFORE PayAI middleware and completely isolates Solana from EVM/PayAI
+// Uses official PayAI x402-solana package (https://github.com/payainetwork/x402-solana)
+// Uses PayAI facilitator (same as EVM) with Solana-specific parameters
+// This runs BEFORE PayAI EVM middleware and completely isolates Solana from EVM/PayAI routes
 const solanaPayTo = process.env.SOLANA_FEE_RECIPIENT_ADDRESS;
-if (solanaPayTo) {
+if (solanaPayTo && facilitatorUrl) {
   app.use(solanaPaymentMiddleware({
     route: '/api/r1x-agent/chat/solana',
     price: '$0.25',
   }));
-  console.log('[x402-server] Solana payment middleware enabled for /api/r1x-agent/chat/solana');
+  console.log('[x402-server] PayAI Solana payment middleware enabled for /api/r1x-agent/chat/solana');
+  console.log('[x402-server] Solana uses PayAI facilitator:', facilitatorUrl);
 } else {
-  console.warn('[x402-server] SOLANA_FEE_RECIPIENT_ADDRESS not set - Solana payments disabled');
+  if (!solanaPayTo) {
+    console.warn('[x402-server] SOLANA_FEE_RECIPIENT_ADDRESS not set - Solana payments disabled');
+  }
+  if (!facilitatorUrl) {
+    console.warn('[x402-server] FACILITATOR_URL not set - Solana payments disabled');
+  }
 }
 
 // DISABLED: x402scan transformer - following PayAI docs exactly
@@ -236,7 +241,12 @@ if (cdpApiKeyId && cdpApiKeySecret) {
   console.warn('[x402-server] CDP_API_KEY_ID or CDP_API_KEY_SECRET missing - facilitator requests may fail on Base mainnet');
 }
 
-app.use(paymentMiddleware(
+// Transform 402 responses to x402scan-compliant format (must be AFTER paymentMiddleware)
+app.use(x402scanResponseTransformer);
+
+// Wrap PayAI middleware in error handler to catch facilitator fetch failures
+// This prevents the middleware from crashing the entire request if facilitator is unreachable
+const originalPaymentMiddleware = paymentMiddleware(
   payTo,
   {
     'POST /api/r1x-agent/chat': {
@@ -261,10 +271,43 @@ app.use(paymentMiddleware(
     },
   },
   facilitatorConfig,
-));
+);
 
-// Transform 402 responses to x402scan-compliant format (must be AFTER paymentMiddleware)
-app.use(x402scanResponseTransformer);
+// Wrap middleware with error handling
+app.use((req, res, next) => {
+  try {
+    originalPaymentMiddleware(req, res, (err) => {
+      if (err) {
+        console.error('[x402-server] PayAI middleware error:', {
+          message: err.message,
+          stack: err.stack,
+          path: req.path,
+        });
+        // If middleware throws, send 500 error instead of crashing
+        if (!res.headersSent) {
+          res.status(500).json({
+            error: 'Payment middleware error',
+            message: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error',
+          });
+        }
+        return;
+      }
+      next();
+    });
+  } catch (error: any) {
+    console.error('[x402-server] PayAI middleware exception:', {
+      message: error.message,
+      stack: error.stack,
+      path: req.path,
+    });
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: 'Payment middleware exception',
+        message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+      });
+    }
+  }
+});
 
 // Error handler - only catches errors that middleware doesn't handle
 // Payment middleware handles settlement errors internally, but may throw if something goes wrong
