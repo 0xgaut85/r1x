@@ -30,3 +30,4 @@ export async function GET(_request: NextRequest) {
     return NextResponse.json({ error: error?.message || 'Internal error' }, { status: 500 });
   }
 }
+

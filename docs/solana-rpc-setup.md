@@ -104,3 +104,4 @@ Since r1x handles real payments, always use **Mainnet Beta**.
 ✅ **Easy setup**  
 ✅ **Works from browser** (no CORS issues)
 
+

@@ -1462,19 +1462,19 @@ export default function R1xAgentContent() {
 
           // Retry request with X-Payment header
           response = await fetch('/api/r1x-agent/chat/solana', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
               'X-Payment': paymentHeader,
-            },
-            body: JSON.stringify({
-              network: 'solana',
-              messages: updatedMessages.map(msg => ({
-                role: msg.role,
-                content: msg.content,
-              })),
-            }),
-          });
+          },
+          body: JSON.stringify({
+            network: 'solana',
+            messages: updatedMessages.map(msg => ({
+              role: msg.role,
+              content: msg.content,
+            })),
+          }),
+        });
         }
 
         // Handle response

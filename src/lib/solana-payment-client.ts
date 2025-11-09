@@ -291,17 +291,17 @@ export class SolanaPaymentClient {
 
       // Minimal path: build and send once (skip preflight)
       const sig = await sendOnce();
-      return {
-        signature: sig,
-        proof: {
-          signature: sig,
-          from: fromPubkey.toString(),
-          to: toPubkey.toString(),
-          amount: amountAtomic.toString(),
-          tokenSymbol: 'USDC',
-          token: USDC_MINT,
-        },
-      };
+          return {
+            signature: sig,
+            proof: {
+              signature: sig,
+              from: fromPubkey.toString(),
+              to: toPubkey.toString(),
+              amount: amountAtomic.toString(),
+              tokenSymbol: 'USDC',
+              token: USDC_MINT,
+            },
+          };
 
     } catch (error: any) {
       console.error('[SolanaPaymentClient] Transfer error:', error);

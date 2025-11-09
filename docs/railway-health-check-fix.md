@@ -62,3 +62,4 @@ If `/api/health` doesn't work, Railway will also check:
 
 The `/api/health` endpoint is the simplest and fastest for Railway's health checks.
 
+

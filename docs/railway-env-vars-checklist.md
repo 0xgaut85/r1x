@@ -66,3 +66,4 @@ All variables listed above are currently set in Railway and will be:
 ✅ Runtime vars will be available when server starts
 ✅ No hardcoded fallbacks in code (fail-fast approach)
 
+
