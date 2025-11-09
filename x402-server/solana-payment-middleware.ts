@@ -60,6 +60,11 @@ async function verifyPaymentWithDaydreams(
 
     return { verified: false, error: data.reason || data.error || 'Verification returned false' };
   } catch (error: any) {
+    console.error('[Daydreams] Verify fetch exception:', {
+      message: error.message,
+      cause: error.cause,
+      stack: error.stack?.substring(0, 500),
+    });
     return { verified: false, error: error.message || 'Failed to verify payment with Daydreams facilitator' };
   }
 }
@@ -109,6 +114,11 @@ async function settlePaymentWithDaydreams(
 
     return { settled: false, error: data.reason || data.error || 'Settlement returned false' };
   } catch (error: any) {
+    console.error('[Daydreams] Settle fetch exception:', {
+      message: error.message,
+      cause: error.cause,
+      stack: error.stack?.substring(0, 500),
+    });
     return { settled: false, error: error.message || 'Failed to settle payment with Daydreams facilitator' };
   }
 }
