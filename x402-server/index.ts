@@ -125,8 +125,6 @@ if (solanaPayTo && facilitatorUrl) {
   }
 }
 
-// DISABLED: x402scan transformer - following PayAI docs exactly
-// app.use(x402scanResponseTransformer);
 
 // Explicit OPTIONS handlers for all protected routes (must be before paymentMiddleware)
 app.options('/api/r1x-agent/chat', (req, res) => {
@@ -241,9 +239,9 @@ if (cdpApiKeyId && cdpApiKeySecret) {
   console.warn('[x402-server] CDP_API_KEY_ID or CDP_API_KEY_SECRET missing - facilitator requests may fail on Base mainnet');
 }
 
-// Wrap PayAI middleware in error handler to catch facilitator fetch failures
-// This prevents the middleware from crashing the entire request if facilitator is unreachable
-const originalPaymentMiddleware = paymentMiddleware(
+// PayAI middleware - direct call per official PayAI docs
+// https://docs.payai.network/x402/servers/typescript/express
+app.use(paymentMiddleware(
   payTo,
   {
     'POST /api/r1x-agent/chat': {
@@ -268,43 +266,10 @@ const originalPaymentMiddleware = paymentMiddleware(
     },
   },
   facilitatorConfig,
-);
+));
 
-// Wrap middleware with error handling
-app.use((req, res, next) => {
-  try {
-    originalPaymentMiddleware(req, res, (err) => {
-      if (err) {
-        console.error('[x402-server] PayAI middleware error:', {
-          message: err.message,
-          stack: err.stack,
-          path: req.path,
-        });
-        // If middleware throws, send 500 error instead of crashing
-        if (!res.headersSent) {
-          res.status(500).json({
-            error: 'Payment middleware error',
-            message: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error',
-          });
-        }
-        return;
-      }
-      next();
-    });
-  } catch (error: any) {
-    console.error('[x402-server] PayAI middleware exception:', {
-      message: error.message,
-      stack: error.stack,
-      path: req.path,
-    });
-    if (!res.headersSent) {
-      res.status(500).json({
-        error: 'Payment middleware exception',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
-      });
-    }
-  }
-});
+// Transform 402 responses to x402scan-compliant format (must be AFTER paymentMiddleware)
+app.use(x402scanResponseTransformer);
 
 // Error handler - only catches errors that middleware doesn't handle
 // Payment middleware handles settlement errors internally, but may throw if something goes wrong
