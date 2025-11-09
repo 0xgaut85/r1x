@@ -6,7 +6,6 @@ import {
   Transaction, 
   TransactionMessage,
   VersionedTransaction,
-  ComputeBudgetProgram, 
   SendTransactionError
 } from '@solana/web3.js';
 import {
@@ -209,30 +208,9 @@ export class SolanaPaymentClient {
         []
       );
 
-      // Attempts with escalating priority fees to satisfy tip account write-lock
-      // CRITICAL: Must use VersionedTransaction (v0) for tip account write-locking
-      // Legacy Transaction class does NOT properly write-lock tip accounts even with priority fees
-      const attemptSend = async (microLamports: number): Promise<string> => {
-        // Build v0 transaction with priority fees (REQUIRED for tip account write-lock)
-        
-        // Build instructions array: priority fees FIRST, then transfer
-        const instructions = [];
-        
-        // CRITICAL: Add compute budget instructions FIRST (before any other instructions)
-        // Higher compute units for ATA creation (increase to 500k/300k for safety)
-        const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
-          units: needCreateRecipientAta ? 500_000 : 300_000,
-        });
-        
-        // Priority fee MUST be set to write-lock tip accounts
-        // Higher micro-lamports = higher priority = more likely to succeed
-        const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-          microLamports, // dynamic - will retry with higher values if needed
-        });
-        
-        // Add priority fee instructions FIRST (critical for tip account write-lock)
-        instructions.push(modifyComputeUnits);
-        instructions.push(addPriorityFee);
+      // Minimal send: only (optional) ATA creation + USDC transfer
+      const sendOnce = async (): Promise<string> => {
+        const instructions = [] as any[];
 
         // Create recipient ATA if needed
         if (needCreateRecipientAta) {
@@ -246,6 +224,7 @@ export class SolanaPaymentClient {
           );
         }
 
+        // Add USDC transfer
         instructions.push(transferInstruction);
 
         // Get recent blockhash with lastValidBlockHeight (REQUIRED for v0 transactions)
@@ -286,14 +265,12 @@ export class SolanaPaymentClient {
           }
         }
 
-        // Create v0 TransactionMessage (REQUIRED for tip account write-lock)
-        // CRITICAL: Must pass empty array [] to compileToV0Message() for tip account write-locks to work
-        // Without this parameter, the v0 message doesn't properly encode tip account access
+        // Create v0 TransactionMessage (no address lookup tables)
         const messageV0 = new TransactionMessage({
           payerKey: fromPubkey,
           recentBlockhash: blockhash,
           instructions,
-        }).compileToV0Message([]); // Empty array = no address lookup tables, but enables tip accounts
+        }).compileToV0Message([]);
         
         // Create VersionedTransaction (v0 format)
         const transaction = new VersionedTransaction(messageV0);
@@ -304,7 +281,6 @@ export class SolanaPaymentClient {
           console.log('[SolanaPaymentClient] v0 Transaction structure:', {
             instructionCount: instructions.length,
             compiledInstructionCount: compiledInstructions.length,
-            priorityFee: microLamports,
             version: 0,
           });
         }
@@ -321,7 +297,6 @@ export class SolanaPaymentClient {
         if (process.env.NODE_ENV !== 'production') {
           console.log('[SolanaPaymentClient] v0 Transaction signed:', {
             serializedLength: serialized.length,
-            priorityFee: microLamports,
           });
         }
 
@@ -378,51 +353,19 @@ export class SolanaPaymentClient {
         return signature;
       };
 
-      // Use provided priority or start with higher default to satisfy tip account write-lock requirement
-      // Solana v0 transactions require priority fees to write-lock tip accounts
-      // Start with 100k micro-lamports (higher than before) to reduce retries
-      const firstPriority = typeof priorityMicroLamports === 'number' ? priorityMicroLamports : 100_000;
-      
-      // Retry with escalating priority fees if tip account error occurs
-      const priorities = [firstPriority, 200_000, 500_000, 1_000_000]; // Escalate up to 1M micro-lamports
-      
-      let lastError: any = null;
-      for (let i = 0; i < priorities.length; i++) {
-        const priority = priorities[i];
-        try {
-          if (i > 0 && process.env.NODE_ENV !== 'production') {
-            console.warn(`[SolanaPaymentClient] Retry ${i} with priority fee: ${priority} micro-lamports`);
-          }
-          const sig = await attemptSend(priority);
-          return {
-            signature: sig,
-            proof: {
-              signature: sig,
-              from: fromPubkey.toString(),
-              to: toPubkey.toString(),
-              amount: amountAtomic.toString(),
-              tokenSymbol: 'USDC',
-              token: USDC_MINT,
-            },
-          };
-        } catch (e: any) {
-          const emsg = String(e?.message || '');
-          const tipLockError = emsg.toLowerCase().includes('write lock at least one tip account') ||
-                               emsg.toLowerCase().includes('tip account') ||
-                               emsg.toLowerCase().includes('simulation failed');
-          
-          if (tipLockError && i < priorities.length - 1) {
-            // Try next higher priority fee
-            lastError = e;
-            continue;
-          }
-          // Not a tip account error, or we've exhausted all retries
-          throw e;
-        }
-      }
-      
-      // If we get here, all retries failed
-      throw lastError || new Error('Failed to send transaction after multiple priority fee attempts');
+      // Minimal path: build and send once (skip preflight)
+      const sig = await sendOnce();
+      return {
+        signature: sig,
+        proof: {
+          signature: sig,
+          from: fromPubkey.toString(),
+          to: toPubkey.toString(),
+          amount: amountAtomic.toString(),
+          tokenSymbol: 'USDC',
+          token: USDC_MINT,
+        },
+      };
 
     } catch (error: any) {
       console.error('[SolanaPaymentClient] Transfer error:', error);
