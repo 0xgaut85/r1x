@@ -327,8 +327,27 @@ app.post('/api/r1x-agent/chat', async (req, res) => {
       
       let paymentProof: any;
       if (isSolana) {
-        // Use Solana proof from middleware
-        paymentProof = (req as any).solanaPaymentProof;
+        // Use Solana proof from middleware - transform to expected format
+        const solanaProof = (req as any).solanaPaymentProof;
+        const solanaSettlementHash = (req as any).solanaSettlementHash;
+        
+        // Extract signature from payment proof (x402-solana format)
+        // The paymentHeader from extractPayment should have signature, from, to, amount, token
+        if (solanaProof && typeof solanaProof === 'object') {
+          paymentProof = {
+            transactionHash: solanaProof.signature || solanaSettlementHash || '',
+            settlementHash: solanaSettlementHash || solanaProof.signature || '',
+            from: solanaProof.from || '',
+            to: solanaProof.to || '',
+            amount: solanaProof.amount || '0',
+            token: solanaProof.token || 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+            chainId: 0, // Solana uses chainId 0
+            timestamp: Date.now(),
+          };
+        } else {
+          // Fallback: try to parse from X-Payment header
+          paymentProof = parsePaymentProof(xPaymentHeader);
+        }
       } else {
         // Parse PayAI proof
         paymentProof = parsePaymentProof(xPaymentHeader);
