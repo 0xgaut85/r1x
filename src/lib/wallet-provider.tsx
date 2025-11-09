@@ -161,12 +161,14 @@ export const modal = createAppKit({
   themeVariables: {
     '--w3m-accent': '#FF4D00',
   },
-  // Ensure AppKit uses our RPC at runtime as well (supported in AppKit)
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
+  // Ensure AppKit uses our RPC at runtime as well (per Reown docs)
+  // customRpcUrls expects CAIP-2 format and array of { url, config? }
+  // Solana mainnet CAIP-2 ID: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"
   customRpcUrls: {
-    // Use the actual network id as key (matches @reown/appkit/networks)
-    [(solanaNetwork as any).id]: finalSolanaRpcUrl,
+    // Use the actual CAIP-2 network ID from Reown's solana network object
+    [(solana as any)?.caipNetworkId || (solanaNetwork as any)?.caipNetworkId || 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp']: [
+      { url: finalSolanaRpcUrl },
+    ],
   },
 } as any);
 
