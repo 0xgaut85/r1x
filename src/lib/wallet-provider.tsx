@@ -7,6 +7,18 @@ import { mainnet, base, solana } from '@reown/appkit/networks';
 import { QueryClient } from '@tanstack/react-query';
 import { getSolanaRpcUrl } from '@/lib/solana-rpc-config';
 
+// Inspect default solana network to understand its structure
+// This helps ensure our custom network matches Reown's expectations
+if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+  console.log('[WalletProvider] Default solana network from Reown:', {
+    id: (solana as any)?.id,
+    name: (solana as any)?.name,
+    rpcUrl: (solana as any)?.rpcUrl ? 'SET (but may be invalid)' : 'NOT SET',
+    hasRpcUrl: !!(solana as any)?.rpcUrl,
+    keys: Object.keys(solana || {}),
+  });
+}
+
 // Railway env vars are case-sensitive; use exact case
 // IMPORTANT: NEXT_PUBLIC_* variables MUST be set in Railway BEFORE build
 // They are embedded into the client bundle at build time
@@ -78,16 +90,27 @@ if (solanaRpcUrl && solanaRpcUrl.trim().startsWith('http')) {
   const cleanRpcUrl = solanaRpcUrl.trim();
   
   // Create network object explicitly - don't spread solana to avoid inheriting bad defaults
+  // Match Reown's expected structure but override rpcUrl with our QuickNode URL
+  // Use the same id as Reown's default to ensure compatibility
+  const defaultSolanaId = (solana as any)?.id || 'solana';
   solanaNetwork = {
-    id: 'solana',
-    name: 'Solana',
-    nativeCurrency: {
+    id: defaultSolanaId, // Use same ID as Reown's default for compatibility
+    name: (solana as any)?.name || 'Solana',
+    nativeCurrency: (solana as any)?.nativeCurrency || {
       name: 'SOL',
       symbol: 'SOL',
       decimals: 9,
     },
-    rpcUrl: cleanRpcUrl, // Explicitly set our QuickNode RPC URL
+    rpcUrl: cleanRpcUrl, // CRITICAL: Override with our QuickNode RPC URL
+    // Copy any other required properties from default solana network
+    ...((solana as any)?.blockExplorerUrl ? { blockExplorerUrl: (solana as any).blockExplorerUrl } : {}),
   } as any;
+  
+  // Final validation: ensure rpcUrl is set and valid
+  if (!solanaNetwork.rpcUrl || !solanaNetwork.rpcUrl.startsWith('http')) {
+    console.error('[WalletProvider] CRITICAL: solanaNetwork.rpcUrl is invalid:', solanaNetwork.rpcUrl);
+    solanaNetwork = null;
+  }
   
   if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
     console.log('[WalletProvider] ✅ Solana network initialized with RPC URL:', cleanRpcUrl.substring(0, 50) + '...');
@@ -110,16 +133,21 @@ const wagmiAdapter = new WagmiAdapter({
 });
 
 // Only initialize SolanaAdapter if we have a valid RPC URL AND network
-// This prevents "Endpoint URL must start with http:" errors
-// SolanaAdapter reads RPC URL from the networks array passed to createAppKit
-// If solanaNetwork is null, SolanaAdapter won't be initialized, preventing errors
-const solanaAdapter = solanaNetwork && solanaNetwork.rpcUrl && solanaNetwork.rpcUrl.startsWith('http') 
+// CRITICAL: SolanaAdapter reads RPC URL from the networks array passed to createAppKit
+// It may try to sync balance immediately, so we MUST ensure:
+// 1. solanaNetwork exists and has valid rpcUrl
+// 2. solanaNetwork is in the networks array BEFORE SolanaAdapter is created
+// 3. Networks array is passed to createAppKit
+const solanaAdapter = solanaNetwork && 
+                      solanaNetwork.rpcUrl && 
+                      solanaNetwork.rpcUrl.startsWith('http') &&
+                      networks.includes(solanaNetwork) // Ensure network is in array
   ? new SolanaAdapter() 
   : null;
 
 if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
   if (solanaAdapter) {
-    console.log('[WalletProvider] ✅ SolanaAdapter initialized');
+    console.log('[WalletProvider] ✅ SolanaAdapter initialized with network:', solanaNetwork?.id);
   } else {
     console.warn('[WalletProvider] ⚠️ SolanaAdapter NOT initialized - no valid RPC URL');
   }
@@ -168,17 +196,25 @@ if (typeof window !== 'undefined') {
         }
         
         solanaRpcUrl = rpcUrl.trim();
-        // Create network object explicitly - don't spread solana to avoid inheriting bad defaults
+        // Create network object explicitly - match Reown's structure
+        const defaultSolanaId = (solana as any)?.id || 'solana';
         const newSolanaNetwork = {
-          id: 'solana',
-          name: 'Solana',
-          nativeCurrency: {
+          id: defaultSolanaId,
+          name: (solana as any)?.name || 'Solana',
+          nativeCurrency: (solana as any)?.nativeCurrency || {
             name: 'SOL',
             symbol: 'SOL',
             decimals: 9,
           },
           rpcUrl: solanaRpcUrl, // Explicitly set our QuickNode RPC URL
+          ...((solana as any)?.blockExplorerUrl ? { blockExplorerUrl: (solana as any).blockExplorerUrl } : {}),
         } as any;
+        
+        // Validate before using
+        if (!newSolanaNetwork.rpcUrl || !newSolanaNetwork.rpcUrl.startsWith('http')) {
+          console.error('[WalletProvider] CRITICAL: newSolanaNetwork.rpcUrl is invalid:', newSolanaNetwork.rpcUrl);
+          return;
+        }
         
         const maskedRpc = rpcUrl.includes('quiknode')
           ? rpcUrl.replace(/\/[^\/]+\/[^\/]+\//, '/***/***/')
