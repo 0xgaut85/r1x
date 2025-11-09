@@ -47,7 +47,7 @@ RUN rm -rf .next node_modules/.cache x402-server
 # All values are hardcoded here - Railway can override via build args if needed
 ARG NEXT_PUBLIC_PROJECT_ID=ac7a5e22564f2698c80f05dbf4811d6a
 ARG NEXT_PUBLIC_BASE_URL=https://r1xlabs.com
-ARG NEXT_PUBLIC_SOLANA_RPC_URL=https://prettiest-billowing-silence.solana-mainnet.quiknode.pro/b9801e1d484c1cf56008b311fd67e5b228c27c2b/
+ARG NEXT_PUBLIC_SOLANA_RPC_URL=https://mainnet.helius-rpc.com/?api-key=0d1fd9dd-c8db-4e20-b550-6dbf601f65cc
 ARG NEXT_PUBLIC_X402_SERVER_URL=https://server.r1xlabs.com
 ARG NEXT_PUBLIC_PLATFORM_FEE_PERCENTAGE=10
 ARG NEXT_PUBLIC_APIFLASH_ACCESS_KEY=622465fef52c4978a2a46763e5ed3c2e
