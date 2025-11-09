@@ -252,8 +252,17 @@ const ServiceCard = memo(function ServiceCard({
           return;
         }
 
-        // Initialize Solana payment client
-        const solanaClient = new SolanaPaymentClient(solanaWallet);
+        // Fetch RPC URL before creating client to avoid "Endpoint URL must start with http:" error
+        const { getSolanaRpcUrl } = await import('@/lib/solana-rpc-config');
+        const rpcUrl = await getSolanaRpcUrl();
+        if (!rpcUrl || !rpcUrl.startsWith('http')) {
+          alert('Solana RPC URL not configured. Please set SOLANA_RPC_URL in Railway.');
+          setIsProcessing(false);
+          return;
+        }
+        
+        // Initialize Solana payment client with RPC URL
+        const solanaClient = new SolanaPaymentClient(solanaWallet, rpcUrl);
 
         const basePrice = parseFloat(service.price);
         

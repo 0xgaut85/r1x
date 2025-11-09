@@ -1409,9 +1409,17 @@ export default function R1xAgentContent() {
         // Pay fixed 0.25 USDC agent fee to platform (Solana)
         // Load runtime config from Railway
         const { getRuntimeConfig } = await import('@/lib/runtime-config');
+        const { getSolanaRpcUrl } = await import('@/lib/solana-rpc-config');
         const runtimeCfg = await getRuntimeConfig();
         const feeRecipient = runtimeCfg.solanaFeeRecipient || 'FJ1D5BAoHJpTfahmd8Ridq6kDciJq8d5XNU7WnwKExoz';
-        const solanaClient = new SolanaPaymentClient(solanaWallet);
+        
+        // Fetch RPC URL before creating client to avoid "Endpoint URL must start with http:" error
+        const rpcUrl = await getSolanaRpcUrl();
+        if (!rpcUrl || !rpcUrl.startsWith('http')) {
+          throw new Error('Solana RPC URL not configured. Please set SOLANA_RPC_URL in Railway.');
+        }
+        
+        const solanaClient = new SolanaPaymentClient(solanaWallet, rpcUrl);
 
         const feeResult = await solanaClient.transferUSDC({
           to: feeRecipient,

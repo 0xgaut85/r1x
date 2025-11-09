@@ -320,8 +320,9 @@ export class SolanaPaymentClient {
         return signature;
       };
 
-      // Use provided priority or start with sensible default, retry once with higher tip if needed
-      const firstPriority = typeof priorityMicroLamports === 'number' ? priorityMicroLamports : 10_000;
+      // Use provided priority or start with higher default to satisfy tip account write-lock requirement
+      // Solana v0 transactions require priority fees to write-lock tip accounts
+      const firstPriority = typeof priorityMicroLamports === 'number' ? priorityMicroLamports : 50_000;
       try {
         const sig = await attemptSend(firstPriority);
         return {
