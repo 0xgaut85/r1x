@@ -3,9 +3,7 @@
 import { 
   Connection, 
   PublicKey, 
-  Transaction, 
-  TransactionMessage,
-  VersionedTransaction,
+  Transaction,
   SendTransactionError
 } from '@solana/web3.js';
 import {
@@ -208,13 +206,15 @@ export class SolanaPaymentClient {
         []
       );
 
-      // Minimal send: only (optional) ATA creation + USDC transfer
+      // Minimal send: legacy Transaction format (most common for simple USDC transfers)
+      // No v0, no priority fees, no compute budget - just ATA create + USDC transfer
       const sendOnce = async (): Promise<string> => {
-        const instructions = [] as any[];
+        // Create legacy Transaction (not v0)
+        const transaction = new Transaction();
 
         // Create recipient ATA if needed
         if (needCreateRecipientAta) {
-          instructions.push(
+          transaction.add(
             createAssociatedTokenAccountInstruction(
               fromPubkey,       // payer
               toTokenAccount,   // ata to create
@@ -225,15 +225,13 @@ export class SolanaPaymentClient {
         }
 
         // Add USDC transfer
-        instructions.push(transferInstruction);
+        transaction.add(transferInstruction);
 
-        // Get recent blockhash with lastValidBlockHeight (REQUIRED for v0 transactions)
+        // Get recent blockhash (legacy Transaction format)
         let blockhash;
-        let lastValidBlockHeight: number;
         try {
           const blockhashResult = await (this.connection as Connection).getLatestBlockhash('confirmed');
           blockhash = blockhashResult.blockhash;
-          lastValidBlockHeight = blockhashResult.lastValidBlockHeight;
         } catch (blockhashError: any) {
           const errorMsg = String(blockhashError?.message || '');
           const errorString = JSON.stringify(blockhashError || {});
@@ -245,7 +243,6 @@ export class SolanaPaymentClient {
             errorString.includes('"code":403');
           
           if (isRpcError) {
-            // Same error handling as above
             if (this.rpcUrl.includes('helius-rpc.com')) {
               throw new Error(
                 'Helius RPC returned 403. Please ensure your domain is allowlisted in Helius dashboard. ' +
@@ -265,58 +262,22 @@ export class SolanaPaymentClient {
           }
         }
 
-        // Create v0 TransactionMessage (no address lookup tables)
-        const messageV0 = new TransactionMessage({
-          payerKey: fromPubkey,
-          recentBlockhash: blockhash,
-          instructions,
-        }).compileToV0Message([]);
-        
-        // Create VersionedTransaction (v0 format)
-        const transaction = new VersionedTransaction(messageV0);
-        
-        // Verify transaction structure before signing (debug)
-        if (process.env.NODE_ENV !== 'production') {
-          const compiledInstructions = messageV0.compiledInstructions;
-          console.log('[SolanaPaymentClient] v0 Transaction structure:', {
-            instructionCount: instructions.length,
-            compiledInstructionCount: compiledInstructions.length,
-            version: 0,
-          });
-        }
+        // Set blockhash and fee payer (legacy Transaction)
+        transaction.recentBlockhash = blockhash;
+        transaction.feePayer = fromPubkey;
 
-        // Sign transaction with wallet (Phantom/Solflare support signTransaction for VersionedTransaction)
+        // Sign transaction with wallet
         const signedTransaction = await this.wallet.signTransaction(transaction);
-        
-        // Verify transaction serialization doesn't drop instructions
-        const serialized = signedTransaction.serialize();
-        if (serialized.length === 0) {
-          throw new Error('Transaction serialization failed - empty buffer');
-        }
-        
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('[SolanaPaymentClient] v0 Transaction signed:', {
-            serializedLength: serialized.length,
-          });
-        }
 
-        // Send transaction - skip preflight simulation to bypass QuickNode's Jito validation
-        // The simulation is failing with "tip account" error even though we're not using Jito
-        // The transaction structure is correct, so we bypass simulation entirely
+        // Send transaction - use sendTransaction (not sendRawTransaction) for legacy format
+        // This is the simplest, most common approach
         let signature;
         try {
-          signature = await (this.connection as Connection).sendRawTransaction(signedTransaction.serialize(), {
-            skipPreflight: true, // Skip simulation - bypass QuickNode's Jito validation
+          signature = await (this.connection as Connection).sendTransaction(signedTransaction, [], {
+            skipPreflight: true, // Skip simulation to avoid QuickNode issues
             maxRetries: 3,
           });
         } catch (sendError: any) {
-          // Surface simulation logs if available (though we skipped preflight)
-          if (sendError instanceof SendTransactionError) {
-            const logs = (sendError as any).logs || (sendError as any)?.cause?.logs;
-            if (logs && process.env.NODE_ENV !== 'production') {
-              console.error('[SolanaPaymentClient] Transaction logs:', logs);
-            }
-          }
           const errorMsg = String(sendError?.message || '');
           const errorString = JSON.stringify(sendError || {});
           const isRpcError = 
@@ -327,7 +288,6 @@ export class SolanaPaymentClient {
             errorString.includes('"code":403');
           
           if (isRpcError) {
-            // Same error handling as above
             if (this.rpcUrl.includes('helius-rpc.com')) {
               throw new Error(
                 'Helius RPC returned 403. Please ensure your domain is allowlisted in Helius dashboard. ' +
@@ -343,7 +303,6 @@ export class SolanaPaymentClient {
               );
             }
           } else {
-            // Not an RPC error - throw the actual error
             throw sendError;
           }
         }
