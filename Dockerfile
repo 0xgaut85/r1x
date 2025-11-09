@@ -46,7 +46,8 @@ RUN rm -rf .next node_modules/.cache x402-server
 # These are required at build time for Next.js to embed them in the client bundle
 # NEXT_PUBLIC_PROJECT_ID is hardcoded as default (Reown requires it before build)
 ARG NEXT_PUBLIC_PROJECT_ID=ac7a5e22564f2698c80f05dbf4811d6a
-ARG NEXT_PUBLIC_BASE_URL
+# NEXT_PUBLIC_BASE_URL is hardcoded as default (wallet-provider throws error if missing)
+ARG NEXT_PUBLIC_BASE_URL=https://r1xlabs.com
 ARG NEXT_PUBLIC_SOLANA_RPC_URL
 ARG NEXT_PUBLIC_X402_SERVER_URL
 ARG NEXT_PUBLIC_PLATFORM_FEE_PERCENTAGE
