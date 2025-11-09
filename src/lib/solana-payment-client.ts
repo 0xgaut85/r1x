@@ -7,7 +7,8 @@ import {
   TransactionMessage,
   VersionedTransaction,
   ComputeBudgetProgram, 
-  SendTransactionError 
+  SendTransactionError,
+  SystemProgram
 } from '@solana/web3.js';
 import {
   getAssociatedTokenAddress,
@@ -20,6 +21,13 @@ import { getSolanaRpcUrl } from './solana-rpc-config';
 
 // USDC mint address on Solana mainnet
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+
+// Jito tip account addresses (mainnet) - pre-existing accounts owned by Jito Labs
+// These are used to pay priority fees/tips to validators
+const JITO_TIP_ACCOUNTS = [
+  '96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5',  // Most commonly used
+  'HFqU5x63VTqvQss8hp11i4wVV8bD44PvwucfZ2bU7gRe',  // Alternative
+];
 
 /**
  * Solana USDC payment client
@@ -126,20 +134,24 @@ export class SolanaPaymentClient {
     // Convert amount to atomic units (USDC has 6 decimals on Solana)
     const amountAtomic = BigInt(usdcToAtomic(amount));
 
-    try {
-      // Ensure payer has some SOL for fees (priority + ATA creation)
       try {
-        const lamports = await (this.connection as Connection).getBalance(fromPubkey, 'confirmed');
-        // Require at least ~0.0005 SOL to cover small priority and potential ATA creation
-        if (lamports < 500_000) {
-          throw new Error('Insufficient SOL for fees. Please keep at least 0.0005 SOL for priority/ATA creation.');
+        // Ensure payer has some SOL for fees (priority + ATA creation + Jito tip)
+        try {
+          const lamports = await (this.connection as Connection).getBalance(fromPubkey, 'confirmed');
+          // Require at least ~0.001 SOL to cover:
+          // - Jito tip (0.00001 SOL)
+          // - Priority fees (0.0001-0.001 SOL)
+          // - ATA creation if needed (0.002 SOL)
+          // - Base transaction fee (0.000005 SOL)
+          if (lamports < 1_000_000) { // 0.001 SOL
+            throw new Error('Insufficient SOL for fees. Please keep at least 0.001 SOL for priority fees, Jito tip, and potential ATA creation.');
+          }
+        } catch (balErr: any) {
+          // Non-fatal check; continue if balance fails to fetch
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn('[SolanaPaymentClient] Balance check failed:', balErr?.message || balErr);
+          }
         }
-      } catch (balErr: any) {
-        // Non-fatal check; continue if balance fails to fetch
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn('[SolanaPaymentClient] Balance check failed:', balErr?.message || balErr);
-        }
-      }
 
       // Get associated token accounts
       const fromTokenAccount = await getAssociatedTokenAddress(mintPubkey, fromPubkey);
@@ -212,11 +224,25 @@ export class SolanaPaymentClient {
       const attemptSend = async (microLamports: number): Promise<string> => {
         // Build v0 transaction with priority fees (REQUIRED for tip account write-lock)
         
-        // Build instructions array: priority fees FIRST, then transfer
+        // Build instructions array: tip account transfer FIRST, then priority fees, then transfer
         const instructions = [];
         
-        // CRITICAL: Add compute budget instructions FIRST (before any other instructions)
-        // This fixes "Transaction must write lock at least one tip account" error
+        // CRITICAL: Add explicit SOL transfer to Jito tip account FIRST
+        // This satisfies Jito's "must write lock at least one tip account" requirement
+        // Even when using QuickNode RPC, transactions may route through Jito infrastructure
+        // Tip amount: 10,000 lamports = 0.00001 SOL (minimal tip to satisfy requirement)
+        const jitoTipAccount = new PublicKey(JITO_TIP_ACCOUNTS[0]);
+        const tipAmount = 10_000; // 0.00001 SOL
+        
+        instructions.push(
+          SystemProgram.transfer({
+            fromPubkey: fromPubkey,
+            toPubkey: jitoTipAccount,
+            lamports: tipAmount,
+          })
+        );
+        
+        // CRITICAL: Add compute budget instructions AFTER tip transfer
         // Higher compute units for ATA creation (increase to 500k/300k for safety)
         const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
           units: needCreateRecipientAta ? 500_000 : 300_000,
@@ -228,7 +254,7 @@ export class SolanaPaymentClient {
           microLamports, // dynamic - will retry with higher values if needed
         });
         
-        // Add priority fee instructions FIRST (critical for tip account write-lock)
+        // Add priority fee instructions AFTER tip transfer (critical for tip account write-lock)
         instructions.push(modifyComputeUnits);
         instructions.push(addPriorityFee);
 
