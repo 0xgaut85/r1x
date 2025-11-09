@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     // Quick health check (non-blocking, for diagnostics only)
     fetch(healthUrl, { 
       method: 'GET',
-      signal: AbortSignal.timeout(5000), // 5 second timeout for health check
+      signal: AbortSignal.timeout(10000), // 10 second timeout for health check (increased for Railway)
     }).then(healthResponse => {
       console.log('[Next.js Proxy] Health check response:', {
         status: healthResponse.status,
@@ -110,8 +110,9 @@ export async function POST(request: NextRequest) {
     });
     
     // Forward request to Express server with timeout
+    // Increased timeout for Railway network latency
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout (increased for Railway)
     
     let response: Response;
     try {
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { 
             error: 'Express server timeout',
-            message: 'The Express server did not respond within 30 seconds. Please check if the Express service is running.',
+            message: 'The Express server did not respond within 60 seconds. Please check if the Express service is running.',
             expressServerUrl: expressServerUrl,
             targetUrl: targetUrl,
             healthUrl: healthUrl,
