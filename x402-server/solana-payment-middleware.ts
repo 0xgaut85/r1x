@@ -72,29 +72,30 @@ export function solanaPaymentMiddleware(
       const xPaymentHeader = req.headers['x-payment'] as string | undefined;
       
       if (!xPaymentHeader) {
-        // No payment header - return 402 Payment Required using official package
+        // No payment header - return 402 Payment Required
+        // Format response to match x402 protocol with accepts array (what client expects)
         const priceAmount = parseFloat(routeConfig.price.replace('$', ''));
         const amountMicroUsdc = Math.ceil(priceAmount * 1_000_000).toString(); // USDC has 6 decimals
         
-        const paymentRequirements = await x402Handler.createPaymentRequirements({
-          price: {
+        // Manually construct 402 response in x402 format with accepts array
+        // This matches what the client expects: paymentRequired.accepts?.[0]
+        res.status(402).json({
+          x402Version: 1,
+          error: 'Payment Required',
+          accepts: [{
+            scheme: 'exact',
+            network: 'solana',
+            maxAmountRequired: amountMicroUsdc,
             amount: amountMicroUsdc,
-            asset: {
-              address: USDC_SOLANA_MINT as any, // Solana addresses are base58, not hex
-              decimals: 6, // USDC has 6 decimals on Solana
-            } as any, // Solana asset type differs from EVM
-          },
-          network: 'solana',
-          config: {
-            description: 'r1x Agent Chat - Solana',
             resource: `${req.protocol}://${req.get('host')}${req.path}`,
+            description: 'r1x Agent Chat - Solana',
             mimeType: 'application/json',
-          },
+            payTo: SOLANA_FEE_RECIPIENT_ADDRESS || '',
+            maxTimeoutSeconds: 3600,
+            asset: USDC_SOLANA_MINT,
+            tokenSymbol: 'USDC',
+          }],
         });
-
-        const response402 = x402Handler.create402Response(paymentRequirements);
-        
-        res.status(402).json(response402);
         return;
       }
 
