@@ -66,10 +66,12 @@ export function solanaPaymentMiddleware(
     }
 
     try {
-      // Extract X-Payment header using official package
-      const xPaymentHeader = req.headers['x-payment'] as string | undefined;
+      // Extract X-Payment header using official package (per official docs)
+      // Convert Express headers to plain object if needed (x402-solana expects standard headers)
+      const headers = typeof req.headers === 'object' ? req.headers : {};
+      const paymentHeader = x402Handler.extractPayment(headers);
       
-      if (!xPaymentHeader) {
+      if (!paymentHeader) {
         // No payment header - return 402 Payment Required using official x402-solana package
         const priceAmount = parseFloat(routeConfig.price.replace('$', ''));
         const amountMicroUsdc = Math.ceil(priceAmount * 1_000_000).toString(); // USDC has 6 decimals
@@ -121,7 +123,7 @@ export function solanaPaymentMiddleware(
 
       // Verify payment using official x402-solana package
       // Per official docs: returns boolean or result object
-      const verified = await x402Handler.verifyPayment(xPaymentHeader, paymentRequirements);
+      const verified = await x402Handler.verifyPayment(paymentHeader, paymentRequirements);
       
       // Handle both boolean and object return types (checking actual implementation)
       const isValid = typeof verified === 'boolean' ? verified : (verified as any)?.isValid ?? false;
@@ -137,7 +139,7 @@ export function solanaPaymentMiddleware(
 
       // Settle payment using official x402-solana package
       // Per official docs: settlePayment may return result object
-      const settleResult = await x402Handler.settlePayment(xPaymentHeader, paymentRequirements);
+      const settleResult = await x402Handler.settlePayment(paymentHeader, paymentRequirements);
       
       // Handle settlement errors if result object is returned
       if (settleResult && typeof settleResult === 'object' && 'success' in settleResult && !settleResult.success) {
@@ -147,9 +149,8 @@ export function solanaPaymentMiddleware(
         });
       }
 
-      // Extract payment proof from header for downstream processing
-      // Per official docs: extractPayment(req.headers) - pass actual headers object
-      const paymentProof = x402Handler.extractPayment(req.headers);
+      // Payment proof already extracted above
+      const paymentProof = paymentHeader;
       
       // Get settlement hash from settleResult if available, otherwise from paymentProof
       const settlementHash = (settleResult && typeof settleResult === 'object' && 'transaction' in settleResult)
@@ -180,15 +181,31 @@ export function solanaPaymentMiddleware(
     } catch (error: any) {
       console.error('[x402-solana] Payment middleware error:', {
         message: error.message,
+        name: error.name,
+        code: error.code,
         stack: error.stack?.substring(0, 500),
         path: req.path,
+        headers: {
+          'x-payment': req.headers['x-payment'] ? 'present' : 'missing',
+          'x-network': req.headers['x-network'],
+        },
       });
       
       if (!res.headersSent) {
-        res.status(500).json({
-          error: 'Payment processing error',
-          details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
-        });
+        // Provide more detailed error in development
+        const errorDetails = process.env.NODE_ENV === 'development' 
+          ? {
+              error: 'Payment processing error',
+              message: error.message,
+              name: error.name,
+              code: error.code,
+            }
+          : {
+              error: 'Payment processing error',
+              details: 'Internal server error',
+            };
+        
+        res.status(500).json(errorDetails);
       }
     }
   };
