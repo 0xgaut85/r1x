@@ -49,38 +49,47 @@ const metadata = {
 };
 
 // Solana network setup per Reown docs:
-// - SolanaAdapter requires a valid HTTP/HTTPS RPC URL in the network configuration
-// - If no override is provided, use public Solana RPC as fallback
-// - Only include Solana adapter/network if we have a valid RPC URL
+// - SolanaAdapter accepts optional rpcUrl parameter
+// - If provided, use NEXT_PUBLIC_SOLANA_RPC_URL; otherwise use default solana network
+// - Always ensure we have a valid HTTP/HTTPS RPC URL
 const solanaRpcOverride =
   (typeof window === 'undefined'
     ? (process.env.SOLANA_RPC_URL || process.env.NEXT_PUBLIC_SOLANA_RPC_URL)
     : process.env.NEXT_PUBLIC_SOLANA_RPC_URL) || '';
 
-// Get default solana network RPC URL (may be undefined or invalid)
-const defaultSolanaRpcUrl = (solana as any)?.rpcUrl;
-
 // Determine final RPC URL: override > default > public fallback
 let finalSolanaRpcUrl: string | null = null;
-if (solanaRpcOverride && solanaRpcOverride.trim().startsWith('http')) {
+if (solanaRpcOverride && typeof solanaRpcOverride === 'string' && solanaRpcOverride.trim().startsWith('http')) {
   finalSolanaRpcUrl = solanaRpcOverride.trim();
-} else if (defaultSolanaRpcUrl && typeof defaultSolanaRpcUrl === 'string' && defaultSolanaRpcUrl.startsWith('http')) {
-  finalSolanaRpcUrl = defaultSolanaRpcUrl;
 } else {
-  // Fallback to public Solana RPC (rate-limited but works)
-  finalSolanaRpcUrl = 'https://api.mainnet-beta.solana.com';
+  // Check default solana network RPC URL
+  const defaultSolanaRpcUrl = (solana as any)?.rpcUrl;
+  if (defaultSolanaRpcUrl && typeof defaultSolanaRpcUrl === 'string' && defaultSolanaRpcUrl.trim().startsWith('http')) {
+    finalSolanaRpcUrl = defaultSolanaRpcUrl.trim();
+  } else {
+    // Fallback to public Solana RPC (rate-limited but works)
+    finalSolanaRpcUrl = 'https://api.mainnet-beta.solana.com';
+  }
+}
+
+// Validate RPC URL before proceeding
+if (!finalSolanaRpcUrl || typeof finalSolanaRpcUrl !== 'string' || !finalSolanaRpcUrl.startsWith('http')) {
+  console.error('[WalletProvider] CRITICAL: Solana RPC URL is invalid:', finalSolanaRpcUrl);
+  throw new Error('Solana RPC URL must be a valid HTTP/HTTPS URL');
 }
 
 // Create Solana network with guaranteed valid RPC URL
+// Per Reown docs: spread default solana network and override rpcUrl
+// IMPORTANT: Set rpcUrl AFTER spreading to ensure it's not overwritten
 const solanaNetwork: any = {
   ...(solana as any),
-  rpcUrl: finalSolanaRpcUrl,
+  rpcUrl: finalSolanaRpcUrl, // Explicitly set valid RPC URL
 };
 
-// Validate RPC URL before proceeding
-if (!finalSolanaRpcUrl || !finalSolanaRpcUrl.startsWith('http')) {
-  console.error('[WalletProvider] CRITICAL: Solana RPC URL is invalid:', finalSolanaRpcUrl);
-  throw new Error('Solana RPC URL must be a valid HTTP/HTTPS URL');
+// Double-check rpcUrl is set correctly (defensive check)
+if (!solanaNetwork.rpcUrl || typeof solanaNetwork.rpcUrl !== 'string' || !solanaNetwork.rpcUrl.startsWith('http')) {
+  console.error('[WalletProvider] CRITICAL: solanaNetwork.rpcUrl is invalid after creation:', solanaNetwork.rpcUrl);
+  solanaNetwork.rpcUrl = finalSolanaRpcUrl; // Force set it again
 }
 
 // Build networks array - include Solana up-front so the modal can reflect Solana state
@@ -91,14 +100,16 @@ const wagmiAdapter = new WagmiAdapter({
   projectId, // Must be set in Railway before build
 });
 
-// Initialize SolanaAdapter up-front (per Reown docs), so modal can manage Solana connections
-// SolanaAdapter reads RPC URL from the network configuration
+// Initialize SolanaAdapter (per Reown docs)
+// SolanaAdapter reads RPC URL from the network configuration in createAppKit
+// We ensure solanaNetwork has a valid rpcUrl above
 const solanaAdapter = new SolanaAdapter();
 
 if (typeof window !== 'undefined') {
-  const rpcSource = solanaRpcOverride && solanaRpcOverride.trim().startsWith('http')
+  const defaultSolanaRpcUrl = (solana as any)?.rpcUrl;
+  const rpcSource = solanaRpcOverride && typeof solanaRpcOverride === 'string' && solanaRpcOverride.trim().startsWith('http')
     ? 'override (NEXT_PUBLIC_SOLANA_RPC_URL)'
-    : defaultSolanaRpcUrl && typeof defaultSolanaRpcUrl === 'string' && defaultSolanaRpcUrl.startsWith('http')
+    : defaultSolanaRpcUrl && typeof defaultSolanaRpcUrl === 'string' && defaultSolanaRpcUrl.trim().startsWith('http')
     ? 'default (Reown solana network)'
     : 'fallback (public Solana RPC)';
   const maskedRpc = finalSolanaRpcUrl.includes('quiknode')
@@ -122,6 +133,16 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Final validation before creating AppKit - ensure Solana network has valid RPC URL
+const solanaNetworkInArray = networks.find((n: any) => n?.id === 'solana' || n?.id === (solana as any)?.id);
+if (solanaNetworkInArray) {
+  const networkRpcUrl = solanaNetworkInArray.rpcUrl;
+  if (!networkRpcUrl || typeof networkRpcUrl !== 'string' || !networkRpcUrl.startsWith('http')) {
+    console.error('[WalletProvider] CRITICAL: Solana network in array has invalid RPC URL:', networkRpcUrl);
+    solanaNetworkInArray.rpcUrl = finalSolanaRpcUrl; // Force fix it
+  }
+}
 
 // Initialize AppKit - include Wagmi + Solana adapters
 const adapters: any[] = [wagmiAdapter, solanaAdapter];
