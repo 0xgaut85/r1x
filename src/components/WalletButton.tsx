@@ -3,7 +3,6 @@
 import { motion } from 'framer-motion';
 import { modal } from '@/lib/wallet-provider';
 import { useWallet } from '@/hooks/useWallet';
-import { useDisconnect } from '@reown/appkit/react';
 
 interface WalletButtonProps {
   variant?: 'default' | 'agent' | 'panel';
@@ -12,27 +11,10 @@ interface WalletButtonProps {
 
 export default function WalletButton({ variant = 'default', className = '' }: WalletButtonProps) {
   // Always call hooks in the same order - wagmi will handle provider check
-  const { address, isConnected, isSolanaConnected, isEVMConnected } = useWallet();
-  const { disconnect } = useDisconnect();
-  
+  const { address, isConnected } = useWallet();
+
   const handleClick = () => {
-    // If connected and clicked, disconnect the wallet
-    if (isConnected) {
-      if (isSolanaConnected) {
-        // Disconnect Solana wallet using useDisconnect with namespace
-        // Per official Reown docs: useDisconnect supports namespace parameter
-        disconnect({ namespace: 'solana' });
-      } else if (isEVMConnected) {
-        // Disconnect EVM wallet using Reown's disconnect hook
-        disconnect();
-      } else {
-        // Fallback: open modal if connection type is unclear
-        modal.open();
-      }
-    } else {
-      // Not connected - open modal to connect
-      modal.open();
-    }
+    modal.open();
   };
 
   // Agent variant (dark background, top-right)
@@ -94,4 +76,3 @@ export default function WalletButton({ variant = 'default', className = '' }: Wa
     </motion.button>
   );
 }
-
