@@ -37,27 +37,27 @@ const metadata = {
   icons: ['/logosvg.svg'],
 };
 
-// Get Solana RPC URL from Railway env vars ONLY (no hardcoded fallbacks)
-// Client-side: fetch from Railway API route at runtime
-// Server-side: use env var directly
+// Get Solana RPC URL - hardcoded in Dockerfile, available at build time
+// NEXT_PUBLIC_SOLANA_RPC_URL is hardcoded in Dockerfile with QuickNode URL
 const getSolanaRpcUrlSync = (): string | null => {
-  // Server-side: use env var directly
+  // Server-side: use env var directly (from Railway or Dockerfile default)
   if (typeof window === 'undefined') {
     const rpcUrl = process.env.SOLANA_RPC_URL || process.env.NEXT_PUBLIC_SOLANA_RPC_URL;
     if (!rpcUrl || !rpcUrl.trim().startsWith('http')) {
-      console.error('[WalletProvider] SOLANA_RPC_URL not set or invalid in Railway');
+      console.error('[WalletProvider] SOLANA_RPC_URL not set or invalid');
       return null;
     }
     return rpcUrl.trim();
   }
   
-  // Client-side: try NEXT_PUBLIC_* first (available at build time)
+  // Client-side: NEXT_PUBLIC_SOLANA_RPC_URL is hardcoded in Dockerfile and embedded at build time
   const publicRpcUrl = process.env.NEXT_PUBLIC_SOLANA_RPC_URL;
   if (publicRpcUrl && publicRpcUrl.trim().startsWith('http')) {
     return publicRpcUrl.trim();
   }
   
-  // Not available synchronously - will fetch async
+  // Should not happen if Dockerfile is correct, but fallback to async fetch
+  console.warn('[WalletProvider] NEXT_PUBLIC_SOLANA_RPC_URL not available at build time - will fetch async');
   return null;
 };
 
