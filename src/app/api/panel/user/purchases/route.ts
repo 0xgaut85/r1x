@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getExplorerUrl } from '@/lib/explorer-url';
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,6 +36,7 @@ export async function GET(request: NextRequest) {
             category: true,
             endpoint: true,
             metadata: true,
+            network: true,
           },
         },
       },
@@ -57,9 +59,13 @@ export async function GET(request: NextRequest) {
                         metadata?.url ||
                         undefined;
 
-      const hex = (h?: string | null) => (h && /^0x[0-9a-fA-F]{64}$/.test(h) ? h : null);
-      const bestHash = hex((tx as any).settlementHash) || hex(tx.transactionHash);
-      const blockExplorerUrl = bestHash ? `https://basescan.org/tx/${bestHash}` : null;
+      // Use settlementHash if available, otherwise transactionHash
+      const bestHash = (tx as any).settlementHash || tx.transactionHash;
+      const blockExplorerUrl = getExplorerUrl(
+        bestHash,
+        tx.service.network || null,
+        tx.chainId
+      );
 
       return {
         id: tx.id,

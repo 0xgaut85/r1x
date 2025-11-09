@@ -13,6 +13,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { parsePaymentProof, saveTransaction } from './save-transaction';
 import { x402scanResponseTransformer } from './x402scan-response';
 import { solanaPaymentMiddleware } from './solana-payment-middleware';
+import { getExplorerUrl } from './explorer-url';
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
@@ -1686,6 +1687,7 @@ app.get('/api/panel/public/transactions', async (req, res) => {
               serviceId: true,
               name: true,
               category: true,
+              network: true,
             },
           },
         },
@@ -1700,9 +1702,11 @@ app.get('/api/panel/public/transactions', async (req, res) => {
       // For x402 transactions, settlementHash is the actual on-chain transaction hash
       // transactionHash is the authorization hash (not on-chain)
       const explorerHash = tx.settlementHash || tx.transactionHash;
-      const explorerUrl = explorerHash 
-        ? `https://basescan.org/tx/${explorerHash}`
-        : null;
+      const explorerUrl = getExplorerUrl(
+        explorerHash,
+        tx.service.network || null,
+        tx.chainId
+      );
       
       return {
         transactionHash: tx.transactionHash,

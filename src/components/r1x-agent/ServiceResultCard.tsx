@@ -2,6 +2,7 @@
 
 import { MarketplaceService } from '@/lib/types/x402';
 import { formatUnits } from 'viem';
+import { getExplorerUrl, getExplorerLabel } from '@/lib/explorer-url';
 
 interface ServiceResultCardProps {
   service: MarketplaceService;
@@ -17,8 +18,13 @@ export default function ServiceResultCard({
   contentType,
 }: ServiceResultCardProps) {
   // Extract transaction hash from payment receipt
-  const txHash = paymentReceipt?.transactionHash || paymentReceipt?.txHash;
-  const explorerUrl = txHash ? `https://basescan.org/tx/${txHash}` : null;
+  const txHash = paymentReceipt?.transactionHash || paymentReceipt?.txHash || paymentReceipt?.settlementHash;
+  const explorerUrl = txHash ? getExplorerUrl(
+    txHash,
+    service.network || null,
+    service.chainId || null
+  ) : null;
+  const explorerLabel = getExplorerLabel(service.network || null, service.chainId || null);
   
   // Extract amount from payment receipt
   const amount = paymentReceipt?.amount 
@@ -110,7 +116,7 @@ export default function ServiceResultCard({
               rel="noopener noreferrer"
               className="text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
             >
-              <span>View on BaseScan</span>
+              <span>{explorerLabel}</span>
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>

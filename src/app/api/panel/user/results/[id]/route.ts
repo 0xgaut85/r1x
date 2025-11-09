@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getExplorerUrl, getExplorerLabel } from '@/lib/explorer-url';
 
 export async function GET(
   request: NextRequest,
@@ -35,6 +36,7 @@ export async function GET(
             description: true,
             category: true,
             endpoint: true,
+            network: true,
           },
         },
         transaction: {
@@ -44,6 +46,7 @@ export async function GET(
             amount: true,
             feeAmount: true,
             timestamp: true,
+            chainId: true,
           },
         },
       },
@@ -64,6 +67,17 @@ export async function GET(
       );
     }
 
+    const bestHash = result.transaction?.settlementHash || result.transactionHash || result.transaction?.transactionHash;
+    const blockExplorerUrl = getExplorerUrl(
+      bestHash,
+      result.service.network || null,
+      result.transaction?.chainId || null
+    );
+    const explorerLabel = getExplorerLabel(
+      result.service.network || null,
+      result.transaction?.chainId || null
+    );
+
     return NextResponse.json({
       id: result.id,
       createdAt: result.createdAt,
@@ -81,6 +95,8 @@ export async function GET(
       metadata: result.metadata,
       transactionHash: result.transactionHash || result.transaction?.transactionHash || null,
       settlementHash: result.transaction?.settlementHash || null,
+      blockExplorerUrl,
+      explorerLabel,
       transaction: result.transaction ? {
         amount: result.transaction.amount,
         feeAmount: result.transaction.feeAmount,

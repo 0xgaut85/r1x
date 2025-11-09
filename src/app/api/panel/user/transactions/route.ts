@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { formatUnits } from 'viem';
+import { getExplorerUrl } from '@/lib/explorer-url';
 
 const USDC_DECIMALS = 6;
 
@@ -44,6 +45,7 @@ export async function GET(request: NextRequest) {
               description: true,
               category: true,
               priceDisplay: true,
+              network: true,
             },
           },
           fees: {
@@ -61,10 +63,13 @@ export async function GET(request: NextRequest) {
     ]);
 
     const formattedTransactions = transactions.map(tx => {
-      const hex = (h?: string | null) => (h && /^0x[0-9a-fA-F]{64}$/.test(h) ? h : null);
-      // Prefer settlement hash; fall back to transactionHash for any tx
-      const bestHash = hex(tx.settlementHash) || hex(tx.transactionHash);
-      const explorerUrl = bestHash ? `https://basescan.org/tx/${bestHash}` : null;
+      // Use settlementHash if available, otherwise transactionHash
+      const bestHash = tx.settlementHash || tx.transactionHash;
+      const explorerUrl = getExplorerUrl(
+        bestHash,
+        tx.service.network || null,
+        tx.chainId
+      );
       
       return {
         id: tx.id,

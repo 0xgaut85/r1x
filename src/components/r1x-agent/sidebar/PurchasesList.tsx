@@ -14,6 +14,7 @@ interface Purchase {
   id: string;
   transactionHash: string;
   settlementHash?: string | null;
+  blockExplorerUrl?: string | null;
   service: {
     id: string;
     name: string;
@@ -87,9 +88,9 @@ export default function PurchasesList({ address, limit = 5 }: PurchasesListProps
                   {formatUnits(BigInt(purchase.amount), 6)}
                   <Image src="/usdc.png" alt="USDC" width={10} height={10} />
                 </span>
-                {purchase.settlementHash && (
+                {purchase.blockExplorerUrl && (
                   <a
-                    href={`https://basescan.org/tx/${purchase.settlementHash}`}
+                    href={purchase.blockExplorerUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[#FF4D00] hover:text-[#FF6B35] transition-colors"

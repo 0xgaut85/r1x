@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { formatUnits } from 'viem';
+import { getExplorerUrl } from '@/lib/explorer-url';
 
 const USDC_DECIMALS = 6;
 
@@ -51,6 +52,7 @@ export async function GET(request: NextRequest) {
                 serviceId: true,
                 name: true,
                 category: true,
+                network: true,
               },
             },
           },
@@ -139,7 +141,13 @@ export async function GET(request: NextRequest) {
       transferHash: fee.transferHash,
       createdAt: fee.createdAt,
       transferredAt: fee.transferredAt,
-      blockExplorerUrl: fee.transferHash ? `https://basescan.org/tx/${fee.transferHash}` : null,
+      blockExplorerUrl: fee.transferHash 
+        ? getExplorerUrl(
+            fee.transferHash,
+            fee.transaction.service.network || null,
+            fee.transaction.chainId
+          )
+        : null,
     }));
 
     return NextResponse.json({

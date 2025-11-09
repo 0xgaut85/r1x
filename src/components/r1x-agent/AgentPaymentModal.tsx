@@ -5,6 +5,7 @@ import { PaymentQuote } from '@/lib/types/x402';
 import { useWallet } from '@/hooks/useWallet';
 import { base } from 'wagmi/chains';
 import CryptoLogo from '@/components/CryptoLogo';
+import { getExplorerUrl, getExplorerLabel } from '@/lib/explorer-url';
 
 interface AgentPaymentModalProps {
   quote: PaymentQuote;
@@ -28,6 +29,8 @@ export default function AgentPaymentModal({
   onClose,
 }: AgentPaymentModalProps) {
   const { formatUSDC } = useWallet();
+  const explorerUrl = txHash ? getExplorerUrl(txHash, null, chainId) : null;
+  const explorerLabel = getExplorerLabel(null, chainId);
 
   return (
     <>
@@ -110,16 +113,16 @@ export default function AgentPaymentModal({
             </div>
           )}
 
-          {txHash && (
+          {txHash && explorerUrl && (
             <div className="mt-4 text-center">
               <a
-                href={`https://basescan.org/tx/${txHash}`}
+                href={explorerUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-[#FF4D00] hover:underline"
                 style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
               >
-                View on BaseScan
+                {explorerLabel}
               </a>
             </div>
           )}

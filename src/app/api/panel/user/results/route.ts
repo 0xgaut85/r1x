@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getExplorerUrl } from '@/lib/explorer-url';
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,12 +36,14 @@ export async function GET(request: NextRequest) {
               name: true,
               description: true,
               category: true,
+              network: true,
             },
           },
           transaction: {
             select: {
               transactionHash: true,
               settlementHash: true,
+              chainId: true,
             },
           },
         },
@@ -80,6 +83,13 @@ export async function GET(request: NextRequest) {
         preview = `[${result.contentType}]`;
       }
 
+      const bestHash = result.transaction?.settlementHash || result.transactionHash || result.transaction?.transactionHash;
+      const blockExplorerUrl = getExplorerUrl(
+        bestHash,
+        result.service.network || null,
+        result.transaction?.chainId || null
+      );
+
       return {
         id: result.id,
         createdAt: result.createdAt,
@@ -89,6 +99,7 @@ export async function GET(request: NextRequest) {
         preview,
         transactionHash: result.transactionHash || result.transaction?.transactionHash || null,
         settlementHash: result.transaction?.settlementHash || null,
+        blockExplorerUrl,
       };
     });
 

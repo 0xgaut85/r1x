@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { formatUnits } from 'viem';
+import { getExplorerUrl } from '@/lib/explorer-url';
 
 const USDC_DECIMALS = 6;
 
@@ -52,9 +53,13 @@ export async function GET(request: NextRequest) {
       .filter(tx => tx.service) // Filter out transactions with missing services
       .slice(0, 10)
       .map(tx => {
-      const hex = (h?: string | null) => (h && /^0x[0-9a-fA-F]{64}$/.test(h) ? h : null);
-      const bestHash = hex(tx.settlementHash) || hex(tx.transactionHash);
-      const explorerUrl = bestHash ? `https://basescan.org/tx/${bestHash}` : null;
+      // Use settlementHash if available, otherwise transactionHash
+      const bestHash = tx.settlementHash || tx.transactionHash;
+      const explorerUrl = getExplorerUrl(
+        bestHash,
+        tx.service?.network || null,
+        tx.chainId
+      );
       
       return {
         id: tx.id,

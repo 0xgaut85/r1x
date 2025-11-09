@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { formatUnits } from 'viem';
+import { getExplorerUrl } from '@/lib/explorer-url';
 
 const USDC_DECIMALS = 6;
 
@@ -82,6 +83,7 @@ export async function GET(request: NextRequest) {
               serviceId: true,
               name: true,
               category: true,
+              network: true,
             },
           },
         },
@@ -93,10 +95,13 @@ export async function GET(request: NextRequest) {
     ]);
 
     const publicTransactions = transactions.map(tx => {
-      // For x402 transactions, ONLY use settlementHash (actual on-chain tx)
-      const explorerUrl = tx.settlementHash 
-        ? `https://basescan.org/tx/${tx.settlementHash}`
-        : null;
+      // For x402 transactions, use settlementHash if available, otherwise transactionHash
+      const bestHash = tx.settlementHash || tx.transactionHash;
+      const explorerUrl = getExplorerUrl(
+        bestHash,
+        tx.service.network || null,
+        tx.chainId
+      );
       
       return {
         transactionHash: tx.transactionHash,

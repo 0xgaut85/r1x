@@ -26,6 +26,8 @@ interface ResultDetail {
   metadata: any;
   transactionHash: string | null;
   settlementHash: string | null;
+  blockExplorerUrl?: string | null;
+  explorerLabel?: string;
   transaction: {
     amount: string;
     feeAmount: string;
@@ -137,16 +139,16 @@ export default function ResultDetailModal({ resultId, address, onClose }: Result
             {renderContent()}
           </div>
 
-          {result?.settlementHash && (
+          {result?.blockExplorerUrl && (
             <div className="p-4 border-t border-[#1A1A1A]">
               <a
-                href={`https://basescan.org/tx/${result.settlementHash}`}
+                href={result.blockExplorerUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-[#FF4D00] hover:text-[#FF6B35] transition-colors inline-flex items-center gap-1"
                 style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
               >
-                View transaction on BaseScan
+                {result.explorerLabel || 'View transaction'}
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M2 10L10 2M10 2H4M10 2V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>

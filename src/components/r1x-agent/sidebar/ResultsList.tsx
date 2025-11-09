@@ -19,6 +19,7 @@ interface ServiceResult {
   preview: string | null;
   transactionHash: string | null;
   settlementHash: string | null;
+  blockExplorerUrl?: string | null;
 }
 
 export default function ResultsList({ address, limit = 5 }: ResultsListProps) {
@@ -77,9 +78,9 @@ export default function ResultsList({ address, limit = 5 }: ResultsListProps) {
                 <p className="text-[10px] text-gray-400 line-clamp-2" style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}>
                   {result.preview || `[${result.contentType}]`}
                 </p>
-                {result.settlementHash && (
+                {result.blockExplorerUrl && (
                   <a
-                    href={`https://basescan.org/tx/${result.settlementHash}`}
+                    href={result.blockExplorerUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[10px] text-[#FF4D00] hover:text-[#FF6B35] transition-colors mt-1 inline-block"
