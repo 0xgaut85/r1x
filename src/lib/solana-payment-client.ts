@@ -196,21 +196,26 @@ export class SolanaPaymentClient {
       );
 
       // Attempts with escalating priority fees to satisfy tip account write-lock
+      // CRITICAL: Priority fee instructions MUST be added FIRST before any other instructions
+      // This ensures the transaction can write-lock tip accounts (required for Solana v0)
       const attemptSend = async (microLamports: number): Promise<string> => {
         // Create transaction with priority fees (required for Solana v0 transactions)
         const transaction = new Transaction();
       
-        // Add compute budget instructions for priority fees
+        // CRITICAL: Add compute budget instructions FIRST (before any other instructions)
         // This fixes "Transaction must write lock at least one tip account" error
-        // If creating ATA, need more compute units (400k vs 200k)
+        // Higher compute units for ATA creation (400k vs 200k)
         const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
-          units: needCreateRecipientAta ? 400_000 : 200_000, // ATA creation requires more compute
+          units: needCreateRecipientAta ? 400_000 : 200_000,
         });
         
+        // Priority fee MUST be set to write-lock tip accounts
+        // Higher micro-lamports = higher priority = more likely to succeed
         const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-          microLamports, // dynamic
+          microLamports, // dynamic - will retry with higher values if needed
         });
         
+        // Add priority fee instructions FIRST (critical for tip account write-lock)
         transaction.add(modifyComputeUnits);
         transaction.add(addPriorityFee);
 
@@ -322,31 +327,20 @@ export class SolanaPaymentClient {
 
       // Use provided priority or start with higher default to satisfy tip account write-lock requirement
       // Solana v0 transactions require priority fees to write-lock tip accounts
-      const firstPriority = typeof priorityMicroLamports === 'number' ? priorityMicroLamports : 50_000;
-      try {
-        const sig = await attemptSend(firstPriority);
-        return {
-          signature: sig,
-          proof: {
-            signature: sig,
-            from: fromPubkey.toString(),
-            to: toPubkey.toString(),
-            amount: amountAtomic.toString(),
-            tokenSymbol: 'USDC',
-            token: USDC_MINT,
-          },
-        };
-      } catch (e: any) {
-        const emsg = String(e?.message || '');
-        const tipLockError = emsg.toLowerCase().includes('write lock at least one tip account') ||
-                             emsg.toLowerCase().includes('tip account');
-        if (tipLockError) {
-          if (process.env.NODE_ENV !== 'production') {
-            console.warn('[SolanaPaymentClient] Retrying with higher priority fee due to tip account error');
+      // Start with 100k micro-lamports (higher than before) to reduce retries
+      const firstPriority = typeof priorityMicroLamports === 'number' ? priorityMicroLamports : 100_000;
+      
+      // Retry with escalating priority fees if tip account error occurs
+      const priorities = [firstPriority, 200_000, 500_000, 1_000_000]; // Escalate up to 1M micro-lamports
+      
+      let lastError: any = null;
+      for (let i = 0; i < priorities.length; i++) {
+        const priority = priorities[i];
+        try {
+          if (i > 0 && process.env.NODE_ENV !== 'production') {
+            console.warn(`[SolanaPaymentClient] Retry ${i} with priority fee: ${priority} micro-lamports`);
           }
-          // Retry with higher tip
-          const higherPriority = Math.max(firstPriority, 100_000);
-          const sig = await attemptSend(higherPriority);
+          const sig = await attemptSend(priority);
           return {
             signature: sig,
             proof: {
@@ -358,9 +352,24 @@ export class SolanaPaymentClient {
               token: USDC_MINT,
             },
           };
+        } catch (e: any) {
+          const emsg = String(e?.message || '');
+          const tipLockError = emsg.toLowerCase().includes('write lock at least one tip account') ||
+                               emsg.toLowerCase().includes('tip account') ||
+                               emsg.toLowerCase().includes('simulation failed');
+          
+          if (tipLockError && i < priorities.length - 1) {
+            // Try next higher priority fee
+            lastError = e;
+            continue;
+          }
+          // Not a tip account error, or we've exhausted all retries
+          throw e;
         }
-        throw e;
       }
+      
+      // If we get here, all retries failed
+      throw lastError || new Error('Failed to send transaction after multiple priority fee attempts');
 
     } catch (error: any) {
       console.error('[SolanaPaymentClient] Transfer error:', error);
