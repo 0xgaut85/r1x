@@ -9,8 +9,9 @@
 
 import { PaymentProof } from './types/x402';
 
-// Railway env vars only - no hardcoded fallbacks
-const DAYDREAMS_FACILITATOR_URL = process.env.DAYDREAMS_FACILITATOR_URL;
+// Daydreams facilitator URL - Railway env var with official fallback
+// Official Daydreams facilitator: https://facilitator.daydreams.systems/
+const DAYDREAMS_FACILITATOR_URL = process.env.DAYDREAMS_FACILITATOR_URL || 'https://facilitator.daydreams.systems';
 const SOLANA_CHAIN_ID = 0; // Solana uses chainId 0
 const USDC_SOLANA_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'; // USDC on Solana
 
