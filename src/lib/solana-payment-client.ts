@@ -269,12 +269,12 @@ export class SolanaPaymentClient {
         // Sign transaction with wallet
         const signedTransaction = await this.wallet.signTransaction(transaction);
 
-        // Send transaction - use sendTransaction (not sendRawTransaction) for legacy format
-        // This is the simplest, most common approach
+        // Send transaction - use sendRawTransaction with signed legacy transaction
+        // Avoids 'No signers' error from sendTransaction path
         let signature;
         try {
-          signature = await (this.connection as Connection).sendTransaction(signedTransaction, [], {
-            skipPreflight: true, // Skip simulation to avoid QuickNode issues
+          signature = await (this.connection as Connection).sendRawTransaction(signedTransaction.serialize(), {
+            skipPreflight: true,
             maxRetries: 3,
           });
         } catch (sendError: any) {
