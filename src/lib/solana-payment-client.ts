@@ -262,14 +262,17 @@ export class SolanaPaymentClient {
           }
         }
 
-        // Set blockhash and fee payer (legacy Transaction)
+        // Set blockhash and fee payer (REQUIRED before signing - per Helius docs)
         transaction.recentBlockhash = blockhash;
         transaction.feePayer = fromPubkey;
 
-        // Let the wallet sign and submit (bypasses provider-level tip enforcement)
+        // Sign with wallet (per Helius official docs)
+        const signedTransaction = await this.wallet.signTransaction(transaction);
+
+        // Send using Connection.sendRawTransaction (per Helius official docs)
         let signature;
         try {
-          signature = await this.wallet.sendTransaction(transaction, this.connection as Connection, {
+          signature = await (this.connection as Connection).sendRawTransaction(signedTransaction.serialize(), {
             skipPreflight: true,
             maxRetries: 3,
           });
@@ -295,7 +298,7 @@ export class SolanaPaymentClient {
                                 'public Solana RPC';
               throw new Error(
                 `Solana RPC error (403). Current RPC: ${currentRpc}. ` +
-                `Please ensure SOLANA_RPC_URL is set with QuickNode URL in Railway.`
+                `Please ensure SOLANA_RPC_URL is set with Helius URL in Railway.`
               );
             }
           } else {
