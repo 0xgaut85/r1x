@@ -262,20 +262,16 @@ export class SolanaPaymentClient {
           }
         }
 
-        // Set blockhash and fee payer (REQUIRED before signing - per Helius docs)
+        // Set blockhash and fee payer (REQUIRED before signing - per Phantom/Helius docs)
         transaction.recentBlockhash = blockhash;
         transaction.feePayer = fromPubkey;
 
-        // Sign with wallet (per Helius official docs)
-        const signedTransaction = await this.wallet.signTransaction(transaction);
+        // Use Phantom's recommended method: signAndSendTransaction (per Phantom official docs)
+        // Quote: "It is safer for users, and a simpler API for developers, for Phantom to submit 
+        // the transaction immediately after signing it instead of relying on the application to do so."
+        const { signature } = await this.wallet.signAndSendTransaction(transaction);
 
-        // Send with sendRawTransaction (per Helius official docs)
-        const signature = await (this.connection as Connection).sendRawTransaction(
-          signedTransaction.serialize(),
-          { skipPreflight: true }
-        );
-
-        // Manually poll for confirmation (per Helius official docs pattern)
+        // Poll for confirmation (per Helius official docs pattern)
         // 15 second timeout, 3 second retry interval
         const timeout = 15000;
         const interval = 3000;
