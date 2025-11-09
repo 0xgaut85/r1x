@@ -81,7 +81,8 @@ export function solanaPaymentMiddleware(
             amount: amountMicroUsdc,
             asset: {
               address: USDC_SOLANA_MINT as any, // Solana addresses are base58, not hex
-            },
+              decimals: 6, // USDC has 6 decimals on Solana
+            } as any, // Solana asset type differs from EVM
           },
           network: 'solana',
           config: {
@@ -106,7 +107,8 @@ export function solanaPaymentMiddleware(
           amount: amountMicroUsdc,
           asset: {
             address: USDC_SOLANA_MINT as any, // Solana addresses are base58, not hex
-          },
+            decimals: 6, // USDC has 6 decimals on Solana
+          } as any, // Solana asset type differs from EVM
         },
         network: 'solana',
         config: {
