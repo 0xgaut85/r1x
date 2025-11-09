@@ -11,7 +11,7 @@ import { parseIntent, isPurchaseIntent, ServiceCategory } from '@/lib/intent/par
 import { marketplaceCatalog } from '@/lib/marketplace/catalog';
 import { X402Client } from '@/lib/payments/x402Client';
 import { MarketplaceService } from '@/lib/types/x402';
-import { SolanaPaymentClient } from '@/lib/solana-payment-client';
+// Removed SolanaPaymentClient - now using x402-solana/client for proper x402 protocol
 
 // No longer need x402-server-url - using Next.js API routes (same origin)
 import AgentBackground from '@/components/r1x-agent/AgentBackground';
@@ -1406,76 +1406,36 @@ export default function R1xAgentContent() {
           return;
         }
 
-        // Use x402 protocol with Solana - server will return 402, client will handle payment
-        // Initial request (will get 402 Payment Required)
-        const initialResponse = await fetch('/api/r1x-agent/chat/solana', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            network: 'solana',
-            messages: updatedMessages.map(msg => ({
-              role: msg.role,
-              content: msg.content,
-            })),
-          }),
-        });
-
-        let response = initialResponse;
-
-        // Handle 402 Payment Required - x402 protocol flow
-        if (initialResponse.status === 402) {
-          const paymentRequired = await initialResponse.json();
-          console.log('[Agent] 402 Payment Required (Solana):', paymentRequired);
-
-          // Extract payment requirements
-          const requirement = paymentRequired.accepts?.[0];
-          if (!requirement) {
-            throw new Error('No payment requirements in 402 response');
-          }
-
-          // Import x402 utilities
-          const { createPaymentHeader } = await import('x402/client');
-          
-          // Create x402-compatible Solana signer from Phantom/Solflare wallet
-          // The wallet has signTransaction and signMessage methods
-          const publicKeyBase58 = solanaWallet.publicKey.toBase58 
-            ? solanaWallet.publicKey.toBase58() 
-            : solanaWallet.publicKey.toString();
-          
-          // Create signer with wallet's signing capabilities (wallet-standard interface)
-          const signer = {
-            address: publicKeyBase58 as any,
-            signTransaction: solanaWallet.signTransaction.bind(solanaWallet),
-            signMessage: solanaWallet.signMessage.bind(solanaWallet),
-            signAndSendTransaction: solanaWallet.signAndSendTransaction.bind(solanaWallet),
-            publicKey: solanaWallet.publicKey,
-          };
-
-          // Generate x402 payment header
-          const paymentHeader = await createPaymentHeader(
-            signer as any,
-            paymentRequired.x402Version || 1,
-            requirement
-          );
-
-          // Retry request with X-Payment header
-          response = await fetch('/api/r1x-agent/chat/solana', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-              'X-Payment': paymentHeader,
-          },
-          body: JSON.stringify({
-            network: 'solana',
-            messages: updatedMessages.map(msg => ({
-              role: msg.role,
-              content: msg.content,
-            })),
-          }),
-        });
+        // Fetch RPC URL before creating client
+        const { getSolanaRpcUrl } = await import('@/lib/solana-rpc-config');
+        const rpcUrl = await getSolanaRpcUrl();
+        if (!rpcUrl || !rpcUrl.startsWith('http')) {
+          throw new Error('Solana RPC URL not configured. Please set SOLANA_RPC_URL in Railway.');
         }
+
+        // Create x402-solana client (per official docs) - automatically handles 402 → payment → retry
+        const { createX402Client } = await import('x402-solana/client');
+        const x402Client = createX402Client({
+          wallet: solanaWallet,
+          network: 'solana',
+          rpcUrl: rpcUrl,
+          maxPaymentAmount: BigInt(1 * 1_000_000), // Max 1 USDC for chat
+        });
+
+        // Use x402-solana client - automatically handles 402 Payment Required flow
+        const response = await x402Client.fetch('/api/r1x-agent/chat/solana', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            network: 'solana',
+            messages: updatedMessages.map(msg => ({
+              role: msg.role,
+              content: msg.content,
+            })),
+          }),
+        });
 
         // Handle response
         const paymentResponseHeader =

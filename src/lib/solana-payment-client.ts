@@ -20,6 +20,13 @@ const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 
 /**
  * Solana USDC payment client
+ * 
+ * @deprecated This class manually creates Solana transactions and bypasses x402 protocol.
+ * Use x402-solana/client instead for proper x402 protocol compliance.
+ * 
+ * This class is kept for backward compatibility but should not be used for new code.
+ * See: https://github.com/payainetwork/x402-solana
+ * 
  * Creates and signs Solana USDC transfer transactions using @solana/web3.js
  * Uses Railway env vars at runtime (not build time)
  */

@@ -83,7 +83,34 @@ export async function POST(request: NextRequest) {
       ...(solanaRpcUrl && solanaRpcUrl.startsWith('http') ? { rpcUrl: solanaRpcUrl } : {}),
     });
 
+    // Extract payment from X-Payment header first (per x402-solana docs)
+    const headers: Record<string, string> = {};
+    request.headers.forEach((value, key) => {
+      headers[key.toLowerCase()] = value;
+    });
+    
+    let paymentHeader = x402Handler.extractPayment(headers);
+    
+    // If not in header, check body (for backward compatibility with custom clients)
+    if (!paymentHeader && proofParsed.success) {
+      // Construct payment header from body proof (x402-solana format)
+      // Note: This is a fallback - proper x402 clients send X-Payment header
+      paymentHeader = {
+        signature: proofParsed.data.signature,
+        from: proofParsed.data.from,
+        to: proofParsed.data.to,
+        amount: amountAtomic,
+        token: proofParsed.data.token || USDC_SOLANA_MINT,
+      } as any;
+    }
+
+    if (!paymentHeader) {
+      return NextResponse.json({ error: 'Missing payment proof' }, { status: 400 });
+    }
+
     // Create payment requirements for verification (per x402-solana docs)
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const resourceUrl = baseUrl.startsWith('http') ? `${baseUrl}/api/x402/solana/fee` : `http://${baseUrl}/api/x402/solana/fee`;
     const paymentRequirements = await x402Handler.createPaymentRequirements({
       price: {
         amount: amountAtomic, // Amount in micro-units (string)
@@ -95,19 +122,10 @@ export async function POST(request: NextRequest) {
       network: 'solana',
       config: {
         description: 'Platform Fee (Solana)',
-        resource: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/x402/solana/fee`,
+        resource: resourceUrl as any,
         mimeType: 'application/json',
       },
     });
-
-    // Extract payment proof from X-Payment header format
-    const paymentHeader = {
-      signature: proofParsed.data.signature,
-      from: proofParsed.data.from,
-      to: proofParsed.data.to,
-      amount: amountAtomic,
-      token: proofParsed.data.token || USDC_SOLANA_MINT,
-    };
 
     // Verify payment using PayAI facilitator via x402-solana package
     const verified = await x402Handler.verifyPayment(paymentHeader as any, paymentRequirements);
@@ -136,11 +154,17 @@ export async function POST(request: NextRequest) {
     // Get settlement hash from settleResult if available
     const settlementHash = (settleResult && typeof settleResult === 'object' && 'transaction' in settleResult)
       ? (settleResult as any).transaction
-      : proofParsed.data.signature;
+      : (paymentHeader && typeof paymentHeader === 'object' && 'signature' in paymentHeader 
+          ? (paymentHeader as any).signature 
+          : proofParsed.data.signature);
 
-    // Persist fee transaction (100% fee to platform)
+    // Extract payment details for database
+    const paymentDetails = (paymentHeader && typeof paymentHeader === 'object') ? paymentHeader as any : null;
+    const signature = paymentDetails?.signature || proofParsed.data.signature;
+    const from = paymentDetails?.from || proofParsed.data.from;
+    const to = paymentDetails?.to || proofParsed.data.to || solanaFeeRecipient;
     const tokenSymbol: string = proofParsed.data.tokenSymbol || 'USDC';
-    const tokenString: string = proofParsed.data.token || tokenSymbol;
+    const tokenString: string = paymentDetails?.token || proofParsed.data.token || USDC_SOLANA_MINT;
 
     // Ensure service exists (platform-fee)
     let dbService = await prisma.service.findUnique({ where: { serviceId: 'platform-fee-solana' } });
@@ -168,11 +192,11 @@ export async function POST(request: NextRequest) {
     await prisma.transaction.create({
       data: {
         serviceId: dbService.id,
-        transactionHash: String(proofParsed.data.signature),
-        settlementHash: settlementHash,
+        transactionHash: String(signature || settlementHash),
+        settlementHash: settlementHash || signature,
         blockNumber: null,
-        from: String(proofParsed.data.from || '').toString(),
-        to: String(proofParsed.data.to || '').toString(),
+        from: String(from || ''),
+        to: String(to),
         amount: amountAtomic,
         token: tokenString,
         chainId: 0,

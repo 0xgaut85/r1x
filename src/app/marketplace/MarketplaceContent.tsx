@@ -13,7 +13,7 @@ import { modal } from '@/lib/wallet-provider';
 import { X402Client } from '@/lib/payments/x402Client';
 import { getX402ServerUrlAsync } from '@/lib/x402-server-url';
 import { MarketplaceService } from '@/lib/types/x402';
-import { SolanaPaymentClient } from '@/lib/solana-payment-client';
+// Removed SolanaPaymentClient - now using x402-solana/client for proper x402 protocol
 import { getRuntimeConfig } from '@/lib/runtime-config';
 
 // Dynamically import Header to prevent SSR issues with WalletProvider context
@@ -235,14 +235,9 @@ const ServiceCard = memo(function ServiceCard({
         return;
       }
     } else if (service.network === 'solana') {
-      // Solana purchase flow
+      // Solana purchase flow using x402-solana client (proper x402 protocol)
       setIsProcessing(true);
       try {
-        // Load runtime config from Railway
-        const runtime = await getRuntimeConfig();
-        const feePercentage = parseFloat(runtime.platformFeePercentage || '5');
-        const solanaFeeRecipient = runtime.solanaFeeRecipient || 'FJ1D5BAoHJpTfahmd8Ridq6kDciJq8d5XNU7WnwKExoz';
-
         // Get Solana wallet (Phantom or Solflare)
         const solanaWallet = (window as any).phantom?.solana || (window as any).solflare;
         if (!solanaWallet || !solanaWallet.isConnected) {
@@ -252,7 +247,7 @@ const ServiceCard = memo(function ServiceCard({
           return;
         }
 
-        // Fetch RPC URL before creating client to avoid "Endpoint URL must start with http:" error
+        // Fetch RPC URL before creating client
         const { getSolanaRpcUrl } = await import('@/lib/solana-rpc-config');
         const rpcUrl = await getSolanaRpcUrl();
         if (!rpcUrl || !rpcUrl.startsWith('http')) {
@@ -260,11 +255,19 @@ const ServiceCard = memo(function ServiceCard({
           setIsProcessing(false);
           return;
         }
-        
-        // Initialize Solana payment client with RPC URL
-        const solanaClient = new SolanaPaymentClient(solanaWallet, rpcUrl);
+
+        // Create x402-solana client (per official docs)
+        const { createX402Client } = await import('x402-solana/client');
+        const x402Client = createX402Client({
+          wallet: solanaWallet,
+          network: 'solana',
+          rpcUrl: rpcUrl,
+          maxPaymentAmount: BigInt(100 * 1_000_000), // Max 100 USDC
+        });
 
         const basePrice = parseFloat(service.price);
+        const runtime = await getRuntimeConfig();
+        const feePercentage = parseFloat(runtime.platformFeePercentage || '5');
         
         // Calculate fee (only for external services)
         let feeAmount = '0';
@@ -275,21 +278,17 @@ const ServiceCard = memo(function ServiceCard({
         // For external services: pay fee then service
         // For our services: just pay service (no separate fee)
         if (service.isExternal && parseFloat(feeAmount) > 0) {
-          // Pay fee first
-          const feeRecipient = solanaFeeRecipient;
-          const feeResult = await solanaClient.transferUSDC({
-            to: feeRecipient,
-            amount: feeAmount,
-          });
+          if (!service.endpoint) {
+            alert('This service does not expose a direct purchase endpoint. Please open the service page.');
+            setIsProcessing(false);
+            return;
+          }
 
-          // Call fee endpoint
-          const feeResponse = await fetch('/api/x402/solana/fee', {
+          // Pay fee via x402 protocol
+          const feeResponse = await x402Client.fetch('/api/x402/solana/fee', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              proof: feeResult.proof,
-              feeAmount,
-            }),
+            body: JSON.stringify({ feeAmount }),
           });
 
           if (!feeResponse.ok) {
@@ -297,26 +296,13 @@ const ServiceCard = memo(function ServiceCard({
             throw new Error(`Fee payment failed: ${errTxt}`);
           }
 
-          // Pay service
-          if (!service.endpoint) {
-            alert('This service does not expose a direct purchase endpoint. Please open the service page.');
-            setIsProcessing(false);
-            return;
-          }
-
-          const serviceResult = await solanaClient.transferUSDC({
-            to: service.merchant || service.endpoint,
-            amount: service.price,
-          });
-
-          // Call service payment endpoint
-          const serviceResponse = await fetch('/api/x402/solana/pay', {
+          // Pay service via x402 protocol
+          const serviceResponse = await x402Client.fetch('/api/x402/solana/pay', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               serviceId: service.id,
               serviceName: service.name,
-              proof: serviceResult.proof,
             }),
           });
 
@@ -335,19 +321,13 @@ const ServiceCard = memo(function ServiceCard({
             return;
           }
 
-          const serviceResult = await solanaClient.transferUSDC({
-            to: service.merchant || service.endpoint,
-            amount: service.price,
-          });
-
-          // Call service payment endpoint
-          const serviceResponse = await fetch('/api/x402/solana/pay', {
+          // Pay service via x402 protocol
+          const serviceResponse = await x402Client.fetch('/api/x402/solana/pay', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               serviceId: service.id,
               serviceName: service.name,
-              proof: serviceResult.proof,
             }),
           });
 

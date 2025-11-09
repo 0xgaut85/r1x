@@ -37,16 +37,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { serviceId, serviceName, proof } = body;
 
-    if (!serviceId || !serviceName || !proof) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
-
-    const parsed = ProofSchema.safeParse(proof);
-    if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid proof', details: parsed.error.flatten() }, { status: 400 });
-    }
-    const validProof = parsed.data;
-
     // Use PayAI facilitator (same as Express server)
     const facilitatorUrl = process.env.FACILITATOR_URL;
     const solanaFeeRecipient = process.env.SOLANA_FEE_RECIPIENT_ADDRESS;
@@ -68,9 +58,53 @@ export async function POST(request: NextRequest) {
       ...(solanaRpcUrl && solanaRpcUrl.startsWith('http') ? { rpcUrl: solanaRpcUrl } : {}),
     });
 
-    const amountStr: string = String(validProof.amount);
+    // Extract payment from X-Payment header first (per x402-solana docs)
+    const headers: Record<string, string> = {};
+    request.headers.forEach((value, key) => {
+      headers[key.toLowerCase()] = value;
+    });
+    
+    let paymentHeader = x402Handler.extractPayment(headers);
+    
+    // If not in header, check body (for backward compatibility with custom clients)
+    if (!paymentHeader && proof) {
+      const parsed = ProofSchema.safeParse(proof);
+      if (parsed.success) {
+        const validProof = parsed.data;
+        const amountStr: string = String(validProof.amount);
+        
+        // Construct payment header from body proof (x402-solana format)
+        // Note: This is a fallback - proper x402 clients send X-Payment header
+        paymentHeader = {
+          signature: validProof.signature,
+          from: validProof.from,
+          to: validProof.to,
+          amount: amountStr,
+          token: validProof.token || USDC_SOLANA_MINT,
+        } as any;
+      } else {
+        return NextResponse.json({ error: 'Invalid proof', details: parsed.error.flatten() }, { status: 400 });
+      }
+    }
+
+    if (!paymentHeader) {
+      return NextResponse.json({ error: 'Missing payment proof' }, { status: 400 });
+    }
+
+    // Get amount from payment header or body
+    const amountStr: string = (() => {
+      if (paymentHeader && typeof paymentHeader === 'object' && 'amount' in paymentHeader) {
+        return String((paymentHeader as any).amount);
+      }
+      if (proof && typeof proof === 'object' && 'amount' in proof) {
+        return String((proof as any).amount);
+      }
+      return '0';
+    })();
 
     // Create payment requirements for verification (per x402-solana docs)
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const resourceUrl = baseUrl.startsWith('http') ? `${baseUrl}/api/x402/solana/pay` : `http://${baseUrl}/api/x402/solana/pay`;
     const paymentRequirements = await x402Handler.createPaymentRequirements({
       price: {
         amount: amountStr, // Amount in micro-units (string)
@@ -82,20 +116,10 @@ export async function POST(request: NextRequest) {
       network: 'solana',
       config: {
         description: 'Solana Service Payment',
-        resource: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/x402/solana/pay`,
+        resource: resourceUrl as any,
         mimeType: 'application/json',
       },
     });
-
-    // Extract payment proof from X-Payment header format
-    // x402-solana expects the payment header format from x402-fetch
-    const paymentHeader = {
-      signature: validProof.signature,
-      from: validProof.from,
-      to: validProof.to,
-      amount: amountStr,
-      token: validProof.token || USDC_SOLANA_MINT,
-    };
 
     // Verify payment using PayAI facilitator via x402-solana package
     const verified = await x402Handler.verifyPayment(paymentHeader as any, paymentRequirements);
@@ -124,11 +148,22 @@ export async function POST(request: NextRequest) {
     // Get settlement hash from settleResult if available
     const settlementHash = (settleResult && typeof settleResult === 'object' && 'transaction' in settleResult)
       ? (settleResult as any).transaction
-      : validProof.signature;
+      : (paymentHeader && typeof paymentHeader === 'object' && 'signature' in paymentHeader 
+          ? (paymentHeader as any).signature 
+          : null);
 
-    const tokenSymbol: string = validProof.tokenSymbol || 'USDC';
-    const tokenString: string = validProof.token || tokenSymbol;
-    const amount: string = amountStr;
+    // Extract payment details for database
+    const paymentDetails = (paymentHeader && typeof paymentHeader === 'object') ? paymentHeader as any : null;
+    const proofObj = proof && typeof proof === 'object' ? proof as any : null;
+    const signature = paymentDetails?.signature || proofObj?.signature || null;
+    const from = paymentDetails?.from || proofObj?.from || null;
+    const to = paymentDetails?.to || proofObj?.to || solanaFeeRecipient;
+    const tokenSymbol: string = proofObj?.tokenSymbol || 'USDC';
+    const tokenString: string = paymentDetails?.token || proofObj?.token || USDC_SOLANA_MINT;
+
+    if (!serviceId || !serviceName) {
+      return NextResponse.json({ error: 'Missing required fields: serviceId and serviceName' }, { status: 400 });
+    }
 
     // Ensure service exists (Solana)
     let dbService = await prisma.service.findUnique({ where: { serviceId } });
@@ -139,13 +174,13 @@ export async function POST(request: NextRequest) {
           name: serviceName,
           description: `Paid service: ${serviceName}`,
           category: 'Other',
-          merchant: String(validProof.to),
+          merchant: String(to),
           network: 'solana',
           chainId: 0,
           token: tokenString,
           tokenSymbol: tokenSymbol,
-          price: amount,
-          priceDisplay: formatUSDC(amount),
+          price: amountStr,
+          priceDisplay: formatUSDC(amountStr),
           available: true,
           facilitatorUrl: facilitatorUrl,
           source: 'payai',
@@ -154,17 +189,17 @@ export async function POST(request: NextRequest) {
     }
 
     const feePct = parseFloat(process.env.PLATFORM_FEE_PERCENTAGE || '5');
-    const { feeAmount, merchantAmount } = calculateFees(amount, isFinite(feePct) ? feePct : 5);
+    const { feeAmount, merchantAmount } = calculateFees(amountStr, isFinite(feePct) ? feePct : 5);
 
     await prisma.transaction.create({
       data: {
         serviceId: dbService.id,
-        transactionHash: String(validProof.signature),
-        settlementHash: settlementHash,
+        transactionHash: String(signature || settlementHash),
+        settlementHash: settlementHash || signature,
         blockNumber: null,
-        from: String(validProof.from || '').toString(),
-        to: String(validProof.to || '').toString(),
-        amount: amount,
+        from: String(from || ''),
+        to: String(to),
+        amount: amountStr,
         token: tokenString,
         chainId: 0,
         feeAmount,
@@ -181,7 +216,7 @@ export async function POST(request: NextRequest) {
       success: true, 
       verified: true,
       settled: true,
-      settlementHash,
+      settlementHash: settlementHash || signature,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || 'Internal error' }, { status: 500 });
