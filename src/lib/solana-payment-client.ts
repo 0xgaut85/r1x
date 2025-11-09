@@ -266,14 +266,10 @@ export class SolanaPaymentClient {
         transaction.recentBlockhash = blockhash;
         transaction.feePayer = fromPubkey;
 
-        // Sign transaction with wallet
-        const signedTransaction = await this.wallet.signTransaction(transaction);
-
-        // Send transaction - use sendRawTransaction with signed legacy transaction
-        // Avoids 'No signers' error from sendTransaction path
+        // Let the wallet sign and submit (bypasses provider-level tip enforcement)
         let signature;
         try {
-          signature = await (this.connection as Connection).sendRawTransaction(signedTransaction.serialize(), {
+          signature = await this.wallet.sendTransaction(transaction, this.connection as Connection, {
             skipPreflight: true,
             maxRetries: 3,
           });
