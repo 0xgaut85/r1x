@@ -17,7 +17,7 @@ import { modal } from '@/lib/wallet-provider';
 import { X402Client } from '@/lib/payments/x402Client';
 import { getX402ServerUrlAsync } from '@/lib/x402-server-url';
 import { formatUnits } from 'viem';
-import { getExplorerLabel } from '@/lib/explorer-url';
+import { getExplorerLabel, getExplorerUrl } from '@/lib/explorer-url';
 
 interface UserStats {
   address: string;
@@ -470,14 +470,24 @@ export default function UserPanelContent() {
                           <td className="py-2 px-4">
                             {('blockExplorerUrl' in purchase) && (purchase as any).blockExplorerUrl ? (
                               <a
-                                href={(purchase as any).blockExplorerUrl as string}
+                                href={(() => {
+                                  const url = (purchase as any).blockExplorerUrl as string;
+                                  const bestHash = (purchase as any).settlementHash || purchase.transactionHash;
+                                  if (!bestHash) return url;
+                                  // If server URL is a Basescan error or hash looks Solana/non-hex, force Solscan
+                                  if (url.includes('basescan.org/error') || !/^0x[0-9a-fA-F]{64}$/.test(bestHash)) {
+                                    return getExplorerUrl(bestHash, purchase.service.network || null, purchase.chainId) || url;
+                                  }
+                                  return url;
+                                })()}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-[#FF4D00] hover:underline text-xs"
                               >
                                 {getExplorerLabel(
                                   purchase.service.network || null,
-                                  purchase.chainId
+                                  purchase.chainId,
+                                  (purchase as any).settlementHash || purchase.transactionHash || null
                                 )}
                               </a>
                             ) : (
@@ -556,7 +566,15 @@ export default function UserPanelContent() {
                           <td className="py-2 px-4">
                             {tx.blockExplorerUrl ? (
                               <a 
-                                href={tx.blockExplorerUrl} 
+                                href={(() => {
+                                  const url = tx.blockExplorerUrl as string;
+                                  const bestHash = (tx as any).settlementHash || tx.transactionHash;
+                                  if (!bestHash) return url;
+                                  if (url.includes('basescan.org/error') || !/^0x[0-9a-fA-F]{64}$/.test(bestHash)) {
+                                    return getExplorerUrl(bestHash, (tx as any).service?.network || null, (tx as any).chainId ?? null) || url;
+                                  }
+                                  return url;
+                                })()}
                                 target="_blank" 
                                 rel="noopener noreferrer"
                                 className="text-[#FF4D00] hover:underline"
