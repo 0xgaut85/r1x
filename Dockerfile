@@ -42,6 +42,21 @@ COPY scripts ./scripts
 # Remove unnecessary files before build
 RUN rm -rf .next node_modules/.cache x402-server
 
+# Accept build args for NEXT_PUBLIC_* variables (Railway passes these as build args)
+# These are required at build time for Next.js to embed them in the client bundle
+# NEXT_PUBLIC_PROJECT_ID is hardcoded as default (Reown requires it before build)
+ARG NEXT_PUBLIC_PROJECT_ID=ac7a5e22564f2698c80f05dbf4811d6a
+ARG NEXT_PUBLIC_BASE_URL
+ARG NEXT_PUBLIC_SOLANA_RPC_URL
+ARG NEXT_PUBLIC_X402_SERVER_URL
+ARG NEXT_PUBLIC_PLATFORM_FEE_PERCENTAGE
+
+# Set as environment variables for Next.js build
+ENV NEXT_PUBLIC_PROJECT_ID=${NEXT_PUBLIC_PROJECT_ID}
+ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
+ENV NEXT_PUBLIC_SOLANA_RPC_URL=${NEXT_PUBLIC_SOLANA_RPC_URL}
+ENV NEXT_PUBLIC_X402_SERVER_URL=${NEXT_PUBLIC_X402_SERVER_URL}
+ENV NEXT_PUBLIC_PLATFORM_FEE_PERCENTAGE=${NEXT_PUBLIC_PLATFORM_FEE_PERCENTAGE}
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
