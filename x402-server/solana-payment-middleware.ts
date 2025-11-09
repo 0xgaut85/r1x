@@ -72,30 +72,33 @@ export function solanaPaymentMiddleware(
       const xPaymentHeader = req.headers['x-payment'] as string | undefined;
       
       if (!xPaymentHeader) {
-        // No payment header - return 402 Payment Required
-        // Format response to match x402 protocol with accepts array (what client expects)
+        // No payment header - return 402 Payment Required using official x402-solana package
         const priceAmount = parseFloat(routeConfig.price.replace('$', ''));
         const amountMicroUsdc = Math.ceil(priceAmount * 1_000_000).toString(); // USDC has 6 decimals
         
-        // Manually construct 402 response in x402 format with accepts array
-        // This matches what the client expects: paymentRequired.accepts?.[0]
-        res.status(402).json({
-          x402Version: 1,
-          error: 'Payment Required',
-          accepts: [{
-            scheme: 'exact',
-            network: 'solana',
-            maxAmountRequired: amountMicroUsdc,
+        const paymentRequirements = await x402Handler.createPaymentRequirements({
+          price: {
             amount: amountMicroUsdc,
-            resource: `${req.protocol}://${req.get('host')}${req.path}`,
+            asset: {
+              address: USDC_SOLANA_MINT as any, // Solana addresses are base58, not hex
+              decimals: 6, // USDC has 6 decimals on Solana
+            } as any, // Solana asset type differs from EVM
+          },
+          network: 'solana',
+          config: {
             description: 'r1x Agent Chat - Solana',
+            resource: `${req.protocol}://${req.get('host')}${req.path}`,
             mimeType: 'application/json',
-            payTo: SOLANA_FEE_RECIPIENT_ADDRESS || '',
-            maxTimeoutSeconds: 3600,
-            asset: USDC_SOLANA_MINT,
-            tokenSymbol: 'USDC',
-          }],
+          },
         });
+
+        // Use official create402Response method from x402-solana
+        const response402 = x402Handler.create402Response(paymentRequirements);
+        
+        // Log the response to debug format
+        console.log('[x402-solana] 402 response:', JSON.stringify(response402, null, 2));
+        
+        res.status(402).json(response402);
         return;
       }
 
