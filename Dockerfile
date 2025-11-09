@@ -44,13 +44,14 @@ RUN rm -rf .next node_modules/.cache x402-server
 
 # Accept build args for NEXT_PUBLIC_* variables (Railway passes these as build args)
 # These are required at build time for Next.js to embed them in the client bundle
-# NEXT_PUBLIC_PROJECT_ID is hardcoded as default (Reown requires it before build)
+# All hardcoded as defaults to ensure build succeeds even if Railway doesn't pass them
 ARG NEXT_PUBLIC_PROJECT_ID=ac7a5e22564f2698c80f05dbf4811d6a
-# NEXT_PUBLIC_BASE_URL is hardcoded as default (wallet-provider throws error if missing)
 ARG NEXT_PUBLIC_BASE_URL=https://r1xlabs.com
-ARG NEXT_PUBLIC_SOLANA_RPC_URL
-ARG NEXT_PUBLIC_X402_SERVER_URL
-ARG NEXT_PUBLIC_PLATFORM_FEE_PERCENTAGE
+ARG NEXT_PUBLIC_SOLANA_RPC_URL=https://prettiest-billowing-silence.solana-mainnet.quiknode.pro/b9801e1d484c1cf56008b311fd67e5b228c27c2b/
+ARG NEXT_PUBLIC_X402_SERVER_URL=https://server.r1xlabs.com
+ARG NEXT_PUBLIC_PLATFORM_FEE_PERCENTAGE=10
+ARG NEXT_PUBLIC_APIFLASH_ACCESS_KEY=ce5f48b2fe794fadb9c837e7778cb844
+ARG NEXT_PUBLIC_LOGOKIT_API_KEY=pk_fr8612cc333de53ac8f39b
 
 # Set as environment variables for Next.js build
 ENV NEXT_PUBLIC_PROJECT_ID=${NEXT_PUBLIC_PROJECT_ID}
@@ -58,6 +59,8 @@ ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
 ENV NEXT_PUBLIC_SOLANA_RPC_URL=${NEXT_PUBLIC_SOLANA_RPC_URL}
 ENV NEXT_PUBLIC_X402_SERVER_URL=${NEXT_PUBLIC_X402_SERVER_URL}
 ENV NEXT_PUBLIC_PLATFORM_FEE_PERCENTAGE=${NEXT_PUBLIC_PLATFORM_FEE_PERCENTAGE}
+ENV NEXT_PUBLIC_APIFLASH_ACCESS_KEY=${NEXT_PUBLIC_APIFLASH_ACCESS_KEY}
+ENV NEXT_PUBLIC_LOGOKIT_API_KEY=${NEXT_PUBLIC_LOGOKIT_API_KEY}
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
