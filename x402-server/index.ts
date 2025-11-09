@@ -107,9 +107,32 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-// Solana payment middleware - runs BEFORE PayAI middleware
-// Use a dedicated Solana route to avoid conflicts with PayAI on Base
-app.use(solanaPaymentMiddleware({ route: '/api/r1x-agent/chat/solana', price: '$0.25' }));
+// Solana payment middleware using official x402-express (supports Solana network)
+// Configure Daydreams facilitator for Solana
+const solanaFacilitatorConfig: Parameters<typeof paymentMiddleware>[2] = {
+  url: daydreamsFacilitatorUrl as Resource,
+};
+
+const solanaPayTo = process.env.SOLANA_FEE_RECIPIENT_ADDRESS;
+if (!solanaPayTo) {
+  console.error('SOLANA_FEE_RECIPIENT_ADDRESS not set - Solana payments will fail');
+  process.exit(1);
+}
+
+app.use(paymentMiddleware(
+  solanaPayTo as any, // Solana address (not EVM 0x format)
+  {
+    'POST /api/r1x-agent/chat/solana': {
+      price: '$0.25',
+      network: 'solana', // Official x402 Solana support
+      config: {
+        description: 'r1x Agent Chat (Solana)',
+        resource: 'https://r1xlabs.com/r1x-agent' as Resource,
+      },
+    },
+  },
+  solanaFacilitatorConfig
+));
 
 // DISABLED: x402scan transformer - following PayAI docs exactly
 // app.use(x402scanResponseTransformer);

@@ -1406,32 +1406,12 @@ export default function R1xAgentContent() {
           return;
         }
 
-        // Pay fixed 0.25 USDC agent fee to platform (Solana)
-        // Load runtime config from Railway
-        const { getRuntimeConfig } = await import('@/lib/runtime-config');
-        const { getSolanaRpcUrl } = await import('@/lib/solana-rpc-config');
-        const runtimeCfg = await getRuntimeConfig();
-        const feeRecipient = runtimeCfg.solanaFeeRecipient || 'FJ1D5BAoHJpTfahmd8Ridq6kDciJq8d5XNU7WnwKExoz';
-        
-        // Fetch RPC URL before creating client to avoid "Endpoint URL must start with http:" error
-        const rpcUrl = await getSolanaRpcUrl();
-        if (!rpcUrl || !rpcUrl.startsWith('http')) {
-          throw new Error('Solana RPC URL not configured. Please set SOLANA_RPC_URL in Railway.');
-        }
-        
-        const solanaClient = new SolanaPaymentClient(solanaWallet, rpcUrl);
-
-        const feeResult = await solanaClient.transferUSDC({
-          to: feeRecipient,
-          amount: '0.25',
-        });
-
-        // Call agent chat (Solana route) with payment proof
-        const response = await fetch('/api/r1x-agent/chat/solana', {
+        // Use x402 protocol with Solana - server will return 402, client will handle payment
+        // Initial request (will get 402 Payment Required)
+        const initialResponse = await fetch('/api/r1x-agent/chat/solana', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Payment': JSON.stringify(feeResult.proof),
           },
           body: JSON.stringify({
             network: 'solana',
@@ -1441,6 +1421,47 @@ export default function R1xAgentContent() {
             })),
           }),
         });
+
+        let response = initialResponse;
+
+        // Handle 402 Payment Required - x402 protocol flow
+        if (initialResponse.status === 402) {
+          const paymentRequired = await initialResponse.json();
+          console.log('[Agent] 402 Payment Required (Solana):', paymentRequired);
+
+          // Extract payment requirements
+          const requirement = paymentRequired.accepts?.[0];
+          if (!requirement) {
+            throw new Error('No payment requirements in 402 response');
+          }
+
+          // Import x402 client utilities
+          const { createPaymentHeader } = await import('x402/client');
+
+          // Use Phantom/Solflare wallet directly as signer
+          // x402 client will handle Solana wallet signing
+          const paymentHeader = await createPaymentHeader(
+            solanaWallet as any, // Phantom/Solflare implements wallet-standard interface
+            paymentRequired.x402Version || 1,
+            requirement
+          );
+
+          // Retry request with X-Payment header
+          response = await fetch('/api/r1x-agent/chat/solana', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Payment': paymentHeader,
+            },
+            body: JSON.stringify({
+              network: 'solana',
+              messages: updatedMessages.map(msg => ({
+                role: msg.role,
+                content: msg.content,
+              })),
+            }),
+          });
+        }
 
         // Handle response
         const paymentResponseHeader =
