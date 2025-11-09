@@ -79,7 +79,7 @@ export async function fetchPayAIServices(): Promise<PayAIService[]> {
     console.log(`[PayAI] Fetching from: ${url}`);
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout (increased from 15s)
     
     // PayAI facilitator may require CDP API key authentication for Base mainnet
     const headers: Record<string, string> = {
@@ -196,8 +196,16 @@ export async function fetchPayAIServices(): Promise<PayAIService[]> {
     console.warn(`[PayAI] No services found in /list response. Response structure:`, Object.keys(data));
     return [];
   } catch (error: any) {
-    if (error.name === 'AbortError') {
-      console.warn(`[PayAI] Request to /list timed out`);
+    const isTimeout = error.name === 'AbortError' || 
+                     error?.code === 'ETIMEDOUT' || 
+                     error?.message?.includes('timeout') ||
+                     error?.cause?.code === 'ETIMEDOUT';
+    
+    if (isTimeout) {
+      console.warn(`[PayAI] Request to /list timed out after 30s`);
+      // Shorter circuit breaker for timeouts (30s instead of 60s)
+      payaiCircuitOpenUntil = Date.now() + 30_000;
+      payaiLastErrorMessage = 'Request timeout';
     } else {
       // Include richer diagnostics if available (Node/undici often exposes cause.code)
       const causeCode = error?.cause?.code || error?.code;

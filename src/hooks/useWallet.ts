@@ -36,6 +36,12 @@ function useSolanaWallet() {
         const addr = typeof wallet.publicKey.toBase58 === 'function' 
           ? wallet.publicKey.toBase58() 
           : wallet.publicKey.toString();
+        
+        // Debug: Log detected address to verify it's the user's wallet, not fee recipient
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[useSolanaWallet] Detected Solana address:', addr);
+        }
+        
         // Always update if different (triggers re-render)
         setSolanaAddress(addr);
         setIsSolanaConnected(true);
@@ -111,6 +117,17 @@ export function useWallet() {
   // This avoids stale Solana address after switching to an EVM wallet (e.g., Rabby).
   const isAnyWalletConnected = isConnected || isSolanaConnected;
   const displayAddress = (isConnected && address) ? address : (isSolanaConnected ? solanaAddress : null);
+  
+  // Debug: Log display address to verify it's correct
+  if (process.env.NODE_ENV !== 'production' && displayAddress) {
+    console.log('[useWallet] Display address:', {
+      displayAddress,
+      isEVMConnected: isConnected,
+      evmAddress: address,
+      isSolanaConnected,
+      solanaAddress,
+    });
+  }
 
   const transferUSDC = async (to: string, amount: string): Promise<string> => {
     if (!walletClient || !address) {
