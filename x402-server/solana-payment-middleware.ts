@@ -23,8 +23,8 @@ if (FACILITATOR_URL && SOLANA_FEE_RECIPIENT_ADDRESS) {
       network: 'solana', // Use mainnet (as per official docs: 'solana' | 'solana-devnet')
       treasuryAddress: SOLANA_FEE_RECIPIENT_ADDRESS,
       facilitatorUrl: FACILITATOR_URL,
-      // defaultToken is optional string (mint address) per official docs
-      defaultToken: USDC_SOLANA_MINT,
+      // defaultToken is optional - omit it since TypeScript types may be incorrect
+      // The asset address will be specified in createPaymentRequirements instead
     });
     console.log('[x402-solana] Payment handler initialized for Solana');
   } catch (error: any) {
@@ -80,7 +80,8 @@ export function solanaPaymentMiddleware(
           price: {
             amount: amountMicroUsdc, // String in micro-units per official docs
             asset: {
-              address: USDC_SOLANA_MINT, // USDC mint address
+              address: USDC_SOLANA_MINT as any, // USDC mint address (Solana addresses don't use 0x prefix)
+              decimals: 6, // USDC on Solana has 6 decimals
             },
           },
           network: 'solana',
@@ -110,7 +111,8 @@ export function solanaPaymentMiddleware(
         price: {
           amount: amountMicroUsdc, // String in micro-units per official docs
           asset: {
-            address: USDC_SOLANA_MINT, // USDC mint address
+            address: USDC_SOLANA_MINT as any, // USDC mint address (Solana addresses don't use 0x prefix)
+            decimals: 6, // USDC on Solana has 6 decimals
           },
         },
         network: 'solana',
