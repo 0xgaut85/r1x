@@ -3,9 +3,8 @@
 /**
  * Solana payment utilities
  * 
- * Note: For now, we'll create basic proof structure.
- * Daydreams Router SDK integration will be added once we confirm
- * the exact API for creating payments via the router.
+ * Note: Uses PayAI facilitator via x402-solana package.
+ * Payment verification and settlement handled by x402-solana server package.
  */
 
 /**

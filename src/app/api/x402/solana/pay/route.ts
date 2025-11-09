@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
-import { verifyPaymentWithDaydreams, settlePaymentWithDaydreams } from '@/lib/daydreams-facilitator';
-import { PaymentProof } from '@/lib/types/x402';
+import { X402PaymentHandler } from 'x402-solana/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,41 +47,84 @@ export async function POST(request: NextRequest) {
     }
     const validProof = parsed.data;
 
-    const facilitatorUrl = process.env.DAYDREAMS_FACILITATOR_URL || 'https://facilitator.daydreams.systems';
+    // Use PayAI facilitator (same as Express server)
+    const facilitatorUrl = process.env.FACILITATOR_URL;
+    const solanaFeeRecipient = process.env.SOLANA_FEE_RECIPIENT_ADDRESS;
+    const solanaRpcUrl = process.env.SOLANA_RPC_URL || process.env.NEXT_PUBLIC_SOLANA_RPC_URL;
+    const USDC_SOLANA_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'; // USDC on Solana mainnet
+
+    if (!facilitatorUrl || !solanaFeeRecipient) {
+      return NextResponse.json({ 
+        error: 'Solana payment handler not configured',
+        details: 'FACILITATOR_URL or SOLANA_FEE_RECIPIENT_ADDRESS missing'
+      }, { status: 500 });
+    }
+
+    // Initialize PayAI x402-solana payment handler (same as Express server)
+    const x402Handler = new X402PaymentHandler({
+      network: 'solana',
+      treasuryAddress: solanaFeeRecipient,
+      facilitatorUrl: facilitatorUrl,
+      ...(solanaRpcUrl && solanaRpcUrl.startsWith('http') ? { rpcUrl: solanaRpcUrl } : {}),
+    });
+
     const amountStr: string = String(validProof.amount);
 
-    // Verify payment with Daydreams facilitator (proper x402 protocol)
-    const paymentProof: PaymentProof & { signature?: string } = {
-      transactionHash: validProof.signature, // Use signature as transactionHash for Solana
+    // Create payment requirements for verification (per x402-solana docs)
+    const paymentRequirements = await x402Handler.createPaymentRequirements({
+      price: {
+        amount: amountStr, // Amount in micro-units (string)
+        asset: {
+          address: USDC_SOLANA_MINT,
+          decimals: 6,
+        },
+      },
+      network: 'solana',
+      config: {
+        description: 'Solana Service Payment',
+        resource: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/x402/solana/pay`,
+        mimeType: 'application/json',
+      },
+    });
+
+    // Extract payment proof from X-Payment header format
+    // x402-solana expects the payment header format from x402-fetch
+    const paymentHeader = {
       signature: validProof.signature,
-      blockNumber: 0, // Solana doesn't use block numbers
       from: validProof.from,
       to: validProof.to,
       amount: amountStr,
-      token: validProof.token || 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
-      timestamp: Date.now(),
+      token: validProof.token || USDC_SOLANA_MINT,
     };
 
-    const verifyResult = await verifyPaymentWithDaydreams(paymentProof, validProof.to);
+    // Verify payment using PayAI facilitator via x402-solana package
+    const verified = await x402Handler.verifyPayment(paymentHeader as any, paymentRequirements);
     
-    if (!verifyResult.verified) {
+    const isValid = typeof verified === 'boolean' ? verified : (verified as any)?.isValid ?? false;
+    if (!isValid) {
+      const reason = typeof verified === 'object' && verified !== null 
+        ? (verified as any).invalidReason || 'Verification failed'
+        : 'Verification failed';
       return NextResponse.json({ 
         error: 'Payment verification failed', 
-        details: verifyResult.reason 
+        details: reason 
       }, { status: 400 });
     }
 
-    // Settle payment with Daydreams facilitator
-    const settleResult = await settlePaymentWithDaydreams(paymentProof, validProof.to);
+    // Settle payment using PayAI facilitator via x402-solana package
+    const settleResult = await x402Handler.settlePayment(paymentHeader as any, paymentRequirements);
     
-    if (!settleResult.settled) {
+    if (settleResult && typeof settleResult === 'object' && 'success' in settleResult && !settleResult.success) {
       return NextResponse.json({ 
         error: 'Payment settlement failed', 
-        details: settleResult.reason 
+        details: (settleResult as any).errorReason || 'Settlement failed'
       }, { status: 400 });
     }
 
-    const settlementHash = settleResult.settlementHash || validProof.signature;
+    // Get settlement hash from settleResult if available
+    const settlementHash = (settleResult && typeof settleResult === 'object' && 'transaction' in settleResult)
+      ? (settleResult as any).transaction
+      : validProof.signature;
 
     const tokenSymbol: string = validProof.tokenSymbol || 'USDC';
     const tokenString: string = validProof.token || tokenSymbol;
@@ -106,7 +148,7 @@ export async function POST(request: NextRequest) {
           priceDisplay: formatUSDC(amount),
           available: true,
           facilitatorUrl: facilitatorUrl,
-          source: 'daydreams',
+          source: 'payai',
         },
       });
     }

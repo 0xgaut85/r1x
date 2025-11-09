@@ -9,7 +9,6 @@ export type RuntimeConfig = {
   platformFeePercentage: string;
   solanaFeeRecipient: string;
   payaiFacilitatorUrl: string;
-  daydreamsFacilitatorUrl: string;
   x402ServerUrl: string;
   baseUrl: string;
   logokitApiKey: string;

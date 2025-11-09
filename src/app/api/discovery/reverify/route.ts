@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const network = searchParams.get('network') || undefined; // 'base' | 'solana' | undefined
-    const source = searchParams.get('source') || undefined; // 'payai' | 'selfserve' | 'daydreams' | undefined
+    const source = searchParams.get('source') || undefined; // 'payai' | 'selfserve' | undefined
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10) || 50, 200);
 
     const where: any = { available: true };

@@ -9,7 +9,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { MarketplaceService } from '@/lib/types/x402';
 import { syncPayAIServices, fetchPayAIServices } from '@/lib/payai-sync';
-import { syncDaydreamsServices } from '@/lib/daydreams-sync';
 import { formatUnits } from 'viem';
 
 export async function GET(request: NextRequest) {
@@ -115,17 +114,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // If no services found and sync not skipped, trigger facilitator-specific sync
+    // If no services found and sync not skipped, trigger PayAI sync (works for both EVM and Solana)
     if (services.length === 0 && !skipSync) {
-      console.log(`No services found for network='${network}', triggering sync...`);
+      console.log(`No services found for network='${network}', triggering PayAI sync...`);
       try {
-        if (network === 'solana') {
-          const synced = await syncDaydreamsServices();
-          console.log(`[Marketplace] Daydreams sync completed: ${synced} services synced`);
-        } else {
-          const syncResult = await syncPayAIServices();
-          console.log(`[Marketplace] PayAI sync completed: ${syncResult.synced} services synced, ${syncResult.errors} errors`);
-        }
+        const syncResult = await syncPayAIServices();
+        console.log(`[Marketplace] PayAI sync completed: ${syncResult.synced} services synced, ${syncResult.errors} errors`);
         
         // Query again after sync - use same fallback logic
         try {

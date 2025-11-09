@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
-import { verifyPaymentWithDaydreams, settlePaymentWithDaydreams } from '@/lib/daydreams-facilitator';
-import { PaymentProof } from '@/lib/types/x402';
+import { X402PaymentHandler } from 'x402-solana/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,11 +44,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid feeAmount format' }, { status: 400 });
     }
 
-    const facilitatorUrl = process.env.DAYDREAMS_FACILITATOR_URL || 'https://facilitator.daydreams.systems';
+    // Use PayAI facilitator (same as Express server)
+    const facilitatorUrl = process.env.FACILITATOR_URL;
     const solanaFeeRecipient = process.env.SOLANA_FEE_RECIPIENT_ADDRESS;
+    const solanaRpcUrl = process.env.SOLANA_RPC_URL || process.env.NEXT_PUBLIC_SOLANA_RPC_URL;
+    const USDC_SOLANA_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'; // USDC on Solana mainnet
 
-    if (!solanaFeeRecipient) {
-      return NextResponse.json({ error: 'SOLANA_FEE_RECIPIENT_ADDRESS is not configured' }, { status: 500 });
+    if (!facilitatorUrl || !solanaFeeRecipient) {
+      return NextResponse.json({ 
+        error: 'Solana payment handler not configured',
+        details: 'FACILITATOR_URL or SOLANA_FEE_RECIPIENT_ADDRESS missing'
+      }, { status: 500 });
     }
 
     // Validate proof recipient matches our Solana fee recipient
@@ -70,38 +75,68 @@ export async function POST(request: NextRequest) {
         })()
       : String(proofParsed.data.amount);
 
-    // Verify payment with Daydreams facilitator (proper x402 protocol)
-    const paymentProof: PaymentProof & { signature?: string } = {
-      transactionHash: proofParsed.data.signature, // Use signature as transactionHash for Solana
+    // Initialize PayAI x402-solana payment handler (same as Express server)
+    const x402Handler = new X402PaymentHandler({
+      network: 'solana',
+      treasuryAddress: solanaFeeRecipient,
+      facilitatorUrl: facilitatorUrl,
+      ...(solanaRpcUrl && solanaRpcUrl.startsWith('http') ? { rpcUrl: solanaRpcUrl } : {}),
+    });
+
+    // Create payment requirements for verification (per x402-solana docs)
+    const paymentRequirements = await x402Handler.createPaymentRequirements({
+      price: {
+        amount: amountAtomic, // Amount in micro-units (string)
+        asset: {
+          address: USDC_SOLANA_MINT,
+          decimals: 6,
+        },
+      },
+      network: 'solana',
+      config: {
+        description: 'Platform Fee (Solana)',
+        resource: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/x402/solana/fee`,
+        mimeType: 'application/json',
+      },
+    });
+
+    // Extract payment proof from X-Payment header format
+    const paymentHeader = {
       signature: proofParsed.data.signature,
-      blockNumber: 0, // Solana doesn't use block numbers
       from: proofParsed.data.from,
       to: proofParsed.data.to,
       amount: amountAtomic,
-      token: proofParsed.data.token || 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
-      timestamp: Date.now(),
+      token: proofParsed.data.token || USDC_SOLANA_MINT,
     };
 
-    const verifyResult = await verifyPaymentWithDaydreams(paymentProof, solanaFeeRecipient);
+    // Verify payment using PayAI facilitator via x402-solana package
+    const verified = await x402Handler.verifyPayment(paymentHeader as any, paymentRequirements);
     
-    if (!verifyResult.verified) {
+    const isValid = typeof verified === 'boolean' ? verified : (verified as any)?.isValid ?? false;
+    if (!isValid) {
+      const reason = typeof verified === 'object' && verified !== null 
+        ? (verified as any).invalidReason || 'Verification failed'
+        : 'Verification failed';
       return NextResponse.json({ 
         error: 'Payment verification failed', 
-        details: verifyResult.reason 
+        details: reason 
       }, { status: 400 });
     }
 
-    // Settle payment with Daydreams facilitator
-    const settleResult = await settlePaymentWithDaydreams(paymentProof, solanaFeeRecipient);
+    // Settle payment using PayAI facilitator via x402-solana package
+    const settleResult = await x402Handler.settlePayment(paymentHeader as any, paymentRequirements);
     
-    if (!settleResult.settled) {
+    if (settleResult && typeof settleResult === 'object' && 'success' in settleResult && !settleResult.success) {
       return NextResponse.json({ 
         error: 'Payment settlement failed', 
-        details: settleResult.reason 
+        details: (settleResult as any).errorReason || 'Settlement failed'
       }, { status: 400 });
     }
 
-    const settlementHash = settleResult.settlementHash || proofParsed.data.signature;
+    // Get settlement hash from settleResult if available
+    const settlementHash = (settleResult && typeof settleResult === 'object' && 'transaction' in settleResult)
+      ? (settleResult as any).transaction
+      : proofParsed.data.signature;
 
     // Persist fee transaction (100% fee to platform)
     const tokenSymbol: string = proofParsed.data.tokenSymbol || 'USDC';
@@ -125,7 +160,7 @@ export async function POST(request: NextRequest) {
           priceDisplay: formatUSDC(amountAtomic),
           available: true,
           facilitatorUrl: facilitatorUrl,
-          source: 'daydreams',
+          source: 'payai',
         },
       });
     }
