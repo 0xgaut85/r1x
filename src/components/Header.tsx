@@ -116,6 +116,13 @@ export default function Header() {
                       R1X MARKETPLACE
                     </a>
                     <a 
+                      href="/agent-builder" 
+                      className="block text-sm text-[#FF4D00] hover:text-[#FF4D00] py-3 transition-colors duration-200 relative overflow-hidden"
+                      style={{ minHeight: '44px', display: 'flex', alignItems: 'center', fontFamily: 'TWKEverettMono-Regular, monospace', color: '#FF4D00' }}
+                    >
+                      R1X AGENT BUILDER
+                    </a>
+                    <a 
                       href="/r1x-plug" 
                       onClick={(e) => handleComingSoonClick(e, 'rx1-builder')}
                       className="block text-sm text-gray-700 hover:text-black py-3 transition-colors duration-200 relative overflow-hidden"

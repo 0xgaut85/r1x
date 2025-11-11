@@ -32,14 +32,23 @@ Pay per frame. Pay per minute. Pay per route. No lock-in. No contracts. Every tr
 - Pay-per-message pricing ($0.25 per message)
 - Create resources robots will buy. Build services agents will pay for
 
-### 3. Marketplace
+### 3. Agent Builder
+- No-code platform for building AI agents
+- Visual workflow builder with drag-and-drop interface
+- Built-in x402 payment capabilities
+- Service discovery and integration
+- Multi-chain wallet support (Base + Solana)
+- One-click deployment to production
+- **Status**: UI complete, backend in development
+
+### 4. Marketplace
 - The marketplace for the machine economy
 - Browse AI inference services robots can purchase
 - Discover compute resources agents can buy
 - Access data streams machines can consume
 - Real-time service discovery. Everything priced. Everything payable
 
-### 4. User & Platform Panels
+### 5. User & Platform Panels
 - Watch the machine economy unfold in real-time
 - Monitor every transaction. Track every autonomous purchase
 - Create resources that robots will buy
@@ -127,6 +136,7 @@ Key variables:
 
 ## Documentation
 
+- [Agent Builder](docs/agent-builder.md) - Complete Agent Builder documentation
 - [x402 Integration Guide](docs/x402-integration.md)
 - [API Endpoints](API-ENDPOINTS.md)
 - [Utilities Reference](src/app/docs/utilities/page.tsx)
@@ -137,7 +147,9 @@ Key variables:
 - ✅ x402 Payment Protocol implementation
 - ✅ On-chain settlement and verification
 - ✅ Base network support (USDC)
+- ✅ Solana network support (USDC)
 - ✅ r1x Agent with Claude 3 Opus
+- ✅ Agent Builder (UI complete, backend in development)
 - ✅ Marketplace for the machine economy
 - ✅ User & Platform panels
 - ✅ Express middleware for x402

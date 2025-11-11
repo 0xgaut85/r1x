@@ -497,6 +497,18 @@ textarea.r1x-agent-textarea::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
 }
 
+/* Prevent dots/bullets on agent builder node type labels */
+.agent-node-type {
+  list-style: none !important;
+  list-style-type: none !important;
+}
+
+.agent-node-type::before,
+.agent-node-type::after {
+  content: none !important;
+  display: none !important;
+}
+
 /* Docs navigation links - ensure white text on black background */
 .docs-nav .docs-nav-link {
   color: rgba(255, 255, 255, 0.6);
