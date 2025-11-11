@@ -29,8 +29,12 @@ fi
 # Regenerate Prisma Client after migrations to ensure all models are available
 echo ""
 echo "Regenerating Prisma Client..."
-npx prisma generate
-echo "✓ Prisma Client regenerated"
+# Do not fail the startup if generation fails (e.g., transient schema issues)
+if npx prisma generate; then
+  echo "✓ Prisma Client regenerated"
+else
+  echo "⚠ Warning: Prisma Client generation failed. Continuing startup with existing client..."
+fi
 
 # Note: Database connection is verified by successful migration
 # If migrations ran successfully, the database is accessible
