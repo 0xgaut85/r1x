@@ -7,16 +7,17 @@ import { randomUUID } from 'crypto';
  * GET /api/staking?userAddress=...
  */
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const userAddress = searchParams.get('userAddress');
+  const { searchParams } = new URL(request.url);
+  const userAddress = searchParams.get('userAddress');
 
-    if (!userAddress) {
-      return NextResponse.json(
-        { error: 'userAddress is required' },
-        { status: 400 }
-      );
-    }
+  if (!userAddress) {
+    return NextResponse.json(
+      { error: 'userAddress is required' },
+      { status: 400 }
+    );
+  }
+
+  try {
 
     // Prefer Prisma Model when available; fall back to raw SQL when not
     let staking:
@@ -87,12 +88,65 @@ export async function GET(request: NextRequest) {
       stack: error.stack,
     });
     
-    // Check if it's a migration/database schema issue
-    if (error.message?.includes('Unknown model') || error.message?.includes('does not exist') || error.code === 'P2001') {
-      return NextResponse.json(
-        { error: 'Database migration required. The Staking table may not exist yet.' },
-        { status: 500 }
-      );
+    // Check if it's a migration/database schema issue - create table if missing
+    if (error.message?.includes('does not exist') || error.code === 'P2010' || error.meta?.code === '42P01') {
+      console.log('[Staking GET] Staking table does not exist, attempting to create it...');
+      try {
+        await prisma.$executeRaw`
+          CREATE TABLE IF NOT EXISTS "Staking" (
+            "id" TEXT NOT NULL,
+            "userAddress" TEXT NOT NULL,
+            "stakedAmount" TEXT NOT NULL,
+            "unstakeRequestedAt" TIMESTAMP(3),
+            "unstakeCompletedAt" TIMESTAMP(3),
+            "status" TEXT NOT NULL DEFAULT 'staked',
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL,
+            CONSTRAINT "Staking_pkey" PRIMARY KEY ("id")
+          )
+        `;
+        await prisma.$executeRaw`CREATE UNIQUE INDEX IF NOT EXISTS "Staking_userAddress_key" ON "Staking"("userAddress")`;
+        await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "Staking_userAddress_idx" ON "Staking"("userAddress")`;
+        await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "Staking_status_idx" ON "Staking"("status")`;
+        console.log('[Staking GET] Staking table created successfully, retrying query...');
+        // Retry the query
+        const rows = (await prisma.$queryRaw`
+          SELECT
+            "id", "userAddress", "stakedAmount", "status", "createdAt", "unstakeRequestedAt", "unstakeCompletedAt"
+          FROM "Staking"
+          WHERE "userAddress" = ${userAddress}
+          LIMIT 1
+        `) as Array<{
+          id: string;
+          userAddress: string;
+          stakedAmount: string;
+          status: string;
+          createdAt: Date | null;
+          unstakeRequestedAt: Date | null;
+          unstakeCompletedAt: Date | null;
+        }>;
+        const staking = rows?.[0] ?? null;
+        if (!staking) {
+          return NextResponse.json({
+            stakedAmount: '0',
+            status: 'not_staked',
+            createdAt: null,
+          });
+        }
+        return NextResponse.json({
+          stakedAmount: staking.stakedAmount,
+          status: staking.status,
+          createdAt: staking.createdAt,
+          unstakeRequestedAt: staking.unstakeRequestedAt,
+          unstakeCompletedAt: staking.unstakeCompletedAt,
+        });
+      } catch (createError: any) {
+        console.error('[Staking GET] Failed to create Staking table:', createError);
+        return NextResponse.json(
+          { error: 'Database migration required. The Staking table may not exist yet.' },
+          { status: 500 }
+        );
+      }
     }
     
     return NextResponse.json(
@@ -107,26 +161,27 @@ export async function GET(request: NextRequest) {
  * POST /api/staking
  */
 export async function POST(request: NextRequest) {
+  const body = await request.json();
+  const { userAddress, stakedAmount } = body;
+
+  if (!userAddress) {
+    return NextResponse.json(
+      { error: 'userAddress is required' },
+      { status: 400 }
+    );
+  }
+
+  if (!stakedAmount || parseFloat(stakedAmount) < 0) {
+    return NextResponse.json(
+      { error: 'stakedAmount is required and must be >= 0' },
+      { status: 400 }
+    );
+  }
+
+  const normalizedAmount = stakedAmount.toString();
+  const newStatus = parseFloat(stakedAmount) > 0 ? 'staked' : 'unstaked';
+
   try {
-    const body = await request.json();
-    const { userAddress, stakedAmount } = body;
-
-    if (!userAddress) {
-      return NextResponse.json(
-        { error: 'userAddress is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!stakedAmount || parseFloat(stakedAmount) < 0) {
-      return NextResponse.json(
-        { error: 'stakedAmount is required and must be >= 0' },
-        { status: 400 }
-      );
-    }
-
-    const normalizedAmount = stakedAmount.toString();
-    const newStatus = parseFloat(stakedAmount) > 0 ? 'staked' : 'unstaked';
 
     // Prefer Prisma Model when available; fall back to raw SQL when not
     // @ts-ignore - model may not exist on some generated clients
@@ -219,12 +274,70 @@ export async function POST(request: NextRequest) {
       stack: error.stack,
     });
     
-    // Check if it's a migration/database schema issue
-    if (error.message?.includes('Unknown model') || error.message?.includes('does not exist') || error.code === 'P2001') {
-      return NextResponse.json(
-        { error: 'Database migration required. The Staking table may not exist yet.' },
-        { status: 500 }
-      );
+    // Check if it's a migration/database schema issue - create table if missing
+    if (error.message?.includes('does not exist') || error.code === 'P2010' || error.meta?.code === '42P01') {
+      console.log('[Staking POST] Staking table does not exist, attempting to create it...');
+      try {
+        await prisma.$executeRaw`
+          CREATE TABLE IF NOT EXISTS "Staking" (
+            "id" TEXT NOT NULL,
+            "userAddress" TEXT NOT NULL,
+            "stakedAmount" TEXT NOT NULL,
+            "unstakeRequestedAt" TIMESTAMP(3),
+            "unstakeCompletedAt" TIMESTAMP(3),
+            "status" TEXT NOT NULL DEFAULT 'staked',
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL,
+            CONSTRAINT "Staking_pkey" PRIMARY KEY ("id")
+          )
+        `;
+        await prisma.$executeRaw`CREATE UNIQUE INDEX IF NOT EXISTS "Staking_userAddress_key" ON "Staking"("userAddress")`;
+        await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "Staking_userAddress_idx" ON "Staking"("userAddress")`;
+        await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "Staking_status_idx" ON "Staking"("status")`;
+        console.log('[Staking POST] Staking table created successfully, retrying save...');
+        // Retry the save
+        const id = randomUUID();
+        const rows = (await prisma.$queryRaw`
+          INSERT INTO "Staking" (
+            "id", "userAddress", "stakedAmount", "status", "createdAt", "updatedAt"
+          )
+          VALUES (
+            ${id}, ${userAddress}, ${normalizedAmount}, ${newStatus}, NOW(), NOW()
+          )
+          ON CONFLICT ("userAddress")
+          DO UPDATE SET
+            "stakedAmount" = EXCLUDED."stakedAmount",
+            "status" = EXCLUDED."status",
+            "updatedAt" = NOW()
+          RETURNING
+            "id", "userAddress", "stakedAmount", "status", "createdAt"
+        `) as Array<{
+          id: string;
+          userAddress: string;
+          stakedAmount: string;
+          status: string;
+          createdAt: Date;
+        }>;
+        const staking = rows?.[0];
+        if (!staking) {
+          return NextResponse.json(
+            { error: 'Failed to save staking data (no rows returned)' },
+            { status: 500 }
+          );
+        }
+        return NextResponse.json({
+          success: true,
+          stakedAmount: staking.stakedAmount,
+          status: staking.status,
+          createdAt: staking.createdAt,
+        });
+      } catch (createError: any) {
+        console.error('[Staking POST] Failed to create Staking table:', createError);
+        return NextResponse.json(
+          { error: 'Database migration required. The Staking table may not exist yet.' },
+          { status: 500 }
+        );
+      }
     }
     
     return NextResponse.json(
