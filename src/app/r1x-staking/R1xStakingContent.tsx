@@ -31,6 +31,8 @@ export default function R1xStakingContent() {
   const [historicalApy, setHistoricalApy] = useState<Array<{ date: string; apy: number }>>([]);
   const [projectedApy, setProjectedApy] = useState<Array<{ date: string; projected: number }>>([]);
   const [platformFees, setPlatformFees] = useState<{ totalFees: number; period: string } | null>(null);
+  const [unstakingCountdown, setUnstakingCountdown] = useState<number | null>(null);
+  const [isUnstaking, setIsUnstaking] = useState(false);
 
   // Generate historical APY data (last 30 days starting from Nov 11, 2025)
   useEffect(() => {
@@ -86,22 +88,37 @@ export default function R1xStakingContent() {
           // For now, we'll estimate based on fees
           const estimatedTotalStaked = 1000000; // Placeholder - in production, fetch actual staked amount
           const annualFees = totalFees * 12; // Project monthly fees to annual
-          const projectedApyValue = (annualFees / estimatedTotalStaked) * 100;
+          const baseApy = (annualFees / estimatedTotalStaked) * 100;
           
-          // Generate projected APY for next 30 days
+          // Generate projected APY for next 30 days with 10-20% monthly revenue growth
           const projected: Array<{ date: string; projected: number }> = [];
           const today = new Date();
+          
+          // Calculate monthly growth rate (random between 10-20%)
+          const monthlyGrowthRate = 0.10 + Math.random() * 0.10; // 10-20%
+          
+          // Calculate daily growth factor (30 days = 1 month)
+          const dailyGrowthFactor = Math.pow(1 + monthlyGrowthRate, 1 / 30);
+          
+          // Start with current APY (use historical APY if available, otherwise base APY)
+          let currentProjectedApy = historicalApy.length > 0 
+            ? historicalApy[historicalApy.length - 1].apy 
+            : Math.max(18, Math.min(21, baseApy));
           
           for (let i = 1; i <= 30; i++) {
             const date = new Date(today);
             date.setDate(date.getDate() + i);
-            // Projected APY with some variation
-            const variation = (Math.random() - 0.5) * 2; // ±1%
-            const projectedValue = Math.max(18, Math.min(21, projectedApyValue + variation));
+            
+            // Apply daily growth with small random variation
+            const dailyVariation = (Math.random() - 0.5) * 0.1; // ±0.05% daily variation
+            currentProjectedApy = currentProjectedApy * dailyGrowthFactor + dailyVariation;
+            
+            // Clamp between reasonable bounds
+            currentProjectedApy = Math.max(15, Math.min(30, currentProjectedApy));
             
             projected.push({
               date: date.toISOString().split('T')[0],
-              projected: parseFloat(projectedValue.toFixed(2)),
+              projected: parseFloat(currentProjectedApy.toFixed(2)),
             });
           }
           
@@ -109,18 +126,35 @@ export default function R1xStakingContent() {
         }
       } catch (error) {
         console.error('Failed to fetch platform fees:', error);
-        // Generate mock projected data if API fails
+        // Generate mock projected data if API fails with 10-20% monthly growth
         const projected: Array<{ date: string; projected: number }> = [];
         const today = new Date();
+        
+        // Use current APY as starting point
+        const startApy = apy;
+        
+        // Calculate monthly growth rate (random between 10-20%)
+        const monthlyGrowthRate = 0.10 + Math.random() * 0.10; // 10-20%
+        
+        // Calculate daily growth factor (30 days = 1 month)
+        const dailyGrowthFactor = Math.pow(1 + monthlyGrowthRate, 1 / 30);
+        
+        let currentProjectedApy = startApy;
         
         for (let i = 1; i <= 30; i++) {
           const date = new Date(today);
           date.setDate(date.getDate() + i);
-          const projectedValue = 18 + Math.random() * 3;
+          
+          // Apply daily growth with small random variation
+          const dailyVariation = (Math.random() - 0.5) * 0.1; // ±0.05% daily variation
+          currentProjectedApy = currentProjectedApy * dailyGrowthFactor + dailyVariation;
+          
+          // Clamp between reasonable bounds
+          currentProjectedApy = Math.max(15, Math.min(30, currentProjectedApy));
           
           projected.push({
             date: date.toISOString().split('T')[0],
-            projected: parseFloat(projectedValue.toFixed(2)),
+            projected: parseFloat(currentProjectedApy.toFixed(2)),
           });
         }
         
@@ -128,8 +162,11 @@ export default function R1xStakingContent() {
       }
     };
 
-    fetchPlatformFees();
-  }, []);
+    // Wait for historical APY to be generated before calculating projections
+    if (historicalApy.length > 0 || apy > 0) {
+      fetchPlatformFees();
+    }
+  }, [historicalApy, apy]);
 
   // Animate APY between 18-21% - slower, more realistic changes
   useEffect(() => {
@@ -157,8 +194,42 @@ export default function R1xStakingContent() {
       } else {
         setStakedAmount('0');
       }
+      
+      // Check for existing unstake countdown
+      const unstakeStart = localStorage.getItem(`r1x_unstaking_start_${solanaAddress}`);
+      if (unstakeStart) {
+        const startTime = parseInt(unstakeStart);
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const remaining = Math.max(0, 3600 - elapsed);
+        if (remaining > 0) {
+          setUnstakingCountdown(remaining);
+          setIsUnstaking(true);
+        } else {
+          localStorage.removeItem(`r1x_unstaking_start_${solanaAddress}`);
+        }
+      }
     }
   }, [solanaAddress]);
+
+  // Countdown timer for unstaking
+  useEffect(() => {
+    if (isUnstaking && unstakingCountdown !== null && unstakingCountdown > 0) {
+      const interval = setInterval(() => {
+        setUnstakingCountdown((prev) => {
+          if (prev === null || prev <= 1) {
+            setIsUnstaking(false);
+            if (solanaAddress) {
+              localStorage.removeItem(`r1x_unstaking_start_${solanaAddress}`);
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [isUnstaking, unstakingCountdown, solanaAddress]);
 
   // Load R1X balance
   useEffect(() => {
@@ -249,6 +320,33 @@ export default function R1xStakingContent() {
     } finally {
       setIsDepositing(false);
     }
+  };
+
+  const handleUnstake = () => {
+    if (!solanaAddress) return;
+    
+    const staked = parseFloat(stakedAmount);
+    if (staked <= 0) {
+      setError('No staked tokens to unstake');
+      return;
+    }
+
+    // Start countdown timer
+    setUnstakingCountdown(3600); // 1 hour = 3600 seconds
+    setIsUnstaking(true);
+    
+    // Store start time in localStorage
+    localStorage.setItem(`r1x_unstaking_start_${solanaAddress}`, Date.now().toString());
+    
+    setError('');
+    setSuccess('Unstake initiated. Please wait for the countdown to complete.');
+  };
+
+  const formatCountdown = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -417,7 +515,7 @@ export default function R1xStakingContent() {
                         tickLine={false}
                         axisLine={{ stroke: '#E5E7EB' }}
                         width={50}
-                        domain={[17, 22]}
+                        domain={[15, 30]}
                         style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '11px' }}
                       />
                       <Tooltip 
@@ -607,6 +705,76 @@ export default function R1xStakingContent() {
                     </motion.button>
                   </div>
                 </motion.div>
+
+                {/* Unstake Section */}
+                {parseFloat(stakedAmount) > 0 && (
+                  <motion.div
+                    className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.35 }}
+                  >
+                    <h2 
+                      className="text-black text-2xl mb-6"
+                      style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}
+                    >
+                      Unstake R1X Tokens
+                    </h2>
+                    
+                    <div className="space-y-6">
+                      {isUnstaking && unstakingCountdown !== null && unstakingCountdown > 0 ? (
+                        <div className="space-y-4">
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 text-center">
+                            <p 
+                              className="text-gray-600 text-sm mb-3 uppercase tracking-wider"
+                              style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                            >
+                              Unstaking in progress
+                            </p>
+                            <motion.div
+                              key={unstakingCountdown}
+                              initial={{ scale: 0.95 }}
+                              animate={{ scale: 1 }}
+                              transition={{ duration: 0.3 }}
+                            >
+                              <p 
+                                className="text-4xl font-bold text-[#FF4D00]"
+                                style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                              >
+                                {formatCountdown(unstakingCountdown)}
+                              </p>
+                            </motion.div>
+                            <p 
+                              className="text-gray-500 text-xs mt-3"
+                              style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                            >
+                              Please wait for the countdown to complete
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <p 
+                            className="text-gray-700 text-sm"
+                            style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                          >
+                            You have {parseFloat(stakedAmount).toLocaleString(undefined, { maximumFractionDigits: 6 })} R1X staked.
+                          </p>
+                          <motion.button
+                            onClick={handleUnstake}
+                            disabled={isUnstaking}
+                            whileHover={{ scale: isUnstaking ? 1 : 1.02 }}
+                            whileTap={{ scale: isUnstaking ? 1 : 0.98 }}
+                            className="w-full px-6 py-4 bg-gray-800 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '14px' }}
+                          >
+                            UNSTAKE R1X
+                          </motion.button>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
 
                 {/* Info Card */}
                 <motion.div
