@@ -93,7 +93,9 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/scripts ./scripts
-# Copy Prisma Client - Next.js standalone mode doesn't bundle it correctly
+# Copy Prisma Client to where Next.js standalone expects it
+# After copying .next/standalone, the root becomes the standalone directory
+# So Prisma Client must be in ./node_modules (which becomes /app/node_modules at runtime)
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 

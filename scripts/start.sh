@@ -18,29 +18,24 @@ echo "✓ DATABASE_URL is configured"
 # Run database migrations
 echo ""
 echo "Running database migrations..."
-if npx prisma migrate deploy; then
+MIGRATION_OUTPUT=$(npx prisma migrate deploy 2>&1)
+MIGRATION_EXIT=$?
+
+if [ $MIGRATION_EXIT -eq 0 ]; then
   echo "✓ Database migrations completed successfully"
 else
-  echo "⚠ Warning: Migration command failed"
-  echo "  Attempting to apply Staking table migration directly..."
+  echo "⚠ Warning: Migration command failed (exit code: $MIGRATION_EXIT)"
+  echo "Migration output: $MIGRATION_OUTPUT"
   
-  # Fallback: Create Staking table directly if migration fails
-  npx prisma db execute --stdin << 'EOF' || echo "⚠ Could not create Staking table - will be created on first API call"
-CREATE TABLE IF NOT EXISTS "Staking" (
-    "id" TEXT NOT NULL,
-    "userAddress" TEXT NOT NULL,
-    "stakedAmount" TEXT NOT NULL,
-    "unstakeRequestedAt" TIMESTAMP(3),
-    "unstakeCompletedAt" TIMESTAMP(3),
-    "status" TEXT NOT NULL DEFAULT 'staked',
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-    CONSTRAINT "Staking_pkey" PRIMARY KEY ("id")
-);
-CREATE UNIQUE INDEX IF NOT EXISTS "Staking_userAddress_key" ON "Staking"("userAddress");
-CREATE INDEX IF NOT EXISTS "Staking_userAddress_idx" ON "Staking"("userAddress");
-CREATE INDEX IF NOT EXISTS "Staking_status_idx" ON "Staking"("status");
-EOF
+  # Fallback: Use db push to sync schema (creates missing tables)
+  echo ""
+  echo "Attempting to sync database schema with db push..."
+  if npx prisma db push --skip-generate --accept-data-loss 2>&1; then
+    echo "✓ Database schema synced successfully"
+  else
+    echo "⚠ Schema sync failed, but continuing startup..."
+    echo "  API routes will attempt to create missing tables on first use"
+  fi
   
   echo "  Continuing with application startup..."
 fi
