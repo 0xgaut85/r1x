@@ -26,6 +26,12 @@ else
   echo "  Continuing with application startup..."
 fi
 
+# Regenerate Prisma Client after migrations to ensure all models are available
+echo ""
+echo "Regenerating Prisma Client..."
+npx prisma generate
+echo "✓ Prisma Client regenerated"
+
 # Note: Database connection is verified by successful migration
 # If migrations ran successfully, the database is accessible
 
