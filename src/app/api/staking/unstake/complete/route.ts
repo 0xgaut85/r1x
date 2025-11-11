@@ -4,6 +4,7 @@ import { Connection, PublicKey, Transaction } from '@solana/web3.js';
 import { getAssociatedTokenAddress, createTransferInstruction, getAccount } from '@solana/spl-token';
 import { getSolanaRpcUrl } from '@/lib/solana-rpc-config';
 import { Keypair } from '@solana/web3.js';
+import bs58 from 'bs58';
 
 const R1X_MINT = '5DDYWuhWN8PDgNyu9Khgmqt4AkJmtAZarFBKah4Epump';
 const STAKING_ADDRESS = 'HdjRVLjPNpkayysqTsKo1oYBHwzLHAVmgp6uLVH4Sk4Q';
@@ -76,8 +77,8 @@ export async function POST(request: NextRequest) {
       serverKeypair = Keypair.fromSecretKey(Uint8Array.from(privateKeyArray));
     } catch {
       // Try as base58 string
-      const { decode } = await import('bs58');
-      serverKeypair = Keypair.fromSecretKey(decode(serverStakingWalletPrivateKey));
+      const secretKey = bs58.decode(serverStakingWalletPrivateKey);
+      serverKeypair = Keypair.fromSecretKey(secretKey);
     }
 
     const stakingPubkey = new PublicKey(STAKING_ADDRESS);
