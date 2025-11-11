@@ -7,24 +7,6 @@ import { prisma } from '@/lib/db';
  */
 export async function GET(request: NextRequest) {
   try {
-    // Ensure prisma is initialized
-    if (!prisma) {
-      console.error('[Staking GET] Prisma Client is not initialized');
-      return NextResponse.json(
-        { error: 'Database connection failed. Please try again.' },
-        { status: 500 }
-      );
-    }
-
-    // Ensure staking model is available
-    if (!prisma.staking) {
-      console.error('[Staking GET] Prisma Client staking model not available. Prisma Client may need to be regenerated.');
-      return NextResponse.json(
-        { error: 'Database configuration error. Please contact support.' },
-        { status: 500 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const userAddress = searchParams.get('userAddress');
 
@@ -56,6 +38,21 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[Staking GET] Error:', error);
+    console.error('[Staking GET] Error details:', {
+      message: error.message,
+      code: error.code,
+      meta: error.meta,
+      stack: error.stack,
+    });
+    
+    // Check if it's a migration/database schema issue
+    if (error.message?.includes('Unknown model') || error.message?.includes('does not exist') || error.code === 'P2001') {
+      return NextResponse.json(
+        { error: 'Database migration required. The Staking table may not exist yet.' },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
       { error: error.message || 'Failed to get staking data' },
       { status: 500 }
@@ -69,24 +66,6 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Ensure prisma is initialized
-    if (!prisma) {
-      console.error('[Staking POST] Prisma Client is not initialized');
-      return NextResponse.json(
-        { error: 'Database connection failed. Please try again.' },
-        { status: 500 }
-      );
-    }
-
-    // Ensure staking model is available
-    if (!prisma.staking) {
-      console.error('[Staking POST] Prisma Client staking model not available. Prisma Client may need to be regenerated.');
-      return NextResponse.json(
-        { error: 'Database configuration error. Please contact support.' },
-        { status: 500 }
-      );
-    }
-
     const body = await request.json();
     const { userAddress, stakedAmount } = body;
 
@@ -142,6 +121,21 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[Staking POST] Error:', error);
+    console.error('[Staking POST] Error details:', {
+      message: error.message,
+      code: error.code,
+      meta: error.meta,
+      stack: error.stack,
+    });
+    
+    // Check if it's a migration/database schema issue
+    if (error.message?.includes('Unknown model') || error.message?.includes('does not exist') || error.code === 'P2001') {
+      return NextResponse.json(
+        { error: 'Database migration required. The Staking table may not exist yet.' },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
       { error: error.message || 'Failed to save staking data' },
       { status: 500 }
