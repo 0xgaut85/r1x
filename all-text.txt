@@ -1,0 +1,1074 @@
+R1X - ALL TEXT CONTENT
+======================
+
+LANDING PAGE
+============
+
+Hero Section
+------------
+r1x enables
+Machine economy. AI agents. Robots. Pay-per-use.
+From users to AI agents, from AI agents to robots.
+Enabling machines to operate in an autonomous economy.
+Try r1x Agent
+Docs
+[ENTER]
+
+Thesis Section
+---------------
+AI agents will spend billions. x402 makes every HTTP endpoint machine‑payable. USDC on Base. We're building the payment layer for AGI.
+
+The future isn't humans with API keys—it's agents with wallets. Every Claude, GPT, and custom agent will need to pay for services. We've built the first protocol where HTTP 402 meets blockchain settlement. One request → one quote → one payment. Instant, verifiable, on‑chain.
+
+Deploy any service as x402. Agents discover it, quote it, pay for it—no accounts, no OAuth, no credit cards. Just wallets and smart contracts. This is how trillion‑dollar agent economies get built. We're making it standard.
+
+[Agent]
+The first AI agent that actually pays. Plans, quotes, and settles in USDC on Base. Understands x402, executes purchases, unlocks premium APIs. This is what autonomous spending looks like.
+
+[Panel]
+Turn your API into revenue in minutes. Set prices, deploy x402, watch agents pay. Real‑time analytics, on‑chain receipts, instant USDC settlement. The dashboard for the agent economy.
+
+[x402]
+HTTP 402 Payment Required, reimagined for Web3. Server quotes, agent pays in USDC, client retries with proof. The missing protocol that makes agents economically autonomous.
+
+Robotics Use Cases Section
+---------------------------
+AI agents unlock trillion‑dollar markets. Every capability becomes pay‑per‑use.
+
+Vision APIs agents buy
+Agents pay per inference for OCR, object detection, image analysis. No monthly fees. Just USDC per call. The AI vision market, now machine‑accessible.
+
+Real‑time data streams
+Market data, social feeds, IoT sensors—all priced per access. Agents compose data sources on demand. Pay only for what they consume.
+
+Human expertise on tap
+Agents escalate complex tasks to human specialists. Pay per consultation minute. On‑chain receipts, instant settlement. The gig economy meets AGI.
+
+Premium model access
+Deploy gated LLMs, custom fine‑tunes, or specialized models. Agents pay per token or inference. Your models become revenue streams.
+
+Compute marketplaces
+Rent GPU cycles, serverless functions, or specialized hardware. Agents pay per job. Idle compute becomes instant revenue. The Airbnb for AI infrastructure.
+
+How It Works Section
+--------------------
+[ The machine economy ]
+
+[01] Agent requests
+AI agent calls your API. Server returns HTTP 402 with a USDC quote on Base. Dynamic pricing. Instant quotes. Zero overhead.
+
+[02] Agent pays
+Wallet auto‑approves, settles in USDC. Transaction confirmed on‑chain in seconds. The quote is now a verifiable receipt.
+
+[03] Agent accesses
+Client retries with payment proof in X‑PAYMENT header. API unlocks. Agent gets the resource. You get paid. This is the new internet.
+
+Anatomy of Node Section
+------------------------
+The payment protocol AGI needs.
+
+[ ] Built for AGI scale
+Millions of agents, billions of transactions. x402 scales with USDC on Base L2. Sub‑cent fees. Instant finality. This infrastructure is ready for the agent explosion.
+
+[ ] No integration hell
+One protocol, every agent. No OAuth, no API keys, no rate limits. Agents use wallets. Your API returns 402. That's it. Standard, simple, unstoppable.
+
+[ ] Verifiable from day one
+Every payment is on‑chain. Every quote is signed. Every receipt is provable. Build trust into agent economies by default. No disputes, no chargebacks.
+
+Demos Section
+--------------
+AGENT‑NATIVE REVENUE STREAMS
+PREV NEXT
+BUILD THE SERVICES AGENTS WILL PAY BILLIONS FOR.
+View the Demos
+
+Paid API calls
+Monetize every endpoint instantly. Agents pay per request in USDC. Your backend becomes a revenue stream today.
+
+Agent marketplaces
+List services agents discover and purchase automatically. Build the next Stripe for AI. We provide the payment rails.
+
+Premium models
+Gate your LLMs behind x402. Agents pay per token. Instant settlement. This is how AI model creators monetize at scale.
+
+Live data feeds
+Market data, social graphs, sensor networks—all x402‑protected. Agents pay per access. Build Bloomberg for machines.
+
+GPU‑as‑a‑service
+Agents rent your idle compute. Per‑second billing. USDC settlement. Turn every GPU into passive income.
+
+Gated knowledge
+Proprietary datasets, research, trained embeddings—agents pay to access. Intellectual property meets machine payments.
+
+Event Section
+-------------
+[NEWS]
+[READ]
+//November 15th • San Francisco
+r1x Labs will be attending @PayWithLocus hackathon in SF on November 15th
+LEARN MORE
+
+Careers Section
+---------------
+JOIN THE CONVERSATION
+[TG]
+Be the first to know what we've been up to and how we can help unleash the potential in your high-value data.
+
+Header Navigation
+------------------
+HOME
+DOCS
+r1x Utilities
+R1X AGENT
+R1X MARKETPLACE
+R1X AGENT BUILDER (Coming soon)
+R1X SDK (Coming soon)
+R1X FACILITATOR (Coming soon)
+R1X X402 CREATOR (Coming soon)
+USER PANEL
+PLATFORM PANEL
+
+Footer
+------
+STAY UP TO DATE WITH R1X
+Enter your email
+Subscribe
+NAVIGATION
+HOME
+DOCS
+R1X UTILITIES
+R1X AGENT
+R1X MARKETPLACE
+R1X AGENT BUILDER
+R1X SDK
+R1X FACILITATOR
+R1X X402 CREATOR
+USER PANEL
+PLATFORM PANEL
+PRIVACY POLICY
+TERMS OF SERVICE
+LEGAL
+©2025 R1X. ALL RIGHTS RESERVED.
+
+DOCUMENTATION
+=============
+
+Overview Page
+-------------
+From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.
+
+Getting Started
+---------------
+Set up your r1x development environment and start building on the machine economy.
+
+Prerequisites
+Before you begin, ensure you have:
+• Node.js 20.9.0 or higher
+• npm 10.0.0 or higher
+• A Base network wallet (MetaMask recommended)
+• USDC on Base mainnet for testing
+• A Coinbase Developer Platform account (for PayAI facilitator)
+
+Environment Setup
+Create a .env.local file in your project root with the following variables.
+
+PayAI Configuration
+For Base mainnet, PayAI facilitator requires Coinbase Developer Platform (CDP) API keys for authentication. Get your keys from portal.cdp.coinbase.com and set them as CDP_API_KEY_ID and CDP_API_KEY_SECRET.
+
+Database Setup
+r1x uses Prisma with PostgreSQL. Set up your database.
+
+Installation
+Install dependencies and start the development server.
+
+Express Server
+The x402 Express server runs separately on Railway and handles payment middleware. Configure NEXT_PUBLIC_X402_SERVER_URL to point to your Railway deployment.
+
+Sync PayAI Services
+After deployment, sync services from PayAI facilitator.
+
+Ready to Build
+You're all set! Visit Utilities to learn about available tools and Tutorials for step-by-step guides.
+
+r1x Agent Documentation
+-----------------------
+The first AI agent that actually pays. Built to prove AI agents can be economically autonomous.
+
+What is r1x Agent?
+r1x Agent is an AI assistant powered by Claude 3.5 Sonnet that understands x402 payment protocols. When it encounters a paid service, it automatically generates a payment quote, guides you through wallet approval, and retries the request with proof.
+
+This is the proof of concept for the autonomous economy. Every conversation that requires a paid service demonstrates how agents will spend billions in the coming years.
+
+How it Works
+[01] Agent detects x402
+When a service returns HTTP 402, r1x Agent parses the payment quote, extracts the price, and presents it to you.
+
+[02] Wallet approval
+Agent guides you to approve USDC payment on Base network. Transaction settles in seconds with sub‑cent fees.
+
+[03] Auto‑retry with proof
+After payment, agent automatically retries the request with payment proof in X‑PAYMENT header. Service unlocks. You get the result.
+
+Try it Now
+Live Demo
+r1x Agent is live at /r1x-agent. Connect your wallet and chat. Every message costs $0.25 USDC on Base.
+
+Example Interaction
+You: "What can you help me with?"
+r1x Agent: "I'm an AI assistant that can help with questions, analysis, and tasks. This service costs $0.25 USDC per message on Base network."
+[Payment quote appears]
+[Wallet approval]
+[Payment settles]
+r1x Agent: [Continues conversation with full response]
+
+Why This Matters
+Agents need to pay. As AI becomes more autonomous, it needs to purchase services independently. API keys don't scale. OAuth doesn't work for machines. Credit cards require humans.
+
+x402 + wallets solve this. Agents use wallets like humans use credit cards. Services return 402 quotes. Agents pay in USDC. On‑chain settlement. Verifiable receipts. This is the missing piece.
+
+r1x Agent is the proof. Every conversation demonstrates autonomous payment. Every transaction shows this works at scale. This is what the trillion‑dollar agent economy will look like.
+
+Marketplace Documentation
+-------------------------
+The app store for AI agents. Discover, quote, and purchase x402 services on demand.
+
+Overview
+r1x Marketplace is where agents find services to buy. Every listing is an x402‑protected API. Every purchase is settled in USDC on Base. Every transaction is verifiable on‑chain.
+
+This is the agent economy's discovery layer. Deploy your service, set your price, watch agents buy. No integration required—just standard x402.
+
+List Your Service
+Deploy x402 endpoint
+That's it. Your service is now listed. Agents discover it, r1x handles the payment infrastructure.
+
+Service Categories
+AI & ML
+LLM inference, embeddings, fine‑tuned models, image generation, voice synthesis
+
+Data & Analytics
+Market data, social graphs, sentiment analysis, real‑time feeds, structured datasets
+
+Compute
+GPU rentals, serverless functions, specialized hardware, batch processing
+
+Services
+Web scraping, API aggregation, data transformation, validation services
+
+Early Access
+The marketplace is in active development. Service discovery and agent‑native browsing coming soon. For now, agents can access any x402 endpoint directly.
+
+Pricing Model
+r1x takes a 5% platform fee on all transactions. You set your price, agents pay it, we route payment. Instant USDC settlement on Base.
+
+Your Price: $1.00 USDC
+Platform Fee (5%): $0.05 USDC
+You Receive: $0.95 USDC
+
+Panels Documentation
+--------------------
+Real‑time analytics for users and platform operators. Monitor agent spending, track revenue, verify on‑chain settlements.
+
+User Panel
+Track your agent's spending across all x402 services. View transaction history, analyze usage patterns, verify on‑chain receipts. Your personal dashboard for the autonomous economy.
+
+• Total transactions across all services
+• USDC spent breakdown by category
+• On‑chain verification for every payment
+• Real‑time usage charts and trends
+
+Platform Panel
+Monitor your x402 services' performance. Track agent adoption, analyze revenue, see which services agents prefer. The analytics dashboard for service operators.
+
+• Platform‑wide transaction volume
+• Fee revenue tracking and analytics
+• Service performance metrics
+• Agent behavior insights
+
+Access
+User Panel requires wallet connection. Platform Panel requires admin wallet address. All data is real‑time from on‑chain and database sources.
+
+API Reference
+--------------
+x402‑compatible endpoints for quote → pay → retry flows. JSON first, USDC on Base, proof via X‑PAYMENT header.
+
+POST /api/x402/pay
+Request payment quote or process payment proof. Returns HTTP 402 when payment is required.
+
+POST /api/x402/verify
+Verify payment proof with PayAI facilitator. Supports X-PAYMENT header (x402 spec).
+
+GET /api/marketplace/services
+List available x402 services from database. Supports filtering by category and merchant.
+
+POST /api/sync/payai
+Sync services from PayAI facilitator to database. Can be called manually or via cron.
+
+GET /api/panel/user/stats
+Get user statistics and summary. Requires wallet address authentication.
+
+GET /api/panel/platform/analytics
+Get platform-wide analytics. Admin-only access.
+
+Example: Payment Flow
+Complete example of requesting a payment quote and processing payment.
+
+X-PAYMENT Header
+The X-PAYMENT header follows the x402 specification. You can send payment proof either in the header or request body. Header takes precedence if both are provided.
+
+Base URL
+All API endpoints are relative to your deployment URL. For local development:
+http://localhost:3000/api/...
+For production:
+https://your-domain.vercel.app/api/...
+
+Facilitator Documentation
+-------------------------
+The payment verification layer. Trustless, fast, and agent‑optimized. Coming soon.
+
+What is a Facilitator?
+Facilitators verify x402 payments and route settlements. They're the trusted third party that confirms "yes, this agent paid" without seeing what was purchased. Think Stripe Connect meets zero‑knowledge proofs.
+
+r1x Facilitator will be optimized for AI agent transactions. Sub‑second verification. Batch settlement. Agent‑specific fraud detection. This is the payment processor agents need.
+
+Why Build Our Own?
+Speed. Agents make thousands of micro‑transactions. We're building for sub‑100ms verification. Batch settlements every block. Optimized for high throughput.
+
+Agent‑native. Fraud detection trained on agent behavior patterns. Automatic retry logic. Quote caching. Built for how agents actually transact.
+
+Economics. Lower fees at scale. Revenue sharing with service providers. This becomes profitable when agent spending hits billions.
+
+Current Status
+Using PayAI Network
+r1x currently uses PayAI facilitator for payment verification. We're building r1x Facilitator to handle agent‑scale economics. Migration will be seamless—same x402 protocol, better performance.
+
+Coming Soon
+r1x Facilitator is currently in development. Early adopters will get preferential fee rates. Stay tuned for updates.
+
+x402 Creator Documentation
+--------------------------
+Build and deploy x402 services without code. Visual interface to create machine-payable APIs. Coming soon.
+
+What is R1X x402 Creator?
+R1X x402 Creator is a visual, no-code tool for building x402 services. Turn any API endpoint into a machine-payable service with pricing, payment verification, and marketplace listing—all through an intuitive interface.
+
+No coding required. Configure your service, set pricing, connect your merchant wallet, and deploy. R1X x402 Creator handles the x402 protocol implementation, payment middleware, and facilitator integration automatically.
+
+Key Features
+Visual Service Builder
+Drag-and-drop interface to configure endpoints, set request/response schemas, and define pricing models. No API knowledge required.
+
+Automatic x402 Integration
+Built-in payment middleware handles HTTP 402 responses, payment quote generation, X-PAYMENT header verification, and facilitator integration. Your service becomes machine-payable automatically.
+
+Pricing Configuration
+Set per-request pricing, subscription models, or dynamic pricing based on usage. Configure fee structures and merchant addresses. All pricing settles in USDC on Base.
+
+Marketplace Integration
+One-click publishing to r1x Marketplace. Your service becomes discoverable by AI agents and other machines. Automatic service metadata and categorization.
+
+Analytics & Monitoring
+Built-in dashboard tracks requests, payments, revenue, and usage patterns. Monitor service health and agent adoption in real-time.
+
+How It Works
+1. Connect Your API
+Point R1X x402 Creator to your existing API endpoint. It will analyze your API structure and suggest pricing models.
+
+2. Configure Pricing
+Set your price per request, connect your merchant wallet address, and configure fee structures. Choose between fixed pricing, usage-based, or subscription models.
+
+3. Deploy & Publish
+Deploy your x402-enabled service with one click. Optionally publish to r1x Marketplace for agent discovery. Your service is now machine-payable.
+
+Example: Creating a Service
+Service Definition (auto-generated by Creator)
+No Code Required
+This configuration is created through the visual interface. No YAML editing needed—just point, click, and deploy.
+
+Use Cases
+API Monetization
+Turn existing APIs into revenue-generating services. No backend changes required.
+
+Agent Services
+Build services specifically for AI agents. Pricing optimized for machine-to-machine transactions.
+
+Rapid Prototyping
+Quickly test x402 services without writing payment middleware. Perfect for MVPs and experiments.
+
+Marketplace Listings
+Create services for r1x Marketplace. Make your service discoverable by thousands of agents.
+
+Coming Soon
+R1X x402 Creator is currently in development. Join our waitlist to get early access and preferential pricing.
+
+Technical Details
+R1X x402 Creator generates x402-compliant services that integrate with PayAI facilitator (and future r1x Facilitator). All services use standard x402 protocol, ensuring compatibility with any x402 client.
+
+Services created with R1X x402 Creator are fully compatible with r1x Agent, r1x Marketplace, and any other x402-enabled client. You can also export the generated code if you need custom modifications.
+
+Agent Builder Documentation
+----------------------------
+No‑code platform for building AI agents with built‑in x402 payment capabilities.
+
+Vision
+Build custom AI agents with payment superpowers. No coding required. Connect your LLM, define workflows, add x402 services, deploy. Your agent automatically discovers services, quotes prices, and pays in USDC.
+
+This is Zapier meets AutoGPT meets crypto wallets. The missing platform that turns AI agents into economic actors.
+
+Planned Features
+Visual workflow builder
+Drag‑and‑drop agent logic. Connect x402 services. Build complex agent workflows without code.
+
+Wallet management
+Set spending limits, auto‑approve trusted services, track agent expenses in real‑time.
+
+Service discovery
+Agents automatically find and evaluate x402 services. Compare prices. Choose providers. All autonomous.
+
+One‑click deployment
+Deploy agents to cloud or edge. Automatic scaling. Built‑in monitoring. Production‑ready from day one.
+
+Status
+r1x Agent Builder is currently in development. Join our Telegram to be notified when early access opens.
+
+SDK Documentation
+-----------------
+Build AI agents that pay. Ship x402 services agents buy. The complete toolkit for the autonomous economy.
+
+Overview
+The r1x SDK provides everything you need to build in the agent economy. Create agents that understand payments. Deploy services that agents buy. All with TypeScript type safety and one‑line integrations.
+
+Installation
+npm install x402-sdk @reown/appkit wagmi viem
+or
+pnpm add x402-sdk @reown/appkit wagmi viem
+
+Quick Start: Accept Payments
+Coming Soon
+The r1x SDK is in active development. Agent builder tools, payment abstractions, and discovery protocols shipping soon.
+
+r1x Token Documentation
+-----------------------
+The native token of the r1x ecosystem. Launched on Solana with a deflationary flywheel mechanism powered by platform fees.
+
+What is $R1X?
+$R1X is the native token of the r1x ecosystem, launched on Solana. It powers the machine economy through governance, staking, fee discounts, and platform access. As machines transact autonomously, platform fees drive a deflationary flywheel that creates sustainable value for token holders.
+
+The flywheel: More transactions → More fees → More buybacks & burns → Reduced supply → Increased value → More adoption → More transactions. This creates a self-reinforcing cycle that benefits the entire ecosystem.
+
+Tokenomics
+Total Supply
+1,000,000,000 $R1X
+1 billion tokens launched on Pump.fun. Fair launch with no pre-sale or private allocation.
+
+Fee Allocation
+75% Buybacks & Burn
+Three-quarters of all platform fees are used to buy $R1X tokens from the market and permanently burn them. This creates a deflationary mechanism that reduces supply over time.
+
+Builder Incentives
+2% Locked Reserve
+2% of the total supply (20 million tokens) will be market-bought and locked for future builder and developer incentives, grants, and ecosystem growth initiatives.
+
+The Flywheel Mechanism
+How It Works
+1. Machines transact on the r1x platform, generating platform fees with every payment.
+2. 75% of fees are automatically allocated to buybacks and burns.
+3. Tokens are purchased from the open market and permanently burned, reducing circulating supply.
+4. Reduced supply creates upward pressure on token value, benefiting all holders.
+5. Increased value attracts more users, builders, and machines to the platform.
+6. More adoption generates more transactions and fees, restarting the cycle.
+
+Sustainable Growth
+The flywheel creates a self-reinforcing cycle where platform growth directly benefits token holders. As the machine economy scales, so does the deflationary pressure on $R1X supply.
+
+Token Details
+NETWORK: Solana
+PLATFORM: Pump.fun
+SUPPLY: 1B $R1X
+BUYBACK & BURN: 75% of fees
+BUILDER RESERVE: 2% (20M)
+CONTRACT: TBA (Q4 2025)
+
+Token Utility
+Governance
+Vote on protocol upgrades, fee structures, and new features. Shape the future of the machine economy.
+
+Staking
+Stake $R1X to earn rewards and participate in network security. Stakers receive priority access to new features.
+
+Fee Discounts
+Holders receive reduced platform fees. The more you hold, the more you save on every transaction.
+
+Platform Access
+Unlock premium features, priority support, and exclusive services. Build on top of r1x infrastructure.
+
+Launch Information
+$R1X token will launch on Pump.fun in Q4 2025. Stay tuned for the official launch date and contract address. Join our community to be notified when the token goes live.
+
+Robotics Documentation
+----------------------
+Robotics Vision
+
+Subscriptions don't match robotic workloads. Robots, agents, and APIs buy capability in bursts—per request, per frame, per minute. R1x makes HTTP machine‑payable so autonomy scales without accounts or contracts.
+
+Value happens at the edge and in spikes. Don't rent a month of vision to unlock five seconds of capability. With R1x: one request carries a price, you pay in USDC on Base, you get a verifiable receipt.
+
+Use Cases
+→ Per‑frame perception and OCR: Call vision or OCR only when needed; pay cents per frame. No monthly lock‑in.
+→ Route planning and HD map tiles per call: Buy HD tiles and routing per segment; purchase navigation data exactly when you need it.
+→ Teleop fallback by the minute: Escalate to human control by the minute during edge cases. Pay only when autonomy fails.
+→ Sensor data windows (LiDAR/IMU) on demand: Publish or consume LiDAR/IMU windows on demand. Access streams per time window, not per subscription.
+→ Charging slot reservations and fleet telemetry access: Reserve slots and settle once confirmed. Pay per use, not per month.
+
+Why Per‑Request Pricing Matters
+Robotics workloads are spiky. A delivery robot may need intensive mapping for 30 seconds, then navigate autonomously for hours. A warehouse bot might require OCR for peak sorting windows, then idle.
+
+Traditional subscriptions force you to pay for capacity you rarely use. Per‑request pricing matches reality: pay only for what you consume, when you consume it. Every transaction is verifiable on‑chain for transparent costs.
+
+Tutorials Documentation
+-----------------------
+Step-by-step guides for building on r1x. From basic setup to advanced integrations.
+
+Setting Up Your First x402 Service
+Learn how to create and deploy an x402-protected service using PayAI facilitator.
+Steps:
+1. Configure your Express server with PayAI middleware
+2. Define protected routes with pricing
+3. Set up merchant wallet and CDP API keys
+4. Test payment flow end-to-end
+
+Integrating PayAI Services
+Sync and use services from PayAI facilitator in your application.
+Steps:
+1. Call the PayAI sync endpoint
+2. Query services from database
+3. Handle payment quotes and verification
+4. Display services in marketplace UI
+
+Building a Payment Flow
+Implement a complete payment flow with wallet integration and verification.
+Steps:
+1. Connect user wallet to Base network
+2. Request payment quote from server
+3. Approve and sign transaction
+4. Verify payment via PayAI facilitator
+5. Grant access to paid resource
+
+Creating Marketplace Listings
+Add your services to the r1x marketplace for discovery.
+Steps:
+1. Ensure service is synced from PayAI
+2. Verify service metadata is complete
+3. Set appropriate pricing
+4. Test marketplace discovery
+
+Express Server Setup
+Configure your Express server with PayAI middleware.
+
+PayAI Middleware
+The paymentMiddleware from x402-express automatically handles HTTP 402 responses, payment verification via PayAI facilitator, and CDP API authentication for Base mainnet.
+
+Client-Side Payment Flow
+Implement payment flow in your React application.
+
+Next Steps
+Ready to dive deeper? Check out the API Reference for complete endpoint documentation, or explore Utilities for available helper functions.
+
+Utilities Documentation
+------------------------
+Comprehensive utilities for building on r1x. All utilities are TypeScript-typed and documented.
+
+x402 Payment Utilities
+Core x402 protocol utilities for payment quotes, verification, and settlement with PayAI facilitator.
+Available Functions:
+• generatePaymentQuote() - Create payment quotes with fee calculation
+• verifyPaymentWithFacilitator() - Verify payments via PayAI
+• settlePaymentWithFacilitator() - Settle verified payments
+• calculateFeeDistribution() - Calculate platform fees
+• create402Response() - Generate HTTP 402 Payment Required responses
+• parsePaymentProof() - Parse payment proofs from headers or body
+
+Wallet Integration
+Base network wallet utilities for connecting wallets, transferring USDC, and managing approvals.
+Available Functions:
+• connectWallet() - Connect MetaMask or other Web3 wallets
+• transferUSDC() - Transfer USDC tokens on Base
+• approveUSDC() - Approve USDC spending
+• getUSDCBalance() - Check USDC balance
+• formatUSDC() - Format USDC amounts for display
+
+PayAI Service Sync
+Synchronize services from PayAI facilitator to your database. Handles service discovery and normalization.
+Available Functions:
+• fetchPayAIServices() - Fetch services from PayAI facilitator
+• syncPayAIServices() - Sync services to database
+• normalizePayAIService() - Normalize PayAI service format
+• extractCategory() - Automatically categorize services
+
+Panel Authentication
+Authentication utilities for user and platform panels. Wallet-based access control.
+Available Functions:
+• verifyAdminAccess() - Verify admin wallet addresses
+• getUserFromRequest() - Extract user address from request
+
+Fee Transfer
+On-chain fee transfer utilities. Transfers platform fees to fee recipient address.
+Available Functions:
+• transferFee() - Transfer fees on-chain
+• batchTransferFees() - Batch transfer multiple fees
+
+Agent Payment Handler
+Utilities for r1x Agent to handle x402 payments. Processes payment requests and guides users.
+Available Functions:
+• handlePaymentRequest() - Process agent payment requests
+• generatePaymentMessage() - Create payment guidance messages
+
+Usage Examples
+Generate Payment Quote
+Connect Wallet
+Sync PayAI Services
+
+Type Safety
+All utilities are fully typed with TypeScript. Import types from @/lib/types/x402 for PaymentQuote, PaymentProof, and other x402 types.
+
+MARKETPLACE PAGE
+================
+
+r1x Marketplace
+Discover x402 services, tokens, and resources. Pay-per-use access to AI, APIs, compute, and more.
+List your x402 service
+
+Network Selector
+Base (EVM)
+Solana
+
+Category Filter
+All
+[Categories dynamically generated]
+
+Services Grid
+[Service cards with:]
+- Service name
+- Description
+- Category badge
+- Token symbol (if not USDC)
+- PayAI badge (if external)
+- x402 Ready badge
+- Verified badge (if verified)
+- Price display (with platform fee breakdown for external services)
+- Endpoint URL
+- Purchase button
+
+Currently unavailable (if service not available)
+
+USER PANEL PAGE
+===============
+
+User Panel
+Connect your wallet to view your transaction history and usage statistics.
+
+[When connected:]
+{address}...{last4}
+
+Stats Cards
+Total Spent: {amount} USDC
+Transactions: {count}
+Services Used: {count}
+Period: [7 days / 30 days / 90 days / All time]
+
+Charts
+Daily Usage
+Usage by Service
+
+My Purchases
+[Table with:]
+- Service (name and description)
+- Type (fee/service)
+- Amount (USDC)
+- Date
+- Transaction (explorer link)
+- Actions (Use/Open button if service has endpoint)
+
+Recent Transactions
+[Table with:]
+- Service
+- Amount (USDC)
+- Fee (USDC)
+- Status (settled/verified/pending)
+- Date
+- Link (explorer link)
+
+R1X AGENT PAGE
+==============
+
+r1x Agent Chat Interface
+Hello! I'm r1x Agent, your assistant for the machine economy. I can help you understand how r1x enables autonomous machine-to-machine transactions, answer questions about our infrastructure, and guide you through building on Base. What would you like to know?
+
+Suggestions:
+• How does r1x enable machine-to-machine payments?
+• What is the machine economy?
+• How do I integrate r1x SDK?
+• Tell me about r1x Marketplace
+
+[Chat interface with message history and input field]
+
+README
+======
+
+r1x - The Payment Infrastructure for the Machine Economy
+
+From users to AI agents, from AI agents to robots. Enabling machines to operate in an autonomous economy.
+
+Robots buying from robots. Agents paying agents. Machines transacting autonomously. We're building the payment infrastructure.
+
+What is r1x?
+The next economy isn't human. It's autonomous. No accounts. No subscriptions. No dashboards. Just machines buying capabilities per request. One transaction at a time.
+
+Robotics workloads are SPIKY. A delivery bot needs intensive mapping for 30 seconds, then navigates autonomously for hours. Why pay monthly for what you use sporadically?
+
+THE NEW MODEL:
+One request = One price = One payment
+
+Pay per frame. Pay per minute. Pay per route. No lock-in. No contracts. Every transaction is verifiable on-chain. Complete transparency.
+
+Core Utilities
+1. x402 Payment Protocol
+- HTTP 402 Payment Required, reborn for machines
+- Quote a price, pay from wallet, retry with proof
+- No accounts. No API keys. No humans. Just machines transacting
+- Built on Base network with USDC
+- Every payment is on-chain. Every transaction is verifiable
+
+2. r1x Agent
+- An AI agent that thinks, pays, and accesses the world
+- Powered by Claude 3 Opus
+- Understands x402 and purchases resources autonomously
+- Pay-per-message pricing ($0.25 per message)
+- Create resources robots will buy. Build services agents will pay for
+
+3. Marketplace
+- The marketplace for the machine economy
+- Browse AI inference services robots can purchase
+- Discover compute resources agents can buy
+- Access data streams machines can consume
+- Real-time service discovery. Everything priced. Everything payable
+
+4. User & Platform Panels
+- Watch the machine economy unfold in real-time
+- Monitor every transaction. Track every autonomous purchase
+- Create resources that robots will buy
+- Set prices that agents will pay
+- Complete analytics. Full transparency
+
+5. SDK & APIs
+- Build the future of machine commerce
+- Express middleware for x402 (x402-server/)
+- Public APIs for service discovery
+- Transaction tracking and verification
+- Wallet integration for Base network
+- Everything you need to make your services machine-payable
+
+Robotics Use Cases
+Robots compose capabilities like software. Buy perception when uncertain. Purchase routes when lost. Escalate to human control only when needed.
+
+- Buy perception when uncertain: A delivery bot needs intensive mapping for 30 seconds, then navigates autonomously for hours. Pay per frame for vision APIs. Pay per image for OCR. No monthly lock-in
+- Purchase routes when lost: Buy HD map tiles per route segment. Pay per minute for navigation. Why pay monthly for what you use sporadically?
+- Escalate to human control only when needed: Pay for teleoperation by the minute when autonomy hits edge cases. Machines buying human expertise only when needed. One request at a time
+- Robots compose capabilities like software: Publish LiDAR sweeps. Consume sensor data from other robots. Build real-time sensor networks. A bazaar where autonomous services transact directly
+- Infrastructure becomes machine-payable: Reserve charging slots per use. Pay for docking bays when docking. The physical world becomes machine-payable. No subscriptions. Just pay for what you use
+
+Architecture
+r1x Platform
+├── Next.js Frontend (www.r1xlabs.com)
+│   ├── Marketplace UI
+│   ├── User & Platform Panels
+│   ├── r1x Agent Chat Interface
+│   └── Documentation
+│
+├── Express x402 Server (api.r1xlabs.com)
+│   ├── x402 Middleware
+│   ├── /api/r1x-agent/chat
+│   └── /api/x402/pay
+│
+└── PostgreSQL Database
+    ├── Services
+    ├── Transactions
+    └── Analytics
+
+Getting Started
+Prerequisites
+- Node.js 18+
+- PostgreSQL database
+- Base network wallet
+- USDC for transactions
+
+Installation
+# Clone the repository
+git clone https://github.com/0xLaylo/r1x-402.git
+cd x402robotics
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your configuration
+
+# Run database migrations
+npx prisma migrate dev
+
+# Start development server
+npm run dev
+
+Environment Variables
+See docs/railway-env-vars.md for complete list of required environment variables.
+
+Key variables:
+- MERCHANT_ADDRESS - Your merchant wallet address
+- ANTHROPIC_API_KEY - For r1x Agent
+- DATABASE_URL - PostgreSQL connection string
+- NEXT_PUBLIC_X402_SERVER_URL - Express server URL
+
+Documentation
+- x402 Integration Guide (docs/x402-integration.md)
+- API Endpoints (API-ENDPOINTS.md)
+- Utilities Reference (src/app/docs/utilities/page.tsx)
+- Railway Deployment (RAILWAY-MIGRATION.md)
+
+Key Features
+- ✅ x402 Payment Protocol implementation
+- ✅ On-chain settlement and verification
+- ✅ Base network support (USDC)
+- ✅ r1x Agent with Claude 3 Opus
+- ✅ Marketplace for the machine economy
+- ✅ User & Platform panels
+- ✅ Express middleware for x402
+- ✅ Real-time transaction tracking
+- ✅ TypeScript utilities and SDK
+- ✅ Trustless machine commerce
+
+License
+MIT
+
+Links
+- Website: https://www.r1xlabs.com
+- API: https://api.r1xlabs.com
+- Documentation: https://www.r1xlabs.com/docs
+
+LEGAL PAGES
+===========
+
+Legal Information
+-----------------
+Last Updated: October 2025
+
+Company Information
+r1x
+Payment Infrastructure for the Machine Economy
+Built on Base Blockchain
+
+For legal inquiries, please contact:
+Email: legal@r1x.io
+Website: r1x.io
+
+Regulatory Compliance
+r1x operates as a decentralized infrastructure provider. We are committed to compliance with applicable laws and regulations governing blockchain technology, cryptocurrencies, and payment services in jurisdictions where we operate.
+
+Users are responsible for ensuring their use of r1x Services complies with all applicable local, state, and federal laws and regulations.
+
+Intellectual Property Rights
+All trademarks, logos, and service marks displayed on r1x Services are the property of r1x or their respective owners. You may not use these marks without our prior written permission.
+
+r1x respects intellectual property rights. If you believe your rights have been infringed, please contact us at legal@r1x.io with:
+- Description of the copyrighted work or intellectual property
+- Location of the allegedly infringing material
+- Your contact information
+- Statement of good faith belief that use is unauthorized
+- Statement that information is accurate and you are authorized to act
+
+Disclaimer of Warranties
+USE OF r1x SERVICES IS AT YOUR OWN RISK. Services are provided "as is" and "as available" without warranties of any kind, whether express or implied.
+
+r1x does not guarantee that Services will be uninterrupted, secure, or error-free. Blockchain technology involves inherent risks, including but not limited to:
+- Technical failures or network issues
+- Smart contract vulnerabilities
+- Loss of funds due to errors or malicious activity
+- Regulatory changes affecting blockchain technology
+- Market volatility
+
+Limitation of Liability
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, r1x SHALL NOT BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO:
+- Loss of funds or cryptocurrency
+- Loss of profits or business opportunities
+- Data loss or corruption
+- Service interruptions or unavailability
+- Errors or omissions in Services
+
+Cryptocurrency and Blockchain Risks
+IMPORTANT RISK DISCLOSURE: Cryptocurrency and blockchain transactions involve substantial risk. You acknowledge and agree that:
+- Cryptocurrency values are highly volatile and may result in total loss
+- Blockchain transactions are irreversible and cannot be undone
+- You are solely responsible for securing your wallet and private keys
+- r1x cannot recover lost funds or compromised wallets
+- Regulatory changes may affect the legality or operation of blockchain services
+- Smart contracts may contain bugs or vulnerabilities
+- You should only invest what you can afford to lose
+
+Dispute Resolution
+Any disputes arising from or relating to r1x Services shall be resolved through binding arbitration in accordance with applicable arbitration rules, unless otherwise required by law.
+
+You waive any right to participate in class action lawsuits or class-wide arbitrations against r1x.
+
+Governing Law
+These legal terms shall be governed by and construed in accordance with applicable laws, without regard to conflict of law principles.
+
+No Financial Advice
+r1x does not provide financial, investment, legal, or tax advice. Information provided through our Services is for informational purposes only. You should consult with qualified professionals before making financial or investment decisions.
+
+Third-Party Services
+r1x Services may integrate with or link to third-party services, including Base blockchain, wallets, and other decentralized applications. We are not responsible for the availability, content, or practices of third-party services.
+
+Updates to Legal Information
+We may update this legal information from time to time. Material changes will be posted on our website with an updated "Last Updated" date. Continued use of Services after changes constitutes acceptance of updated terms.
+
+Contact
+For legal inquiries, please contact:
+Email: legal@r1x.io
+Website: r1x.io
+
+Privacy Policy
+--------------
+Last Updated: October 2025
+
+1. Introduction
+Welcome to r1x ("we," "our," or "us"). r1x is a decentralized payment infrastructure enabling the machine economy, built on Base. We are committed to protecting your privacy and ensuring transparency about how we collect, use, and protect your information.
+
+This Privacy Policy explains how we handle information when you use our services, including r1x Agent, RX1 Builder, r1x SDK, and r1x Marketplace (collectively, "Services").
+
+2. Information We Collect
+2.1 Blockchain Data
+Since r1x operates on Base blockchain, all transactions are publicly recorded on-chain. We may access and analyze publicly available blockchain data related to your interactions with our Services.
+
+2.2 Usage Information
+We collect information about how you interact with our Services, including API usage, service requests, and platform activity. This helps us improve our Services and maintain security.
+
+2.3 Technical Information
+We may collect technical information such as IP addresses, device information, browser type, and timestamps for security and analytics purposes.
+
+3. How We Use Your Information
+We use the information we collect to:
+- Provide, maintain, and improve our Services
+- Process transactions and payments on the Base blockchain
+- Ensure security and prevent fraud
+- Comply with legal obligations
+- Analyze usage patterns to enhance user experience
+- Communicate with you about our Services
+
+4. Decentralized Nature
+r1x is built on decentralized infrastructure. Your transactions occur directly on the Base blockchain without requiring traditional account creation or personal information. We do not store or control your private keys or wallet credentials.
+
+5. Data Sharing
+We do not sell your personal information. We may share information in the following circumstances:
+- With service providers who assist in operating our Services
+- When required by law or legal process
+- To protect our rights, property, or safety
+- In connection with a merger, acquisition, or sale of assets
+
+6. Security
+We implement security measures to protect information, but blockchain transactions are irreversible. You are responsible for securing your wallet and private keys. We cannot recover lost funds or compromised wallets.
+
+7. Your Rights
+You have the right to:
+- Access information we hold about you
+- Request correction of inaccurate information
+- Request deletion of your information (subject to legal requirements)
+- Opt-out of certain communications
+
+8. Cookies and Tracking
+We may use cookies and similar technologies to enhance your experience, analyze usage, and improve our Services. You can control cookie preferences through your browser settings.
+
+9. Children's Privacy
+Our Services are not intended for individuals under 18 years of age. We do not knowingly collect information from children.
+
+10. Changes to This Policy
+We may update this Privacy Policy from time to time. We will notify you of material changes by posting the updated policy on our website and updating the "Last Updated" date.
+
+11. Contact Us
+If you have questions about this Privacy Policy, please contact us at:
+Email: privacy@r1x.io
+Website: r1x.io
+
+Terms of Service
+----------------
+Last Updated: October 2025
+
+1. Agreement to Terms
+By accessing or using r1x services, including r1x Agent, RX1 Builder, r1x SDK, r1x Marketplace, and any related platforms (collectively, "Services"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, do not use our Services.
+
+2. Description of Services
+r1x provides decentralized payment infrastructure enabling the machine economy on Base blockchain. Our Services facilitate:
+- Machine-to-machine transactions and payments
+- Pay-per-use access to digital resources
+- API access and service integrations
+- Marketplace for digital assets and services
+- Developer tools and SDKs
+
+3. Eligibility
+You must be at least 18 years old and have the legal capacity to enter into contracts. You represent that you are not prohibited from using our Services under applicable laws or regulations.
+
+4. Decentralized Nature and Risks
+4.1 Blockchain Transactions
+All transactions on r1x occur on the Base blockchain and are irreversible. You acknowledge that blockchain transactions carry inherent risks, including but not limited to:
+- Loss of funds due to incorrect addresses or errors
+- Smart contract vulnerabilities or exploits
+- Network congestion or failures
+- Regulatory changes affecting blockchain technology
+
+4.2 Wallet Security
+You are solely responsible for securing your wallet, private keys, and access credentials. r1x does not store or have access to your private keys. We cannot recover lost funds or compromised wallets.
+
+5. Acceptable Use
+You agree not to:
+- Use Services for illegal activities or violate any applicable laws
+- Attempt to hack, disrupt, or compromise our Services or infrastructure
+- Use Services to transmit malicious code, viruses, or harmful content
+- Impersonate others or provide false information
+- Violate intellectual property rights
+- Engage in market manipulation or fraudulent activities
+- Use Services in any way that could harm r1x or other users
+
+6. Fees and Payments
+r1x may charge fees for certain Services. Fees are displayed at the time of transaction. You are responsible for all transaction fees, including blockchain network fees (gas fees). All fees are non-refundable unless required by law.
+
+7. Intellectual Property
+All content, software, code, trademarks, and other intellectual property associated with r1x Services are owned by r1x or our licensors. You may not copy, modify, distribute, or create derivative works without our express written permission.
+
+8. Disclaimers
+THE SERVICES ARE PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED. We disclaim all warranties, including but not limited to merchantability, fitness for a particular purpose, and non-infringement.
+
+We do not guarantee that Services will be uninterrupted, secure, or error-free. We are not responsible for losses due to blockchain network issues, smart contract bugs, or third-party services.
+
+9. Limitation of Liability
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, r1x SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, OR CRYPTOCURRENCY, ARISING FROM YOUR USE OF SERVICES.
+
+Our total liability for any claims shall not exceed the amount you paid to us in the 12 months preceding the claim.
+
+10. Indemnification
+You agree to indemnify, defend, and hold harmless r1x and its officers, directors, employees, and agents from any claims, damages, losses, liabilities, and expenses arising from your use of Services or violation of these Terms.
+
+11. Termination
+We may suspend or terminate your access to Services at any time, with or without notice, for violation of these Terms or for any other reason. You may stop using Services at any time.
+
+12. Governing Law
+These Terms shall be governed by and construed in accordance with applicable laws. Any disputes shall be resolved through binding arbitration or courts of competent jurisdiction.
+
+13. Changes to Terms
+We may modify these Terms at any time. Material changes will be posted on our website with an updated "Last Updated" date. Continued use of Services after changes constitutes acceptance of modified Terms.
+
+14. Contact Information
+For questions about these Terms, please contact us at:
+Email: legal@r1x.io
+Website: r1x.io
+
+END OF DOCUMENT
+

@@ -67,3 +67,8 @@ All variables listed above are currently set in Railway and will be:
 ✅ No hardcoded fallbacks in code (fail-fast approach)
 
 
+
+
+
+
+

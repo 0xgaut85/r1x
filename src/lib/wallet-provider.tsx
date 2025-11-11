@@ -25,10 +25,15 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
 const projectId = process.env.NEXT_PUBLIC_PROJECT_ID as string | undefined;
 
 if (!projectId) {
-  // Fail fast at build time - Railway should set this before build
-  const errorMsg = 'NEXT_PUBLIC_PROJECT_ID is required and must be set in Railway BEFORE build. NEXT_PUBLIC_* variables are embedded into the client bundle at build time.';
-  console.error('[WalletProvider]', errorMsg);
-  throw new Error(errorMsg);
+  // Only throw in production builds - in development, use placeholder
+  if (process.env.NODE_ENV === 'production') {
+    const errorMsg = 'NEXT_PUBLIC_PROJECT_ID is required and must be set in Railway BEFORE build. NEXT_PUBLIC_* variables are embedded into the client bundle at build time.';
+    console.error('[WalletProvider]', errorMsg);
+    throw new Error(errorMsg);
+  } else {
+    // Development: use placeholder and warn
+    console.warn('[WalletProvider] NEXT_PUBLIC_PROJECT_ID is not set. Wallet connection will not work. Set NEXT_PUBLIC_PROJECT_ID in your .env.local file.');
+  }
 }
 
 // Use NEXT_PUBLIC_BASE_URL from Railway - MUST be set before build
@@ -99,7 +104,7 @@ const networks: any[] = [base, mainnet, solanaNetwork];
 
 const wagmiAdapter = new WagmiAdapter({
   networks: networks as any,
-  projectId, // Must be set in Railway before build
+  projectId: projectId || 'placeholder-project-id', // Must be set in Railway before build
 });
 
 // Initialize SolanaAdapter (per Reown docs)
@@ -152,7 +157,7 @@ const adapters: any[] = [wagmiAdapter, solanaAdapter];
 export const modal = createAppKit({
   adapters,
   networks: networks as any,
-  projectId, // Must be set in Railway before build
+  projectId: projectId || 'placeholder-project-id', // Must be set in Railway before build
   metadata,
   features: {
     analytics: true,

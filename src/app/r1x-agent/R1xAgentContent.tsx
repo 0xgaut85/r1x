@@ -1391,8 +1391,16 @@ export default function R1xAgentContent() {
     setIsLoading(true);
     setError(null);
 
-    // If Base is not active or EVM signer missing, try Solana flow for the fixed agent fee ($0.25 USDC)
-    if (!wagmiConnected || !fetchWithPayment || chainId !== base.id) {
+    // Check if EVM wallet is connected but on wrong chain
+    if (wagmiConnected && chainId !== base.id) {
+      setError('Please switch to Base network to use the agent with your EVM wallet, or connect a Solana wallet (Phantom or Solflare)');
+      setIsLoading(false);
+      return;
+    }
+
+    // If EVM wallet is not connected or x402 client is missing, try Solana flow for the fixed agent fee ($0.25 USDC)
+    // Only use Solana if EVM is truly not available (not just wrong chain)
+    if (!wagmiConnected || !fetchWithPayment) {
       try {
         const solanaWallet =
           typeof window !== 'undefined'

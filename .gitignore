@@ -45,3 +45,8 @@ next-env.d.ts
 /src/generated/prisma
 
 .env*.local
+
+# load testing
+scripts/load-test-results/
+.env.loadtest
+.env.loadtest.addresses.txt

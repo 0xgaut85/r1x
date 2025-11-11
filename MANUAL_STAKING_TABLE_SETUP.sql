@@ -1,3 +1,6 @@
+-- Run this SQL directly in Railway PostgreSQL database to create the Staking table
+-- Railway Dashboard → PostgreSQL Service → Data → Query
+
 -- CreateTable
 CREATE TABLE IF NOT EXISTS "Staking" (
     "id" TEXT NOT NULL,

@@ -18,3 +18,4 @@ export default function R1xStakingPage() {
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
+

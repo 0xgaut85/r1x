@@ -63,3 +63,4 @@ Write-Host "1. Check Railway logs to verify migration ran successfully" -Foregro
 Write-Host "2. Restart the r1x service from Railway dashboard if needed" -ForegroundColor White
 Write-Host "3. Test the staking API endpoint" -ForegroundColor White
 
+
