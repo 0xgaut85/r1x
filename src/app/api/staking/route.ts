@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { randomUUID } from 'crypto';
 
 /**
  * Get staking data for a user
@@ -17,9 +18,50 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const staking = await prisma.staking.findUnique({
-      where: { userAddress },
-    });
+    // Prefer Prisma Model when available; fall back to raw SQL when not
+    let staking:
+      | {
+          id: string;
+          userAddress: string;
+          stakedAmount: string;
+          status: string;
+          createdAt: Date | null;
+          unstakeRequestedAt: Date | null;
+          unstakeCompletedAt: Date | null;
+        }
+      | null = null;
+
+    // @ts-ignore - model may not exist on some generated clients
+    if ((prisma as any).staking?.findUnique) {
+      // @ts-ignore
+      staking = await (prisma as any).staking.findUnique({
+        where: { userAddress },
+      });
+    } else {
+      // Raw SQL fallback
+      const rows = (await prisma.$queryRaw`
+        SELECT
+          "id",
+          "userAddress",
+          "stakedAmount",
+          "status",
+          "createdAt",
+          "unstakeRequestedAt",
+          "unstakeCompletedAt"
+        FROM "Staking"
+        WHERE "userAddress" = ${userAddress}
+        LIMIT 1
+      `) as Array<{
+        id: string;
+        userAddress: string;
+        stakedAmount: string;
+        status: string;
+        createdAt: Date | null;
+        unstakeRequestedAt: Date | null;
+        unstakeCompletedAt: Date | null;
+      }>;
+      staking = rows?.[0] ?? null;
+    }
 
     if (!staking) {
       return NextResponse.json({
@@ -83,42 +125,91 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find existing staking record
-    const existing = await prisma.staking.findUnique({
-      where: { userAddress },
-    });
+    const normalizedAmount = stakedAmount.toString();
+    const newStatus = parseFloat(stakedAmount) > 0 ? 'staked' : 'unstaked';
 
-    let staking;
-    if (existing) {
-      // Update existing record - preserve createdAt timestamp
-      staking = await prisma.staking.update({
+    // Prefer Prisma Model when available; fall back to raw SQL when not
+    // @ts-ignore - model may not exist on some generated clients
+    if ((prisma as any).staking?.findUnique) {
+      // @ts-ignore
+      const existing = await (prisma as any).staking.findUnique({
         where: { userAddress },
-        data: {
-          stakedAmount: stakedAmount.toString(),
-          status: parseFloat(stakedAmount) > 0 ? 'staked' : 'unstaked',
-          // Only update unstake fields if unstaking
-          ...(parseFloat(stakedAmount) === 0 && existing.status === 'unstaking' ? {
-            unstakeCompletedAt: new Date(),
-          } : {}),
-        },
+      });
+
+      let staking;
+      if (existing) {
+        // @ts-ignore
+        staking = await (prisma as any).staking.update({
+          where: { userAddress },
+          data: {
+            stakedAmount: normalizedAmount,
+            status: newStatus,
+            ...(parseFloat(stakedAmount) === 0 && existing.status === 'unstaking'
+              ? { unstakeCompletedAt: new Date() }
+              : {}),
+          },
+        });
+      } else {
+        // @ts-ignore
+        staking = await (prisma as any).staking.create({
+          data: {
+            userAddress,
+            stakedAmount: normalizedAmount,
+            status: newStatus,
+          },
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        stakedAmount: staking.stakedAmount,
+        status: staking.status,
+        createdAt: staking.createdAt,
       });
     } else {
-      // Create new record
-      staking = await prisma.staking.create({
-        data: {
-          userAddress,
-          stakedAmount: stakedAmount.toString(),
-          status: parseFloat(stakedAmount) > 0 ? 'staked' : 'unstaked',
-        },
+      // Raw SQL UPSERT fallback
+      const id = randomUUID();
+      const rows = (await prisma.$queryRaw`
+        INSERT INTO "Staking" (
+          "id", "userAddress", "stakedAmount", "status", "createdAt", "updatedAt"
+        )
+        VALUES (
+          ${id}, ${userAddress}, ${normalizedAmount}, ${newStatus}, NOW(), NOW()
+        )
+        ON CONFLICT ("userAddress")
+        DO UPDATE SET
+          "stakedAmount" = EXCLUDED."stakedAmount",
+          "status" = EXCLUDED."status",
+          "updatedAt" = NOW()
+        RETURNING
+          "id",
+          "userAddress",
+          "stakedAmount",
+          "status",
+          "createdAt"
+      `) as Array<{
+        id: string;
+        userAddress: string;
+        stakedAmount: string;
+        status: string;
+        createdAt: Date;
+      }>;
+
+      const staking = rows?.[0];
+      if (!staking) {
+        return NextResponse.json(
+          { error: 'Failed to save staking data (no rows returned)' },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        stakedAmount: staking.stakedAmount,
+        status: staking.status,
+        createdAt: staking.createdAt,
       });
     }
-
-    return NextResponse.json({
-      success: true,
-      stakedAmount: staking.stakedAmount,
-      status: staking.status,
-      createdAt: staking.createdAt,
-    });
   } catch (error: any) {
     console.error('[Staking POST] Error:', error);
     console.error('[Staking POST] Error details:', {
