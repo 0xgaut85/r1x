@@ -56,7 +56,8 @@ declare module '@prisma/client' {
         data: {
           stakedAmount?: string;
           status?: string;
-          unstakeCompletedAt?: Date;
+          unstakeRequestedAt?: Date | null;
+          unstakeCompletedAt?: Date | null;
         };
       }) => Promise<{
         id: string;
