@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
 const CAMPAIGN_DURATION_MS = 12 * 60 * 60 * 1000; // 12 hours
-const TOTAL_REWARDS_USDC = '15000'; // 15k USDC
+const TOTAL_REWARDS_USDC = '15000'; // 15k USDC rewards pool
 const CLAIM_LOCK_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 /**
