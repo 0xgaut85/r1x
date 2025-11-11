@@ -31,6 +31,14 @@ export default function R1xStakingContent() {
   const [earnings, setEarnings] = useState<string>('0');
   const [stakingStartTime, setStakingStartTime] = useState<number | null>(null);
   const [tvl, setTvl] = useState<string>('0');
+  const [boostedApy, setBoostedApy] = useState<number>(27.0);
+  const [rewardsBoost, setRewardsBoost] = useState<number>(0);
+  const [claimableUsdc, setClaimableUsdc] = useState<string>('0');
+  const [claimedUsdc, setClaimedUsdc] = useState<string>('0');
+  const [claimLockRemainingMs, setClaimLockRemainingMs] = useState<number>(0);
+  const [canClaim, setCanClaim] = useState<boolean>(false);
+  const [isClaiming, setIsClaiming] = useState<boolean>(false);
+  const [campaignProgress, setCampaignProgress] = useState<number>(0);
 
   // Generate historical APY data (last 30 days starting from Nov 11, 2025)
   useEffect(() => {
@@ -314,6 +322,47 @@ export default function R1xStakingContent() {
     return () => clearInterval(interval);
   }, []);
 
+  // Load rewards data
+  const loadRewards = async () => {
+    if (!solanaAddress) return;
+    try {
+      const response = await fetch(`/api/staking/rewards?userAddress=${solanaAddress}`);
+      if (response.ok) {
+        const data = await response.json();
+        setBoostedApy(data.apy?.boosted || 27.0);
+        setRewardsBoost(data.apy?.rewardsBoost || 0);
+        setClaimableUsdc(data.userReward?.claimableAmount || '0');
+        setClaimedUsdc(data.userReward?.claimedAmount || '0');
+        setCanClaim(data.userReward?.canClaim || false);
+        setClaimLockRemainingMs(data.userReward?.claimLockRemainingMs || 0);
+        setCampaignProgress(data.campaign?.progress || 0);
+      }
+    } catch (error) {
+      console.error('Failed to load rewards:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (solanaAddress) {
+      loadRewards();
+      // Refresh rewards every 3 seconds
+      const interval = setInterval(loadRewards, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [solanaAddress]);
+
+  // Countdown timer for claim lock
+  useEffect(() => {
+    if (claimLockRemainingMs > 0) {
+      const interval = setInterval(() => {
+        setClaimLockRemainingMs((prev) => Math.max(0, prev - 1000));
+      }, 1000);
+      return () => clearInterval(interval);
+    } else {
+      setCanClaim(true);
+    }
+  }, [claimLockRemainingMs]);
+
   const loadBalance = async () => {
     if (!solanaAddress) return;
     try {
@@ -456,6 +505,52 @@ export default function R1xStakingContent() {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleClaimRewards = async () => {
+    if (!solanaAddress) return;
+    
+    const claimable = parseFloat(claimableUsdc);
+    if (claimable <= 0) {
+      setError('No rewards available to claim');
+      return;
+    }
+
+    if (!canClaim) {
+      setError('Claim is locked. Please wait for the countdown to complete.');
+      return;
+    }
+
+    setIsClaiming(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await fetch('/api/staking/rewards/claim', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userAddress: solanaAddress,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSuccess(`Successfully claimed ${data.claimedAmount} USDC!`);
+        // Reload rewards data
+        await loadRewards();
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to claim rewards');
+      }
+    } catch (err: any) {
+      console.error('Claim error:', err);
+      setError(err.message || 'Failed to claim rewards');
+    } finally {
+      setIsClaiming(false);
+    }
+  };
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F7F7F7' }}>
       <Header />
@@ -524,6 +619,33 @@ export default function R1xStakingContent() {
                     {apy.toFixed(2)}%
                   </p>
                 </motion.div>
+                {rewardsBoost > 0 && (
+                  <div className="mb-4">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <img src="/usdc.png" alt="USDC" className="w-6 h-6" />
+                      <p 
+                        className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#2775CA]"
+                        style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}
+                      >
+                        Boosted APY: {boostedApy.toFixed(2)}%
+                      </p>
+                    </div>
+                    <p 
+                      className="text-sm text-[#2775CA]"
+                      style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                    >
+                      +{rewardsBoost.toFixed(2)}% from 15k USDC rewards campaign
+                    </p>
+                    {campaignProgress < 100 && (
+                      <p 
+                        className="text-xs text-gray-500 mt-1"
+                        style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                      >
+                        Campaign progress: {campaignProgress.toFixed(1)}%
+                      </p>
+                    )}
+                  </div>
+                )}
                 <p 
                   className="text-gray-500 text-sm"
                   style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
@@ -764,6 +886,72 @@ export default function R1xStakingContent() {
                           {parseFloat(earnings).toLocaleString(undefined, { maximumFractionDigits: 6 })}
                           <span className="text-sm text-gray-500 ml-2">R1X</span>
                         </p>
+                      </div>
+                    )}
+                    {parseFloat(claimableUsdc) > 0 && (
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <p 
+                              className="text-gray-600 text-xs mb-1 uppercase tracking-wider"
+                              style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                            >
+                              Claimable USDC
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <img src="/usdc.png" alt="USDC" className="w-5 h-5" />
+                              <p 
+                                className="text-xl font-bold text-[#2775CA]"
+                                style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}
+                              >
+                                {parseFloat(claimableUsdc).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                <span className="text-sm text-gray-500 ml-2">USDC</span>
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        {parseFloat(claimedUsdc) > 0 && (
+                          <p 
+                            className="text-xs text-gray-500"
+                            style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                          >
+                            Claimed: {parseFloat(claimedUsdc).toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC
+                          </p>
+                        )}
+                        {canClaim && parseFloat(claimableUsdc) > 0 ? (
+                          <motion.button
+                            onClick={handleClaimRewards}
+                            disabled={isClaiming}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="mt-3 w-full px-4 py-2 bg-[#2775CA] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '12px' }}
+                          >
+                            {isClaiming ? 'Claiming...' : 'Claim USDC'}
+                          </motion.button>
+                        ) : claimLockRemainingMs > 0 ? (
+                          <div className="mt-3">
+                            <p 
+                              className="text-xs text-gray-500 mb-1"
+                              style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                            >
+                              Claim locked for:
+                            </p>
+                            <p 
+                              className="text-sm font-bold text-[#2775CA]"
+                              style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}
+                            >
+                              {formatCountdown(Math.floor(claimLockRemainingMs / 1000))}
+                            </p>
+                          </div>
+                        ) : campaignProgress < 100 ? (
+                          <p 
+                            className="text-xs text-gray-500 mt-2"
+                            style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                          >
+                            Rewards accumulate over 12 hours
+                          </p>
+                        ) : null}
                       </div>
                     )}
                   </motion.div>

@@ -154,3 +154,53 @@ model ServiceResult {
   @@index([serviceId])
   @@index([createdAt])
 }
+
+model Staking {
+  id              String   @id @default(cuid())
+  userAddress     String   // Solana wallet address (Base58)
+  stakedAmount    String   // Amount staked (decimal string)
+  unstakeRequestedAt DateTime? // When user initiated unstake
+  unstakeCompletedAt DateTime? // When unstake was completed
+  status          String   @default("staked") // staked, unstaking, unstaked
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([userAddress])
+  @@index([userAddress])
+  @@index([status])
+}
+
+model RewardsCampaign {
+  id              String   @id @default(cuid())
+  startTime       DateTime @default(now())
+  endTime         DateTime // startTime + 12 hours
+  totalRewards    String   // Total USDC rewards pool (e.g., "15000")
+  isActive        Boolean  @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  rewards         StakingReward[]
+  
+  @@index([isActive])
+}
+
+model StakingReward {
+  id              String   @id @default(cuid())
+  campaignId      String
+  campaign        RewardsCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  userAddress     String   // Solana wallet address
+  claimableAmount String   // Amount user can claim (calculated pro-rata)
+  claimedAmount    String   @default("0") // Amount already claimed
+  claimRequestedAt DateTime? // When user initiated claim
+  claimCompletedAt DateTime? // When claim was completed
+  status          String   @default("pending") // pending, claiming, claimed
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([campaignId, userAddress])
+  @@index([userAddress])
+  @@index([status])
+}
