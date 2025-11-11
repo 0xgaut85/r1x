@@ -93,6 +93,9 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/scripts ./scripts
+# Copy Prisma Client - Next.js standalone mode doesn't bundle it correctly
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 RUN chown -R nextjs:nodejs /app
 RUN chmod +x scripts/start.sh
