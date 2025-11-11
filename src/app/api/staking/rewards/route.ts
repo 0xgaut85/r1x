@@ -111,6 +111,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Ensure campaign exists (TypeScript guard)
+    if (!campaign) {
+      return NextResponse.json(
+        { error: 'Failed to create or retrieve campaign' },
+        { status: 500 }
+      );
+    }
+
     // Get user's staked amount
     let stakedAmount = '0';
     // @ts-ignore
