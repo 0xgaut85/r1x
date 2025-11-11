@@ -192,7 +192,15 @@ export default function R1xStakingContent() {
 
   // Load staked amount from database
   const loadStakingData = async () => {
-    if (!solanaAddress) return;
+    // Only load if wallet is actually connected (not just detected)
+    if (!solanaAddress || !isSolanaConnected) {
+      setStakedAmount('0');
+      setStakingStartTime(null);
+      setIsUnstaking(false);
+      setUnstakingCountdown(null);
+      setEarnings('0');
+      return;
+    }
 
     try {
       const response = await fetch(`/api/staking?userAddress=${encodeURIComponent(solanaAddress)}`);
@@ -227,18 +235,33 @@ export default function R1xStakingContent() {
       } else {
         setStakedAmount('0');
         setStakingStartTime(null);
+        setIsUnstaking(false);
+        setUnstakingCountdown(null);
       }
     } catch (error) {
       console.error('Failed to load staking data:', error);
       setStakedAmount('0');
       setStakingStartTime(null);
+      setIsUnstaking(false);
+      setUnstakingCountdown(null);
     }
   };
 
   useEffect(() => {
+    // Reset state when wallet disconnects
+    if (!isSolanaConnected || !solanaAddress) {
+      setStakedAmount('0');
+      setStakingStartTime(null);
+      setIsUnstaking(false);
+      setUnstakingCountdown(null);
+      setEarnings('0');
+      return;
+    }
+    
+    // Only load data if wallet is connected
     loadStakingData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [solanaAddress]);
+  }, [solanaAddress, isSolanaConnected]);
 
   // Countdown timer for unstaking
   useEffect(() => {

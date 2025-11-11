@@ -17,10 +17,12 @@ const USDC_ABI = parseAbi([
 
 /**
  * Detect Solana wallet connection (Phantom or Solflare)
+ * Strictly verifies connection on mount and after refresh
  */
 function useSolanaWallet() {
   const [solanaAddress, setSolanaAddress] = useState<string | null>(null);
   const [isSolanaConnected, setIsSolanaConnected] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     const checkSolanaWallet = () => {
@@ -31,29 +33,45 @@ function useSolanaWallet() {
 
       const wallet = phantom || solflare;
       
+      // Strict check: wallet must exist, be connected, AND have a valid publicKey
       if (wallet && wallet.isConnected && wallet.publicKey) {
-        // Phantom publicKey is an object - use toBase58() method
-        const addr = typeof wallet.publicKey.toBase58 === 'function' 
-          ? wallet.publicKey.toBase58() 
-          : wallet.publicKey.toString();
-        
-        // Debug: Log detected address to verify it's the user's wallet, not fee recipient
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('[useSolanaWallet] Detected Solana address:', addr);
+        try {
+          // Phantom publicKey is an object - use toBase58() method
+          const addr = typeof wallet.publicKey.toBase58 === 'function' 
+            ? wallet.publicKey.toBase58() 
+            : wallet.publicKey.toString();
+          
+          // Validate address format (Solana addresses are base58, typically 32-44 chars)
+          if (addr && addr.length >= 32 && addr.length <= 44) {
+            // Debug: Log detected address
+            if (process.env.NODE_ENV !== 'production') {
+              console.log('[useSolanaWallet] Detected Solana address:', addr);
+            }
+            
+            setSolanaAddress(addr);
+            setIsSolanaConnected(true);
+            setIsInitialized(true);
+            return;
+          }
+        } catch (error) {
+          console.warn('[useSolanaWallet] Error reading wallet address:', error);
         }
-        
-        // Always update if different (triggers re-render)
-        setSolanaAddress(addr);
-        setIsSolanaConnected(true);
-      } else {
-        // Always set to disconnected state (triggers re-render even if already null/false)
-        setSolanaAddress(null);
-        setIsSolanaConnected(false);
       }
+      
+      // Not connected or invalid state - clear everything
+      setSolanaAddress(null);
+      setIsSolanaConnected(false);
+      setIsInitialized(true);
     };
 
-    // Check immediately
-    checkSolanaWallet();
+    // On mount, always start disconnected to force reconnection
+    setSolanaAddress(null);
+    setIsSolanaConnected(false);
+    
+    // Small delay to ensure wallet extensions are loaded
+    const initTimeout = setTimeout(() => {
+      checkSolanaWallet();
+    }, 100);
 
     // Listen for wallet events
     const handleAccountsChanged = () => { 
@@ -84,11 +102,12 @@ function useSolanaWallet() {
     }
 
     // Poll for wallet connection (in case events don't fire)
-    // Reduced to 2s for faster disconnect detection
-    const interval = setInterval(checkSolanaWallet, 2000);
+    // Check more frequently initially, then less frequently
+    const interval = setInterval(checkSolanaWallet, 1000);
 
     return () => {
       clearInterval(interval);
+      clearTimeout(initTimeout);
       if (phantom) {
         phantom.off('accountChanged', handleAccountsChanged);
         phantom.off('connect', handleConnect);
@@ -102,7 +121,12 @@ function useSolanaWallet() {
     };
   }, []);
 
-  return { solanaAddress, isSolanaConnected };
+  // Return connection state only after initialization
+  // This prevents showing stale "connected" state on refresh
+  return { 
+    solanaAddress: isInitialized ? solanaAddress : null, 
+    isSolanaConnected: isInitialized ? isSolanaConnected : false 
+  };
 }
 
 /**
