@@ -204,7 +204,7 @@ export default function R1xStakingContent() {
         if (data.status === 'unstaking' && data.unstakeRequestedAt) {
           const unstakeStart = new Date(data.unstakeRequestedAt).getTime();
           const elapsed = Math.floor((Date.now() - unstakeStart) / 1000);
-          const remaining = Math.max(0, 3600 - elapsed);
+          const remaining = Math.max(0, 86400 - elapsed); // 24 hours = 86400 seconds
           if (remaining > 0) {
             setUnstakingCountdown(remaining);
             setIsUnstaking(true);
@@ -435,7 +435,7 @@ export default function R1xStakingContent() {
       if (response.ok) {
         const data = await response.json();
         // Start countdown timer
-        setUnstakingCountdown(3600); // 1 hour = 3600 seconds
+        setUnstakingCountdown(86400); // 24 hours = 86400 seconds
         setIsUnstaking(true);
         setError('');
         setSuccess('Unstake initiated. Please wait for the countdown to complete.');
