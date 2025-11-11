@@ -15,30 +15,58 @@ const UNSTAKE_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
  * POST /api/staking/unstake/complete
  */
 export async function POST(request: NextRequest) {
+  const body = await request.json();
+  const { userAddress } = body;
+
+  if (!userAddress) {
+    return NextResponse.json(
+      { error: 'userAddress is required' },
+      { status: 400 }
+    );
+  }
+
+  // Check if server wallet is configured
+  const serverStakingWalletPrivateKey = process.env.SERVER_STAKING_WALLET_PRIVATE_KEY;
+  if (!serverStakingWalletPrivateKey) {
+    return NextResponse.json(
+      { error: 'Server staking wallet not configured. Set SERVER_STAKING_WALLET_PRIVATE_KEY in Railway.' },
+      { status: 500 }
+    );
+  }
+
   try {
-    const body = await request.json();
-    const { userAddress } = body;
+    // Prefer Prisma Model when available; fall back to raw SQL when not
+    let staking: {
+      id: string;
+      userAddress: string;
+      stakedAmount: string;
+      status: string;
+      unstakeRequestedAt: Date | null;
+    } | null = null;
 
-    if (!userAddress) {
-      return NextResponse.json(
-        { error: 'userAddress is required' },
-        { status: 400 }
-      );
+    // @ts-ignore - model may not exist on some generated clients
+    if ((prisma as any).staking?.findUnique) {
+      // @ts-ignore
+      staking = await (prisma as any).staking.findUnique({
+        where: { userAddress },
+      });
+    } else {
+      // Raw SQL fallback
+      const rows = (await prisma.$queryRaw`
+        SELECT
+          "id", "userAddress", "stakedAmount", "status", "unstakeRequestedAt"
+        FROM "Staking"
+        WHERE "userAddress" = ${userAddress}
+        LIMIT 1
+      `) as Array<{
+        id: string;
+        userAddress: string;
+        stakedAmount: string;
+        status: string;
+        unstakeRequestedAt: Date | null;
+      }>;
+      staking = rows?.[0] ?? null;
     }
-
-    // Check if server wallet is configured
-    const serverStakingWalletPrivateKey = process.env.SERVER_STAKING_WALLET_PRIVATE_KEY;
-    if (!serverStakingWalletPrivateKey) {
-      return NextResponse.json(
-        { error: 'Server staking wallet not configured. Set SERVER_STAKING_WALLET_PRIVATE_KEY in Railway.' },
-        { status: 500 }
-      );
-    }
-
-    // Get staking record
-    const staking = await prisma.staking.findUnique({
-      where: { userAddress },
-    });
 
     if (!staking || staking.status !== 'unstaking') {
       return NextResponse.json(
@@ -138,14 +166,29 @@ export async function POST(request: NextRequest) {
     await connection.confirmTransaction(signature, 'confirmed');
 
     // Update database
-    await prisma.staking.update({
-      where: { userAddress },
-      data: {
-        status: 'unstaked',
-        unstakeCompletedAt: new Date(),
-        stakedAmount: '0',
-      },
-    });
+    // @ts-ignore - model may not exist on some generated clients
+    if ((prisma as any).staking?.update) {
+      // @ts-ignore
+      await (prisma as any).staking.update({
+        where: { userAddress },
+        data: {
+          status: 'unstaked',
+          unstakeCompletedAt: new Date(),
+          stakedAmount: '0',
+        },
+      });
+    } else {
+      // Raw SQL fallback
+      await prisma.$executeRaw`
+        UPDATE "Staking"
+        SET
+          "status" = 'unstaked',
+          "unstakeCompletedAt" = NOW(),
+          "stakedAmount" = '0',
+          "updatedAt" = NOW()
+        WHERE "userAddress" = ${userAddress}
+      `;
+    }
 
     return NextResponse.json({
       success: true,
@@ -154,6 +197,41 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[Unstake Complete] Error:', error);
+    
+    // Check if it's a migration/database schema issue - create table if missing
+    if (error.message?.includes('does not exist') || error.code === 'P2010' || error.meta?.code === '42P01') {
+      console.log('[Unstake Complete] Staking table does not exist, attempting to create it...');
+      try {
+        await prisma.$executeRaw`
+          CREATE TABLE IF NOT EXISTS "Staking" (
+            "id" TEXT NOT NULL,
+            "userAddress" TEXT NOT NULL,
+            "stakedAmount" TEXT NOT NULL,
+            "unstakeRequestedAt" TIMESTAMP(3),
+            "unstakeCompletedAt" TIMESTAMP(3),
+            "status" TEXT NOT NULL DEFAULT 'staked',
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL,
+            CONSTRAINT "Staking_pkey" PRIMARY KEY ("id")
+          )
+        `;
+        await prisma.$executeRaw`CREATE UNIQUE INDEX IF NOT EXISTS "Staking_userAddress_key" ON "Staking"("userAddress")`;
+        await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "Staking_userAddress_idx" ON "Staking"("userAddress")`;
+        await prisma.$executeRaw`CREATE INDEX IF NOT EXISTS "Staking_status_idx" ON "Staking"("status")`;
+        console.log('[Unstake Complete] Staking table created, but no unstake request found');
+        return NextResponse.json(
+          { error: 'No active unstake request found' },
+          { status: 400 }
+        );
+      } catch (createError: any) {
+        console.error('[Unstake Complete] Failed to create Staking table:', createError);
+        return NextResponse.json(
+          { error: 'Database migration required. The Staking table may not exist yet.' },
+          { status: 500 }
+        );
+      }
+    }
+    
     return NextResponse.json(
       { error: error.message || 'Failed to complete unstake' },
       { status: 500 }
