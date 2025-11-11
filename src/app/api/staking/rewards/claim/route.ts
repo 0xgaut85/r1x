@@ -118,10 +118,58 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Calculate claimable amount (accumulated so far)
-    const claimableAmount = parseFloat(userReward.claimableAmount);
+    // Recalculate claimable amount (rewards accumulate over time)
+    // Get user's staked amount and total staked
+    let stakedAmount = '0';
+    // @ts-ignore
+    if ((prisma as any).staking?.findUnique) {
+      // @ts-ignore
+      const staking = await (prisma as any).staking.findUnique({
+        where: { userAddress },
+      });
+      stakedAmount = staking?.stakedAmount || '0';
+    } else {
+      const rows = (await prisma.$queryRaw`
+        SELECT "stakedAmount" FROM "Staking"
+        WHERE "userAddress" = ${userAddress} AND "status" IN ('staked', 'unstaking')
+        LIMIT 1
+      `) as Array<{ stakedAmount: string }>;
+      stakedAmount = rows?.[0]?.stakedAmount || '0';
+    }
+
+    let totalStaked = '0';
+    // @ts-ignore
+    if ((prisma as any).staking?.findMany) {
+      // @ts-ignore
+      const allStaking = await (prisma as any).staking.findMany({
+        where: { status: { in: ['staked', 'unstaking'] } },
+      });
+      totalStaked = allStaking
+        .reduce((sum: number, s: any) => sum + parseFloat(s.stakedAmount || '0'), 0)
+        .toString();
+    } else {
+      const rows = (await prisma.$queryRaw`
+        SELECT SUM(CAST("stakedAmount" AS DECIMAL)) as total
+        FROM "Staking"
+        WHERE "status" IN ('staked', 'unstaking')
+      `) as Array<{ total: string | null }>;
+      totalStaked = rows?.[0]?.total || '0';
+    }
+
+    // Calculate current claimable amount
+    const userStaked = parseFloat(stakedAmount);
+    const totalStakedNum = parseFloat(totalStaked) || 1;
+    const userShare = totalStakedNum > 0 ? userStaked / totalStakedNum : 0;
+
+    const campaignStart = new Date(campaign.startTime).getTime();
+    const campaignEnd = new Date(campaign.endTime).getTime();
+    const elapsed = Math.max(0, Math.min(now.getTime() - campaignStart, campaignEnd - campaignStart));
+    const progress = campaignEnd > campaignStart ? elapsed / (campaignEnd - campaignStart) : 0;
+    const distributedRewards = parseFloat(campaign.totalRewards) * progress;
+    const currentClaimable = distributedRewards * userShare;
+
     const alreadyClaimed = parseFloat(userReward.claimedAmount);
-    const toClaim = claimableAmount - alreadyClaimed;
+    const toClaim = currentClaimable - alreadyClaimed;
 
     if (toClaim <= 0) {
       return NextResponse.json(
