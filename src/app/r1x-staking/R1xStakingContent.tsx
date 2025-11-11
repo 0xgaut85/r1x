@@ -25,7 +25,7 @@ export default function R1xStakingContent() {
   const [stakedAmount, setStakedAmount] = useState<string>('0');
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [isDepositing, setIsDepositing] = useState(false);
-  const [apy, setApy] = useState<number>(19.5);
+  const [apy, setApy] = useState<number>(27.0);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
   const [historicalApy, setHistoricalApy] = useState<Array<{ date: string; apy: number }>>([]);
@@ -52,10 +52,10 @@ export default function R1xStakingContent() {
         // Only generate data up to today
         if (date > today) break;
         
-        // Generate realistic APY values between 18-21%
-        const baseApy = 19.5;
-        const variation = (Math.random() - 0.5) * 3; // ±1.5%
-        const apyValue = Math.max(18, Math.min(21, baseApy + variation));
+        // Generate realistic APY values between 25-29%
+        const baseApy = 27.0;
+        const variation = (Math.random() - 0.5) * 4; // ±2%
+        const apyValue = Math.max(25, Math.min(29, baseApy + variation));
         
         data.push({
           date: date.toISOString().split('T')[0],
@@ -103,7 +103,7 @@ export default function R1xStakingContent() {
           // Start with current APY (use historical APY if available, otherwise base APY)
           let currentProjectedApy = historicalApy.length > 0 
             ? historicalApy[historicalApy.length - 1].apy 
-            : Math.max(18, Math.min(21, baseApy));
+            : Math.max(25, Math.min(29, baseApy));
           
           for (let i = 1; i <= 30; i++) {
             const date = new Date(today);
@@ -168,7 +168,7 @@ export default function R1xStakingContent() {
     }
   }, [historicalApy, apy]);
 
-  // Animate APY between 18-21% - slower, more realistic changes
+  // Animate APY between 25-29% - slower, more realistic changes
   useEffect(() => {
     if (historicalApy.length > 0) {
       const interval = setInterval(() => {
@@ -176,7 +176,7 @@ export default function R1xStakingContent() {
           // Small random change between -0.05% and +0.05% (more realistic)
           const change = (Math.random() - 0.5) * 0.1;
           const newApy = prev + change;
-          return Math.max(18, Math.min(21, newApy)); // Clamp between 18-21%
+          return Math.max(25, Math.min(29, newApy)); // Clamp between 25-29%
         });
       }, 45000); // Update every 45 seconds (much slower, more realistic)
 
@@ -459,7 +459,7 @@ export default function R1xStakingContent() {
                         tickLine={false}
                         axisLine={{ stroke: '#E5E7EB' }}
                         width={50}
-                        domain={[17, 22]}
+                        domain={[24, 30]}
                         style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '11px' }}
                       />
                       <Tooltip 
