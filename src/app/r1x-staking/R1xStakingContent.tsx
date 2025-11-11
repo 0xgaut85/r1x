@@ -14,11 +14,6 @@ import { ChartTooltip, numberValueFormatter, dateLabelFormatter } from '@/compon
 const R1X_TOKEN_MINT = '5DDYWuhWN8PDgNyu9Khgmqt4AkJmtAZarFBKah4Epump';
 const STAKING_ADDRESS = 'HdjRVLjPNpkayysqTsKo1oYBHwzLHAVmgp6uLVH4Sk4Q';
 
-interface StakingData {
-  amount: string;
-  timestamp: number;
-}
-
 export default function R1xStakingContent() {
   const { solanaAddress, isSolanaConnected } = useWallet();
   const [r1xBalance, setR1xBalance] = useState<string>('0');
@@ -33,6 +28,8 @@ export default function R1xStakingContent() {
   const [platformFees, setPlatformFees] = useState<{ totalFees: number; period: string } | null>(null);
   const [unstakingCountdown, setUnstakingCountdown] = useState<number | null>(null);
   const [isUnstaking, setIsUnstaking] = useState(false);
+  const [earnings, setEarnings] = useState<string>('0');
+  const [stakingStartTime, setStakingStartTime] = useState<number | null>(null);
 
   // Generate historical APY data (last 30 days starting from Nov 11, 2025)
   useEffect(() => {
@@ -184,31 +181,53 @@ export default function R1xStakingContent() {
     }
   }, [historicalApy]);
 
-  // Load staked amount from localStorage
+  // Load staked amount from database
   useEffect(() => {
-    if (solanaAddress) {
-      const stored = localStorage.getItem(`r1x_staking_${solanaAddress}`);
-      if (stored) {
-        const data: StakingData = JSON.parse(stored);
-        setStakedAmount(data.amount);
-      } else {
-        setStakedAmount('0');
-      }
-      
-      // Check for existing unstake countdown
-      const unstakeStart = localStorage.getItem(`r1x_unstaking_start_${solanaAddress}`);
-      if (unstakeStart) {
-        const startTime = parseInt(unstakeStart);
-        const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        const remaining = Math.max(0, 3600 - elapsed);
-        if (remaining > 0) {
-          setUnstakingCountdown(remaining);
-          setIsUnstaking(true);
+    const loadStakingData = async () => {
+      if (!solanaAddress) return;
+
+      try {
+        const response = await fetch(`/api/staking?userAddress=${encodeURIComponent(solanaAddress)}`);
+        if (response.ok) {
+          const data = await response.json();
+          setStakedAmount(data.stakedAmount || '0');
+          
+          // Set staking start time from createdAt
+          if (data.createdAt) {
+            const createdAt = new Date(data.createdAt).getTime();
+            setStakingStartTime(createdAt);
+          } else {
+            setStakingStartTime(null);
+          }
+
+          // Check for existing unstake countdown
+          if (data.status === 'unstaking' && data.unstakeRequestedAt) {
+            const unstakeStart = new Date(data.unstakeRequestedAt).getTime();
+            const elapsed = Math.floor((Date.now() - unstakeStart) / 1000);
+            const remaining = Math.max(0, 3600 - elapsed);
+            if (remaining > 0) {
+              setUnstakingCountdown(remaining);
+              setIsUnstaking(true);
+            } else {
+              setIsUnstaking(false);
+              setUnstakingCountdown(null);
+            }
+          } else {
+            setIsUnstaking(false);
+            setUnstakingCountdown(null);
+          }
         } else {
-          localStorage.removeItem(`r1x_unstaking_start_${solanaAddress}`);
+          setStakedAmount('0');
+          setStakingStartTime(null);
         }
+      } catch (error) {
+        console.error('Failed to load staking data:', error);
+        setStakedAmount('0');
+        setStakingStartTime(null);
       }
-    }
+    };
+
+    loadStakingData();
   }, [solanaAddress]);
 
   // Countdown timer for unstaking
@@ -218,9 +237,6 @@ export default function R1xStakingContent() {
         setUnstakingCountdown((prev) => {
           if (prev === null || prev <= 1) {
             setIsUnstaking(false);
-            if (solanaAddress) {
-              localStorage.removeItem(`r1x_unstaking_start_${solanaAddress}`);
-            }
             return 0;
           }
           return prev - 1;
@@ -229,7 +245,36 @@ export default function R1xStakingContent() {
 
       return () => clearInterval(interval);
     }
-  }, [isUnstaking, unstakingCountdown, solanaAddress]);
+  }, [isUnstaking, unstakingCountdown]);
+
+  // Calculate earnings based on staked amount and current APY, updating every 3 seconds
+  useEffect(() => {
+    const calculateEarnings = () => {
+      const staked = parseFloat(stakedAmount);
+      if (staked <= 0 || !stakingStartTime) {
+        setEarnings('0');
+        return;
+      }
+
+      // Calculate time elapsed in days
+      const timeElapsedMs = Date.now() - stakingStartTime;
+      const timeElapsedDays = timeElapsedMs / (1000 * 60 * 60 * 24);
+      
+      // Calculate earnings: (stakedAmount * APY / 100) * (timeElapsedDays / 365)
+      const annualEarnings = staked * (apy / 100);
+      const currentEarnings = annualEarnings * (timeElapsedDays / 365);
+      
+      setEarnings(Math.max(0, currentEarnings).toFixed(6));
+    };
+
+    // Calculate immediately
+    calculateEarnings();
+
+    // Update every 3 seconds
+    const interval = setInterval(calculateEarnings, 3000);
+
+    return () => clearInterval(interval);
+  }, [stakedAmount, apy, stakingStartTime]);
 
   // Load R1X balance
   useEffect(() => {
@@ -300,12 +345,28 @@ export default function R1xStakingContent() {
       const newStaked = currentStaked + amount;
       setStakedAmount(newStaked.toFixed(6));
 
-      // Store in localStorage
-      const stakingData: StakingData = {
-        amount: newStaked.toFixed(6),
-        timestamp: Date.now(),
-      };
-      localStorage.setItem(`r1x_staking_${solanaAddress}`, JSON.stringify(stakingData));
+      // Save to database
+      const saveResponse = await fetch('/api/staking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userAddress: solanaAddress,
+          stakedAmount: newStaked.toFixed(6),
+        }),
+      });
+
+      if (saveResponse.ok) {
+        const savedData = await saveResponse.json();
+        // Update staking start time from database response
+        if (savedData.createdAt) {
+          const createdAt = new Date(savedData.createdAt).getTime();
+          setStakingStartTime(createdAt);
+        }
+      } else {
+        console.error('Failed to save staking data to database');
+      }
 
       setSuccess(`Successfully staked ${depositAmount} R1X! Transaction: ${signature.slice(0, 8)}...`);
       setDepositAmount('');
@@ -322,7 +383,7 @@ export default function R1xStakingContent() {
     }
   };
 
-  const handleUnstake = () => {
+  const handleUnstake = async () => {
     if (!solanaAddress) return;
     
     const staked = parseFloat(stakedAmount);
@@ -331,15 +392,33 @@ export default function R1xStakingContent() {
       return;
     }
 
-    // Start countdown timer
-    setUnstakingCountdown(3600); // 1 hour = 3600 seconds
-    setIsUnstaking(true);
-    
-    // Store start time in localStorage
-    localStorage.setItem(`r1x_unstaking_start_${solanaAddress}`, Date.now().toString());
-    
-    setError('');
-    setSuccess('Unstake initiated. Please wait for the countdown to complete.');
+    try {
+      // Initiate unstake via API
+      const response = await fetch('/api/staking/unstake/initiate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userAddress: solanaAddress,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Start countdown timer
+        setUnstakingCountdown(3600); // 1 hour = 3600 seconds
+        setIsUnstaking(true);
+        setError('');
+        setSuccess('Unstake initiated. Please wait for the countdown to complete.');
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to initiate unstake');
+      }
+    } catch (err: any) {
+      console.error('Unstake error:', err);
+      setError(err.message || 'Failed to initiate unstake');
+    }
   };
 
   const formatCountdown = (seconds: number): string => {
@@ -606,6 +685,23 @@ export default function R1xStakingContent() {
                       {parseFloat(stakedAmount).toLocaleString(undefined, { maximumFractionDigits: 6 })}
                       <span className="text-xl text-gray-500 ml-2">R1X</span>
                     </p>
+                    {parseFloat(stakedAmount) > 0 && (
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <p 
+                          className="text-gray-600 text-xs mb-2 uppercase tracking-wider"
+                          style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                        >
+                          Earnings
+                        </p>
+                        <p 
+                          className="text-xl font-bold text-[#FF4D00]"
+                          style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}
+                        >
+                          {parseFloat(earnings).toLocaleString(undefined, { maximumFractionDigits: 6 })}
+                          <span className="text-sm text-gray-500 ml-2">R1X</span>
+                        </p>
+                      </div>
+                    )}
                   </motion.div>
                 </div>
 
