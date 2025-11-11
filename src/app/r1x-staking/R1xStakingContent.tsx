@@ -183,52 +183,53 @@ export default function R1xStakingContent() {
   }, [historicalApy]);
 
   // Load staked amount from database
-  useEffect(() => {
-    const loadStakingData = async () => {
-      if (!solanaAddress) return;
+  const loadStakingData = async () => {
+    if (!solanaAddress) return;
 
-      try {
-        const response = await fetch(`/api/staking?userAddress=${encodeURIComponent(solanaAddress)}`);
-        if (response.ok) {
-          const data = await response.json();
-          setStakedAmount(data.stakedAmount || '0');
-          
-          // Set staking start time from createdAt
-          if (data.createdAt) {
-            const createdAt = new Date(data.createdAt).getTime();
-            setStakingStartTime(createdAt);
-          } else {
-            setStakingStartTime(null);
-          }
+    try {
+      const response = await fetch(`/api/staking?userAddress=${encodeURIComponent(solanaAddress)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setStakedAmount(data.stakedAmount || '0');
+        
+        // Set staking start time from createdAt
+        if (data.createdAt) {
+          const createdAt = new Date(data.createdAt).getTime();
+          setStakingStartTime(createdAt);
+        } else {
+          setStakingStartTime(null);
+        }
 
-          // Check for existing unstake countdown
-          if (data.status === 'unstaking' && data.unstakeRequestedAt) {
-            const unstakeStart = new Date(data.unstakeRequestedAt).getTime();
-            const elapsed = Math.floor((Date.now() - unstakeStart) / 1000);
-            const remaining = Math.max(0, 3600 - elapsed);
-            if (remaining > 0) {
-              setUnstakingCountdown(remaining);
-              setIsUnstaking(true);
-            } else {
-              setIsUnstaking(false);
-              setUnstakingCountdown(null);
-            }
+        // Check for existing unstake countdown
+        if (data.status === 'unstaking' && data.unstakeRequestedAt) {
+          const unstakeStart = new Date(data.unstakeRequestedAt).getTime();
+          const elapsed = Math.floor((Date.now() - unstakeStart) / 1000);
+          const remaining = Math.max(0, 3600 - elapsed);
+          if (remaining > 0) {
+            setUnstakingCountdown(remaining);
+            setIsUnstaking(true);
           } else {
             setIsUnstaking(false);
             setUnstakingCountdown(null);
           }
         } else {
-          setStakedAmount('0');
-          setStakingStartTime(null);
+          setIsUnstaking(false);
+          setUnstakingCountdown(null);
         }
-      } catch (error) {
-        console.error('Failed to load staking data:', error);
+      } else {
         setStakedAmount('0');
         setStakingStartTime(null);
       }
-    };
+    } catch (error) {
+      console.error('Failed to load staking data:', error);
+      setStakedAmount('0');
+      setStakingStartTime(null);
+    }
+  };
 
+  useEffect(() => {
     loadStakingData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [solanaAddress]);
 
   // Countdown timer for unstaking
@@ -293,19 +294,19 @@ export default function R1xStakingContent() {
   }, [solanaAddress, isSolanaConnected]);
 
   // Load TVL (Total Value Locked)
-  useEffect(() => {
-    const loadTvl = async () => {
-      try {
-        const response = await fetch('/api/staking/tvl');
-        if (response.ok) {
-          const data = await response.json();
-          setTvl(data.tvl || '0');
-        }
-      } catch (error) {
-        console.error('Failed to load TVL:', error);
+  const loadTvl = async () => {
+    try {
+      const response = await fetch('/api/staking/tvl');
+      if (response.ok) {
+        const data = await response.json();
+        setTvl(data.tvl || '0');
       }
-    };
+    } catch (error) {
+      console.error('Failed to load TVL:', error);
+    }
+  };
 
+  useEffect(() => {
     loadTvl();
     // Refresh TVL every 10 seconds
     const interval = setInterval(loadTvl, 10000);
@@ -362,7 +363,7 @@ export default function R1xStakingContent() {
         amount: depositAmount,
       });
 
-      // Update staked amount
+      // Update staked amount locally (optimistic update)
       const currentStaked = parseFloat(stakedAmount);
       const newStaked = currentStaked + amount;
       setStakedAmount(newStaked.toFixed(6));
@@ -381,22 +382,21 @@ export default function R1xStakingContent() {
 
       if (saveResponse.ok) {
         const savedData = await saveResponse.json();
-        // Update staking start time from database response
-        if (savedData.createdAt) {
-          const createdAt = new Date(savedData.createdAt).getTime();
-          setStakingStartTime(createdAt);
-        }
+        // Reload staking data from database to ensure sync
+        await loadStakingData();
         // Refresh TVL
-        const tvlResponse = await fetch('/api/staking/tvl');
-        if (tvlResponse.ok) {
-          const tvlData = await tvlResponse.json();
-          setTvl(tvlData.tvl || '0');
-        }
+        await loadTvl();
+        
+        setSuccess(`Successfully staked ${depositAmount} R1X! Transaction: ${signature.slice(0, 8)}...`);
       } else {
-        console.error('Failed to save staking data to database');
+        // Save failed - reload from database to get correct state
+        const errorData = await saveResponse.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Failed to save staking data to database:', errorData);
+        await loadStakingData(); // Reload to get correct state
+        setError(`Failed to save staking data: ${errorData.error || 'Unknown error'}. Please refresh the page.`);
+        return; // Exit early on save failure
       }
 
-      setSuccess(`Successfully staked ${depositAmount} R1X! Transaction: ${signature.slice(0, 8)}...`);
       setDepositAmount('');
       
       // Reload balance after a short delay to allow blockchain to update
