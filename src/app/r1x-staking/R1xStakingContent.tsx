@@ -812,20 +812,68 @@ export default function R1xStakingContent() {
               <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center shadow-sm">
                 <div className="max-w-md mx-auto">
                   <p 
-                    className="text-gray-700 mb-8 text-lg"
+                    className="text-gray-700 mb-6 text-lg"
                     style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
                   >
                     Connect your Solana wallet to start staking $R1X tokens
                   </p>
+                  
+                  {/* Direct Phantom connection button */}
+                  {typeof window !== 'undefined' && (window as any).phantom?.solana && (
+                    <motion.button
+                      onClick={async () => {
+                        try {
+                          const phantom = (window as any).phantom?.solana;
+                          if (phantom) {
+                            // Try direct connection first
+                            if (!phantom.isConnected) {
+                              const response = await phantom.connect({ onlyIfTrusted: false });
+                              // Phantom will prompt user, useWallet hook will detect connection
+                            }
+                          }
+                        } catch (error: any) {
+                          console.error('Direct Phantom connection failed:', error);
+                          // If user rejected or error, open modal to network selection
+                          // @ts-ignore - AppKit modal.open accepts options
+                          modal.open({ view: 'Networks' });
+                        }
+                      }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full mb-4 px-8 py-4 bg-[#AB9FF2] text-white rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-3"
+                      style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '14px' }}
+                    >
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
+                        <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Connect with Phantom
+                    </motion.button>
+                  )}
+                  
                   <motion.button
-                    onClick={() => modal.open()}
+                    onClick={() => {
+                      // Open modal to network selection view so users can easily find Solana
+                      // @ts-ignore - AppKit modal.open accepts options
+                      modal.open({ view: 'Networks' });
+                    }}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="px-8 py-4 bg-[#FF4D00] text-white rounded-lg hover:opacity-90 transition-opacity"
                     style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '14px' }}
                   >
-                    CONNECT WALLET
+                    {typeof window !== 'undefined' && (window as any).phantom?.solana ? 'Other Wallets' : 'CONNECT WALLET'}
                   </motion.button>
+                  
+                  {typeof window !== 'undefined' && !(window as any).phantom?.solana && (
+                    <p 
+                      className="text-gray-500 text-sm mt-4"
+                      style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                    >
+                      Don't have Phantom? <a href="https://phantom.app" target="_blank" rel="noopener noreferrer" className="text-[#FF4D00] hover:underline">Install Phantom Wallet</a>
+                    </p>
+                  )}
                 </div>
               </div>
             ) : (

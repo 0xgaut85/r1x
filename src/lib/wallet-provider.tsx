@@ -101,7 +101,11 @@ const wagmiAdapter = new WagmiAdapter({
 // Initialize SolanaAdapter (per Reown docs)
 // SolanaAdapter reads RPC URL from the network configuration in createAppKit
 // We ensure solanaNetwork has a valid rpcUrl above
-const solanaAdapter = new SolanaAdapter();
+// Configure SolanaAdapter to prioritize Phantom wallet
+const solanaAdapter = new SolanaAdapter({
+  // Prioritize Phantom wallet for better UX
+  preferredWallets: ['phantom', 'solflare'],
+});
 
 if (typeof window !== 'undefined') {
   const defaultSolanaRpcUrl = (solana as any)?.rpcUrl;
