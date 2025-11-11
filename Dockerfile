@@ -64,6 +64,9 @@ ENV NEXT_PUBLIC_LOGOKIT_API_KEY=${NEXT_PUBLIC_LOGOKIT_API_KEY}
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
+# Generate Prisma Client before building (ensures types are available for TypeScript)
+RUN npx prisma generate
+
 # Build Next.js with optimizations
 # Use npx to ensure next command is found, or use npm run build
 RUN NEXT_TELEMETRY_DISABLED=1 npx next build
