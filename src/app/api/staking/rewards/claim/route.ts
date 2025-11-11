@@ -22,7 +22,9 @@ export async function POST(request: NextRequest) {
     // Get active campaign
     let campaign: {
       id: string;
+      startTime: Date;
       endTime: Date;
+      totalRewards: string;
     } | null = null;
 
     // @ts-ignore
@@ -34,14 +36,16 @@ export async function POST(request: NextRequest) {
       });
     } else {
       const rows = (await prisma.$queryRaw`
-        SELECT "id", "endTime"
+        SELECT "id", "startTime", "endTime", "totalRewards"
         FROM "RewardsCampaign"
         WHERE "isActive" = true
         ORDER BY "createdAt" DESC
         LIMIT 1
       `) as Array<{
         id: string;
+        startTime: Date;
         endTime: Date;
+        totalRewards: string;
       }>;
       campaign = rows?.[0] ?? null;
     }
