@@ -14,7 +14,8 @@ nixPkgs = ["nodejs-20_x"]
 cmds = ["npm ci --prefer-offline --no-audit --include=dev"]
 
 [phases.build]
-# Prisma generate runs in postinstall, but explicitly run it before build to ensure types are available
+# Ensure Prisma Client is generated before TypeScript compilation
+# Run prisma generate explicitly to ensure types are available
 cmds = ["npx prisma generate", "npm run build"]
 
 [start]

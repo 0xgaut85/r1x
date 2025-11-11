@@ -10,7 +10,7 @@
     "dev": "next dev",
     "dev:x402": "tsx watch x402-server/index.ts",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:x402\"",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
@@ -21,7 +21,11 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "load-test": "tsx scripts/load-test-agent.ts",
+    "generate-load-test-keys": "tsx scripts/generate-load-test-keys.ts",
+    "generate-new-wallets": "tsx scripts/generate-new-wallets.ts",
+    "transfer-funds": "tsx scripts/transfer-all-funds.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",

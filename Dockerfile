@@ -65,11 +65,12 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
 # Generate Prisma Client before building (ensures types are available for TypeScript)
+# Note: Also runs in npm run build, but explicit here for clarity
 RUN npx prisma generate
 
 # Build Next.js with optimizations
-# Use npx to ensure next command is found, or use npm run build
-RUN NEXT_TELEMETRY_DISABLED=1 npx next build
+# Use npm run build to ensure build script runs (which includes prisma generate as safety net)
+RUN NEXT_TELEMETRY_DISABLED=1 npm run build
 
 # Production image
 FROM base AS runner
