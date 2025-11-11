@@ -7,6 +7,16 @@ import { prisma } from '@/lib/db';
  */
 export async function GET(request: NextRequest) {
   try {
+    // Check if staking model exists (graceful degradation)
+    if (!prisma.staking) {
+      console.error('[TVL GET] Prisma Client staking model not available');
+      return NextResponse.json({
+        tvl: '0',
+        stakerCount: 0,
+        error: 'Staking model not available - migration may be pending',
+      });
+    }
+
     // Get all active staking records
     const allStaking = await prisma.staking.findMany({
       where: {
