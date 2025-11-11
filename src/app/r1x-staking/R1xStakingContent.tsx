@@ -30,6 +30,7 @@ export default function R1xStakingContent() {
   const [isUnstaking, setIsUnstaking] = useState(false);
   const [earnings, setEarnings] = useState<string>('0');
   const [stakingStartTime, setStakingStartTime] = useState<number | null>(null);
+  const [tvl, setTvl] = useState<string>('0');
 
   // Generate historical APY data (last 30 days starting from Nov 11, 2025)
   useEffect(() => {
@@ -291,6 +292,27 @@ export default function R1xStakingContent() {
     }
   }, [solanaAddress, isSolanaConnected]);
 
+  // Load TVL (Total Value Locked)
+  useEffect(() => {
+    const loadTvl = async () => {
+      try {
+        const response = await fetch('/api/staking/tvl');
+        if (response.ok) {
+          const data = await response.json();
+          setTvl(data.tvl || '0');
+        }
+      } catch (error) {
+        console.error('Failed to load TVL:', error);
+      }
+    };
+
+    loadTvl();
+    // Refresh TVL every 10 seconds
+    const interval = setInterval(loadTvl, 10000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const loadBalance = async () => {
     if (!solanaAddress) return;
     try {
@@ -363,6 +385,12 @@ export default function R1xStakingContent() {
         if (savedData.createdAt) {
           const createdAt = new Date(savedData.createdAt).getTime();
           setStakingStartTime(createdAt);
+        }
+        // Refresh TVL
+        const tvlResponse = await fetch('/api/staking/tvl');
+        if (tvlResponse.ok) {
+          const tvlData = await tvlResponse.json();
+          setTvl(tvlData.tvl || '0');
         }
       } else {
         console.error('Failed to save staking data to database');
@@ -505,6 +533,43 @@ export default function R1xStakingContent() {
               </div>
             </motion.div>
 
+            {/* TVL Display Card */}
+            <motion.div
+              className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 mb-8 shadow-sm"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            >
+              <div className="text-center">
+                <p 
+                  className="text-gray-600 text-sm mb-3 uppercase tracking-wider"
+                  style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                >
+                  Total Value Locked
+                </p>
+                <motion.div
+                  key={tvl}
+                  initial={{ scale: 0.95, opacity: 0.8 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                >
+                  <p 
+                    className="text-4xl sm:text-5xl md:text-6xl font-bold text-black"
+                    style={{ fontFamily: 'TWKEverett-Regular, sans-serif' }}
+                  >
+                    {parseFloat(tvl).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    <span className="text-2xl sm:text-3xl md:text-4xl text-gray-500 ml-2">R1X</span>
+                  </p>
+                </motion.div>
+                <p 
+                  className="text-gray-500 text-xs mt-2"
+                  style={{ fontFamily: 'TWKEverettMono-Regular, monospace' }}
+                >
+                  Total $R1X staked across all users
+                </p>
+              </div>
+            </motion.div>
+
             {/* APY Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               {/* Historical APY Chart */}
@@ -611,7 +676,6 @@ export default function R1xStakingContent() {
                         stroke="#FF6B35" 
                         strokeWidth={2} 
                         name="Projected APY (%)" 
-                        strokeDasharray="5 5"
                         dot={{ r: 2 }} 
                         activeDot={{ r: 4 }} 
                       />
