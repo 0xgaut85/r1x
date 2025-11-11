@@ -7,6 +7,24 @@ import { prisma } from '@/lib/db';
  */
 export async function GET(request: NextRequest) {
   try {
+    // Ensure prisma is initialized
+    if (!prisma) {
+      console.error('[Staking GET] Prisma Client is not initialized');
+      return NextResponse.json(
+        { error: 'Database connection failed. Please try again.' },
+        { status: 500 }
+      );
+    }
+
+    // Ensure staking model is available
+    if (!prisma.staking) {
+      console.error('[Staking GET] Prisma Client staking model not available. Prisma Client may need to be regenerated.');
+      return NextResponse.json(
+        { error: 'Database configuration error. Please contact support.' },
+        { status: 500 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const userAddress = searchParams.get('userAddress');
 
@@ -51,6 +69,24 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Ensure prisma is initialized
+    if (!prisma) {
+      console.error('[Staking POST] Prisma Client is not initialized');
+      return NextResponse.json(
+        { error: 'Database connection failed. Please try again.' },
+        { status: 500 }
+      );
+    }
+
+    // Ensure staking model is available
+    if (!prisma.staking) {
+      console.error('[Staking POST] Prisma Client staking model not available. Prisma Client may need to be regenerated.');
+      return NextResponse.json(
+        { error: 'Database configuration error. Please contact support.' },
+        { status: 500 }
+      );
+    }
+
     const body = await request.json();
     const { userAddress, stakedAmount } = body;
 
