@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { useWallet } from '@/hooks/useWallet';
-import { modal } from '@/lib/wallet-provider';
+import { solanaModal } from '@/lib/solana-wallet-provider';
 import { transferR1X, getR1XBalance } from '@/lib/solana-r1x-transfer';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -376,7 +376,7 @@ export default function R1xStakingContent() {
 
   const handleDeposit = async () => {
     if (!isSolanaConnected || !solanaAddress) {
-      modal.open();
+      solanaModal.open();
       return;
     }
 
@@ -827,15 +827,20 @@ export default function R1xStakingContent() {
                           if (phantom) {
                             // Try direct connection first
                             if (!phantom.isConnected) {
-                              const response = await phantom.connect({ onlyIfTrusted: false });
+                              await phantom.connect({ onlyIfTrusted: false });
                               // Phantom will prompt user, useWallet hook will detect connection
                             }
                           }
                         } catch (error: any) {
-                          console.error('Direct Phantom connection failed:', error);
-                          // If user rejected or error, open modal to network selection
-                          // @ts-ignore - AppKit modal.open accepts options
-                          modal.open({ view: 'Networks' });
+                          // Handle user rejection gracefully
+                          if (error.code === 4001) {
+                            console.log('User rejected Phantom connection');
+                            // Don't show error, just let them try again
+                          } else {
+                            console.error('Direct Phantom connection failed:', error);
+                            // Fall back to Solana-only modal
+                            solanaModal.open();
+                          }
                         }
                       }}
                       whileHover={{ scale: 1.02 }}
@@ -854,16 +859,15 @@ export default function R1xStakingContent() {
                   
                   <motion.button
                     onClick={() => {
-                      // Open modal to network selection view so users can easily find Solana
-                      // @ts-ignore - AppKit modal.open accepts options
-                      modal.open({ view: 'Networks' });
+                      // Open Solana-only modal (no EVM wallets, cleaner UX)
+                      solanaModal.open();
                     }}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="px-8 py-4 bg-[#FF4D00] text-white rounded-lg hover:opacity-90 transition-opacity"
                     style={{ fontFamily: 'TWKEverettMono-Regular, monospace', fontSize: '14px' }}
                   >
-                    {typeof window !== 'undefined' && (window as any).phantom?.solana ? 'Other Wallets' : 'CONNECT WALLET'}
+                    {typeof window !== 'undefined' && (window as any).phantom?.solana ? 'Other Solana Wallets' : 'CONNECT SOLANA WALLET'}
                   </motion.button>
                   
                   {typeof window !== 'undefined' && !(window as any).phantom?.solana && (
